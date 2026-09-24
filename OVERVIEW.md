@@ -438,7 +438,7 @@ Channel    nhiều ───────── 1     Batch (hoặc NULL nếu tr
 
 Tóm lại:
 
-- **Reservoir** là nguồn dung dịch vật lý. Đo pH/EC/DO ở đây.
+- **Reservoir** là nguồn dung dịch vật lý. Đo pH, EC, TDS và nhiệt độ nước (Water Temperature) tại đây.
 - **Channel** là máng trồng vật lý. Gắn với 1 Reservoir và 1 Batch tại mỗi thời điểm.
 - **Batch** là lô cây logic. Có thể trải trên nhiều Channel, nhiều Reservoir.
 
@@ -502,7 +502,7 @@ Dung dịch dinh dưỡng trong bể không dùng mãi mãi. Sau một lô hoặ
 - batch_id đang kết thúc
 - drain_date
 - volume_drained (lít)
-- final_pH / final_EC / final_DO (đo trước khi xả)
+- final_pH / final_EC / final_Water_Temp (đo trước khi xả)
 - reason (end_of_batch / scheduled_replacement / contamination / other)
 - operator
 - notes
@@ -584,16 +584,17 @@ Kỹ sư sau khi châm dung dịch có thể bấm nút **Xác nhận đã châm
 
 Kỹ sư lấy mẫu định kỳ trên lô cây trồng để lưu vào bản ghi **CropObservation**:
 
-Thông số đo đạc tối thiểu:
+Thông số đo đạc thực tế từ chu kỳ canh tác:
 
 - Ngày ghi nhận (`date`);
 - Tuổi cây tính từ ngày gieo (`plantAgeDays`);
-- Chiều cao cây trung bình (`avgHeightCm`);
+- Đường kính tán lá định kỳ (`headDiameter` - tính toán theo kích thước tán đo đạc thực tế $a \times b$ cm);
 - Số lá thật trung bình (`avgLeafCount`);
-- Khối lượng tươi mẫu thử (`sampleWeightG`);
-- Ghi chú sinh lý (`notes` - ví dụ: chóp lá cháy nhẹ, rễ trắng khỏe).
+- Số lá ban đầu lúc chuyển máng (`initialLeafCount` trích xuất từ dữ liệu Seedling);
+- Chiều cao cây ban đầu (`initialHeightCm`);
+- Ghi chú sinh lý (`notes` - ví dụ: rễ trắng khỏe, tán phát triển đều).
 
-Dữ liệu `CropObservation` mới nhất được gắn trực tiếp vào lô trồng (`batch.lastObservation`) và đóng vai trò là feature hình thái sinh học quan trọng cho mô hình AI dự báo năng suất.
+Dữ liệu `CropObservation` mới nhất được gắn trực tiếp vào lô trồng (`batch.lastObservation`) và kết hợp với dữ liệu chuỗi thời gian lý hóa tích lũy đóng vai trò là feature sinh học quan trọng cho mô hình AI dự báo năng suất.
 
 ---
 
@@ -775,13 +776,16 @@ Mô hình tích hợp nguyên lý nông học thực nghiệm (Frontiers in Plan
 
 ### Feature sử dụng
 
-- Thông tin giống (`cultivarName`, `targetCycleDays`, `expectedWeightG`)
-- Độ tuổi cây (`plantAgeDays`)
-- Số lá trung bình (`leafCount`)
-- Chiều cao cây (`plantHeightCm`)
-- Nồng độ dinh dưỡng dung dịch (`avgEc`)
-- Độ pH dung dịch (`avgPh`)
-- Nhiệt độ nước bồn (`avgWaterTemp`)
+- Thông tin giống (`cultivarName`: Batavia lettuce, `targetCycleDays`: 30-35 ngày)
+- Độ tuổi cây tính theo ngày (`plantAgeDays`)
+- Đường kính tán lá trung bình (`avgHeadDiameterCm` trích xuất từ lịch sử đo định kỳ)
+- Đặc trưng cây con ban đầu (`initialPlantHeight`, `initialShootLength`, `initialLeafCount`)
+- Nồng độ dinh dưỡng dung dịch tích lũy (`avgEc`)
+- Độ pH dung dịch tích lũy (`avgPh`)
+- Nhiệt độ nước bồn trung bình (`avgWaterTemp`)
+- Nhiệt độ không khí trung bình (`avgAirTemp`)
+- Độ ẩm không khí trung bình (`avgHumidity`)
+- Lượng châm phân mẹ bổ sung (`totalNutrientAB_ml`) và lượng axit cân bằng pH (`totalAcid_ml`)
 - Số lượng cây kỳ vọng (`expectedPlants`)
 
 ### Output
@@ -924,9 +928,9 @@ Rule Engine sinh ra cảnh báo khi pH lệch ngưỡng. Nhưng nếu hệ thố
 
 | Mức | Tên | Ví dụ | Cần xử lý trong |
 |---|---|---|---|
-| 1 | INFO | EC gần ngưỡng dưới | Trong ca làm việc |
-| 2 | WARNING | pH lệch khỏi target ± 0.3 | Trong 2 giờ |
-| 3 | CRITICAL | DO < 4 mg/L, bơm dừng | Ngay lập tức |
+| 1 | INFO | EC gần chạm ngưỡng dưới (1.3 mS/cm) | Trong ca làm việc |
+| 2 | WARNING | pH lệch khỏi target (pH < 5.5 hoặc pH > 6.5) | Trong 2 giờ |
+| 3 | CRITICAL | Water Temperature > 24.5°C (nguy cơ thối rễ Pythium), hoặc Bơm tuần hoàn dừng | Ngay lập tức |
 
 ## Ai nhận cảnh báo
 
@@ -948,7 +952,7 @@ Trong MVP không cần push notification thật. Có thể hiển thị trong Al
 
 - alert_id
 - reservoir_id hoặc batch_id (nguồn gốc)
-- alert_type (pH_low / pH_high / EC_low / EC_high / DO_low / temp_high / ...)
+- alert_type (pH_low / pH_high / EC_low / EC_high / water_temp_high / air_temp_high / rh_low / rh_high / pump_stopped / ...)
 - severity (INFO / WARNING / CRITICAL)
 - triggered_value (giá trị đo được khi kích hoạt)
 - threshold_value (ngưỡng bị vi phạm)
@@ -985,15 +989,15 @@ Trong MVP không cần push notification thật. Có thể hiển thị trong Al
 6. Đánh dấu RESOLVED
 ```
 
-### DO thấp (DO_low) — CRITICAL
+### Nhiệt độ nước bồn quá cao (Water_Temp_High) — CRITICAL
 
 ```text
-1. Kiểm tra ngay máy sục khí / air pump còn chạy không
-2. Kiểm tra nhiệt độ dung dịch (nhiệt cao làm giảm DO)
-3. Nếu pump hỏng: kích hoạt pump dự phòng hoặc sục khí thủ công ngay
-4. Nếu nhiệt độ cao: kiểm tra chiller, che nắng bể
-5. Ghi nhận sự cố thiết bị nếu có
-6. Đánh dấu RESOLVED sau khi DO > 6 mg/L trở lại
+1. Kiểm tra hệ thống làm mát dung dịch (quạt giải nhiệt hoặc chiller bồn)
+2. Kiểm tra nhiệt độ môi trường xung quanh nhà màng
+3. Che chắn nắng trực tiếp chiếu vào bồn chứa dinh dưỡng
+4. Châm bổ sung nước mát sạch nếu thể tích bồn đang thấp
+5. Kích hoạt bơm sục tuần hoàn phụ để hạ nhiệt dung dịch
+6. Đánh dấu RESOLVED sau khi nhiệt độ nước quay về ngưỡng an toàn (< 23°C)
 ```
 
 ## Suppression – tránh spam cảnh báo
@@ -1010,19 +1014,14 @@ Nếu điều kiện vi phạm liên tục (ví dụ EC thấp kéo dài 3 tiế
 
 ## 22.1. Hydroponic Farming Data – Mendeley Data (2025)
 
-Batavia lettuce được theo dõi theo:
+Batavia lettuce được theo dõi theo chuỗi thời gian lý hóa và sinh khối thực nghiệm:
 
-- water temperature;
-- EC;
-- pH;
-- ảnh cây.
+- Water quality: pH, EC, TDS, Water Temperature;
+- Environmental metrics: Air Temperature, Relative Humidity, CO2;
+- Dinh dưỡng & hóa chất: Lượng châm phân A+B (ml), lượng axit điều chỉnh pH (ml);
+- Sinh trắc học & Năng suất: Kích thước cây con, đường kính tán lá định kỳ và khối lượng tươi khi thu hoạch (shoot weight).
 
-Dataset có **hơn 390.000 ảnh**, phù hợp:
-
-- Big Data;
-- growth prediction;
-- anomaly detection;
-- computer vision nếu muốn mở rộng.
+*Ghi chú phạm vi (Scope Boundary):* Bộ dữ liệu gốc có đính kèm ảnh chụp camera. Tuy nhiên, để bám sát trọng tâm chuyên môn Hóa học và đảm bảo khả thi cho phiên bản MVP của đồ án, đề tài **tập trung khai thác 100% dữ liệu số dạng bảng (Numerical Tabular Sensor & Lab Data)**, loại bỏ module thị giác máy tính (Computer Vision/YOLO) khỏi phạm vi triển khai.
 
 Link:
 
