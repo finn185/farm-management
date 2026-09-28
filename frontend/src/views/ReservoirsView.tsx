@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Plus, 
-  RefreshCw,
-  Calculator,
-  FlaskConical,
+  Droplet,
   CheckCircle2,
-  AlertTriangle,
   Layers,
-  Trash2,
-  History
+  History,
+  FlaskConical,
+  X
 } from 'lucide-react';
 import type { Reservoir, NutrientFormula, Channel, SolutionDrainEvent, CropBatch } from '../types/farm';
-import { AgronomicTooltip } from '../components/AgronomicTooltip';
 
 interface ReservoirsViewProps {
   reservoirs: Reservoir[];
@@ -36,817 +33,561 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   onDrainReservoir,
   onApplyDosing
 }) => {
-  const [selectedResId, setSelectedResId] = useState<string>(reservoirs[0]?.id || '');
-  const [selectedFormulaId, setSelectedFormulaId] = useState<string>(formulas[0]?.id || '');
+  // Modal states
+  const [activeModalResId, setActiveModalResId] = useState<string>(reservoirs[0]?.id || '');
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [isDrainModalOpen, setIsDrainModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dosing' | 'channels' | 'history'>('dosing');
-  const [dosingSuccessMsg, setDosingSuccessMsg] = useState<string | null>(null);
+  const [isDrainHistoryModalOpen, setIsDrainHistoryModalOpen] = useState(false);
+  const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
 
-  // Selected reservoir & formula
-  const selectedRes = reservoirs.find(r => r.id === selectedResId) || reservoirs[0];
-  const activeFormula = formulas.find(f => f.id === selectedFormulaId) || formulas[0];
+  // Per-reservoir Target EC state
+  const defaultFormula = formulas[0];
+  const [targetEcs, setTargetEcs] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    reservoirs.forEach(r => {
+      init[r.id] = r.currentEc < 1.7 ? 1.75 : r.currentEc;
+    });
+    return init;
+  });
 
-  // Measure form state
-  const [formPh, setFormPh] = useState(selectedRes ? selectedRes.currentPh : 5.85);
-  const [formEc, setFormEc] = useState(selectedRes ? selectedRes.currentEc : 1.72);
-  const [formTemp, setFormTemp] = useState(selectedRes ? selectedRes.currentWaterTemp : 22.4);
+  // Success message
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Top up form state
+  // Form states
+  const activeModalRes = reservoirs.find(r => r.id === activeModalResId) || reservoirs[0];
+  const [formPh, setFormPh] = useState(5.85);
+  const [formEc, setFormEc] = useState(1.72);
+  const [formTemp, setFormTemp] = useState(22.4);
   const [topUpLiters, setTopUpLiters] = useState(50);
-
-  // Drain form state
   const [drainReason, setDrainReason] = useState<SolutionDrainEvent['reason']>('end_of_batch');
-  const [drainOperator, setDrainOperator] = useState('Kỹ sư Nông nghiệp');
+  const [drainOperator, setDrainOperator] = useState('Kỹ thuật viên');
   const [drainNotes, setDrainNotes] = useState('');
 
-  // Channels for selected reservoir
-  const resChannels = channels.filter(c => c.reservoirId === selectedResId);
-  const resDrainHistory = drainEvents.filter(e => e.reservoirId === selectedResId);
+  const openLogModal = (res: Reservoir) => {
+    setActiveModalResId(res.id);
+    setFormPh(res.currentPh);
+    setFormEc(res.currentEc);
+    setFormTemp(res.currentWaterTemp);
+    setIsLogModalOpen(true);
+  };
 
-  // Calculator State
-  const [calcTargetEc, setCalcTargetEc] = useState<number>(activeFormula ? activeFormula.targetEc : 1.75);
-  const [calcMode, setCalcMode] = useState<'topup' | 'new_tank'>('topup');
+  const openTopUpModal = (res: Reservoir) => {
+    setActiveModalResId(res.id);
+    setTopUpLiters(50);
+    setIsTopUpModalOpen(true);
+  };
 
-  // Sync state when selected reservoir changes
-  useEffect(() => {
-    if (selectedRes) {
-      setFormPh(selectedRes.currentPh);
-      setFormEc(selectedRes.currentEc);
-      setFormTemp(selectedRes.currentWaterTemp);
-    }
-  }, [selectedResId]);
-
-  useEffect(() => {
-    if (activeFormula) {
-      setCalcTargetEc(activeFormula.targetEc);
-    }
-  }, [selectedFormulaId]);
-
-  if (!selectedRes) {
-    return (
-      <div className="clean-card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <p>Chưa có bể dinh dưỡng nào được thiết lập.</p>
-      </div>
-    );
-  }
-
-  // Dosing calculation:
-  // Empirical rule: 10ml of Stock A + 10ml of Stock B per 100L increases EC by approx 0.10 mS/cm
-  const ecDeficit = Math.max(0, calcTargetEc - selectedRes.currentEc);
-  const dosingRatioFactor = (selectedRes.currentVolumeLiters / 100);
-  const recommendedDoseMlPerStock = Math.round((ecDeficit / 0.10) * 10 * dosingRatioFactor);
-
-  // Aliases for UI compatibility
-  const calcDeltaEc = ecDeficit;
-  const calculatedDoseMl = recommendedDoseMlPerStock;
-  const calculatedDoseLiters = (calculatedDoseMl / 1000).toFixed(2);
+  const openDrainModal = (res: Reservoir) => {
+    setActiveModalResId(res.id);
+    setDrainNotes('');
+    setIsDrainModalOpen(true);
+  };
 
   const handleLogSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAddMeasurement({
-      reservoirId: selectedResId,
+      reservoirId: activeModalResId,
       ph: parseFloat(String(formPh)),
       ec: parseFloat(String(formEc)),
       waterTemp: parseFloat(String(formTemp))
     });
     setIsLogModalOpen(false);
+    showNotice(`Đã lưu kết quả đo mới cho ${activeModalRes?.name.split('-')[0].trim() || 'bể'}`);
   };
 
   const handleTopUpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateVolume(selectedResId, Number(topUpLiters));
+    onUpdateVolume(activeModalResId, Number(topUpLiters));
     setIsTopUpModalOpen(false);
+    showNotice(`Đã bù ${topUpLiters}L nước sạch vào ${activeModalRes?.name.split('-')[0].trim() || 'bể'}`);
   };
 
   const handleDrainSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRes) return;
+    if (!activeModalRes) return;
     onDrainReservoir({
-      reservoirId: selectedResId,
+      reservoirId: activeModalResId,
       drainDate: new Date().toISOString().split('T')[0],
-      volumeDrainedLiters: selectedRes.currentVolumeLiters,
-      finalPh: selectedRes.currentPh,
-      finalEc: selectedRes.currentEc,
-      finalDo: selectedRes.currentDo ?? 6.5,
+      volumeDrainedLiters: activeModalRes.currentVolumeLiters,
+      finalPh: activeModalRes.currentPh,
+      finalEc: activeModalRes.currentEc,
+      finalDo: activeModalRes.currentDo ?? 6.5,
       reason: drainReason,
       operator: drainOperator,
       notes: drainNotes
     });
     setIsDrainModalOpen(false);
-    setDrainNotes('');
+    showNotice(`Đã xả nước thành công cho ${activeModalRes.name.split('-')[0].trim()}`);
   };
 
-  const handleConfirmDosing = () => {
-    if (onApplyDosing && recommendedDoseMlPerStock > 0) {
-      onApplyDosing(selectedRes.id, calcTargetEc, recommendedDoseMlPerStock);
-      setDosingSuccessMsg(`Đã xác nhận châm ${recommendedDoseMlPerStock}ml Can A và Can B vào ${selectedRes.name.split('-')[0].trim()}! Nồng độ EC đã được cập nhật đạt chuẩn.`);
-      setTimeout(() => setDosingSuccessMsg(null), 5000);
+  const showNotice = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(null), 4000);
+  };
+
+  const handleApplyDosingForTank = (res: Reservoir, targetEc: number, doseMl: number) => {
+    if (onApplyDosing && doseMl > 0) {
+      onApplyDosing(res.id, targetEc, doseMl);
+      const shortName = res.name.split('-')[0].trim();
+      showNotice(`Đã châm ${doseMl}ml Can A và Can B vào ${shortName}. Nồng độ EC đã đạt ${targetEc} mS/cm.`);
     }
   };
 
-  const handleExecuteDosing = handleConfirmDosing;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* 1. Standardized Toolbar: Select Reservoir & Quick Actions */}
-      <div className="page-toolbar">
-        {/* Left: Switch Reservoir */}
-        <div className="toolbar-group">
-          <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-            Chọn bể dung dịch:
-          </label>
-          <div style={{ display: 'flex', backgroundColor: '#ffffff', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            {reservoirs.map(res => {
-              const isSelected = res.id === selectedResId;
-              return (
-                <button
-                  key={res.id}
-                  type="button"
-                  onClick={() => setSelectedResId(res.id)}
-                  style={{
-                    height: '32px',
-                    padding: '0 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: 'none',
-                    backgroundColor: isSelected ? 'var(--primary-600)' : 'transparent',
-                    color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span>{res.name.split('-')[0].trim()}</span>
-                  <span style={{
-                    fontSize: '0.6875rem',
-                    padding: '1px 6px',
-                    borderRadius: '9999px',
-                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--bg-subtle)',
-                    color: isSelected ? '#ffffff' : 'var(--text-subtle)'
-                  }}>
-                    {res.currentVolumeLiters}L ({Math.round((res.currentVolumeLiters / res.capacityLiters) * 100)}%)
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      {/* 1. Header Toolbar: Tinh gọn, không dài dòng */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+            Quản lý Bể Dinh Dưỡng
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+            Hệ thống hồi lưu NFT • {reservoirs.length} bồn nước đang hoạt động
+          </p>
         </div>
 
-        {/* Right: Actions */}
-        <div className="toolbar-group">
-          <button 
-            onClick={() => setIsTopUpModalOpen(true)}
-            className="btn btn-secondary"
-            style={{ height: '36px' }}
-          >
-            <RefreshCw size={14} />
-            <span>Châm thêm nước sạch</span>
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
-            onClick={() => setIsDrainModalOpen(true)}
-            className="btn btn-secondary"
-            style={{ height: '36px', color: 'var(--danger-text)', borderColor: 'var(--danger)' }}
+            onClick={() => setIsFormulaModalOpen(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.8rem' }}
           >
-            <Trash2 size={14} />
-            <span>Xả bể / Thay dung dịch</span>
+            <FlaskConical size={14} color="var(--primary-600)" />
+            <span>Công thức pha kho</span>
           </button>
-          <button 
-            onClick={() => setIsLogModalOpen(true)}
-            className="btn btn-primary"
-            style={{ height: '36px' }}
+
+          <button
+            onClick={() => setIsDrainHistoryModalOpen(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.8rem' }}
           >
-            <Plus size={14} />
-            <span>Ghi nhận số đo mới</span>
+            <History size={14} />
+            <span>Nhật ký xả nước ({drainEvents.length})</span>
           </button>
         </div>
       </div>
 
-      {/* Dosing Success Toast */}
-      {dosingSuccessMsg && (
+      {/* Success notification banner */}
+      {successMsg && (
         <div style={{
           backgroundColor: 'var(--primary-50)',
           border: '1px solid var(--primary-200)',
           borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
+          padding: '10px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '8px',
           color: 'var(--primary-900)',
-          fontSize: '0.875rem',
-          animation: 'fadeIn 0.2s ease-in'
+          fontSize: '0.85rem'
         }}>
-          <CheckCircle2 size={18} color="var(--primary-700)" />
-          <span>{dosingSuccessMsg}</span>
+          <CheckCircle2 size={16} color="var(--primary-600)" />
+          <span>{successMsg}</span>
         </div>
       )}
 
-      {/* 2. Top Section: 4 Clear KPI Cards of the Selected Tank */}
-      <div className="kpi-grid">
-        {/* Metric 1: pH */}
-        <div className="kpi-card">
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="kpi-label">Độ pH dung dịch</span>
-                <AgronomicTooltip 
-                  title="Độ pH dung dịch dinh dưỡng" 
-                  optimalRange="5.60 - 6.20" 
-                  explanation="Độ axit/kiềm ảnh hưởng trực tiếp đến khả năng hòa tan của muối khoáng. Giữ pH axit nhẹ giúp rễ cây hấp thu tối đa vi lượng Fe, Mn, Zn, Cu mà không bị kết tủa."
-                  warningNotice="Dùng dung dịch pH Down (H3PO4/HNO3) nếu pH > 6.5 hoặc pH Up (KOH) nếu pH < 5.5."
-                />
-              </div>
-              <span className={`badge ${selectedRes.currentPh >= 5.5 && selectedRes.currentPh <= 6.2 ? 'badge-success' : 'badge-warning'}`}>
-                {selectedRes.currentPh >= 5.5 && selectedRes.currentPh <= 6.2 ? 'Đạt chuẩn' : 'Cần cân chỉnh'}
-              </span>
-            </div>
-            <div className="kpi-value">
-              {selectedRes.currentPh.toFixed(2)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
-              Khoảng tối ưu: 5.60 - 6.20
-            </div>
-          </div>
-        </div>
+      {/* 2. Side-by-Side Tank Cards: Trực quan, xem được cả 2 bể ngay mà không cần cuộn trang */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+        gap: '18px'
+      }}>
+        {reservoirs.map((res, index) => {
+          const shortName = res.name.split('-')[0].trim();
+          const subTitle = res.name.split('-')[1]?.trim() || `Hệ thống ${index + 1}`;
+          const fillPercent = Math.round((res.currentVolumeLiters / res.capacityLiters) * 100);
+          
+          // Target EC for this tank
+          const currentTargetEc = targetEcs[res.id] ?? (res.currentEc < 1.7 ? 1.75 : res.currentEc);
+          const ecDeficit = Math.max(0, parseFloat((currentTargetEc - res.currentEc).toFixed(2)));
+          const doseMl = Math.round((ecDeficit / 0.10) * 10 * (res.currentVolumeLiters / 100));
 
-        {/* Metric 2: EC */}
-        <div className="kpi-card">
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="kpi-label">Độ dẫn điện dinh dưỡng (EC)</span>
-                <AgronomicTooltip 
-                  title="Nồng độ dẫn điện EC (Tải muối khoáng)" 
-                  optimalRange="1.50 - 1.85 mS/cm" 
-                  explanation="Chỉ số phản ánh tổng lượng phân bón muối khoáng hòa tan trong bể. Duy trì ổn định giúp búp xà lách phát triển khỏe, đạt trọng lượng mục tiêu."
-                  warningNotice="Khi EC tụt < 1.3 mS/cm, cần châm thêm dung dịch mẹ Can A và Can B theo tỷ lệ 1:1."
-                />
-              </div>
-              <span className={`badge ${selectedRes.currentEc >= 1.5 && selectedRes.currentEc <= 1.85 ? 'badge-success' : 'badge-warning'}`}>
-                {selectedRes.currentEc >= 1.5 && selectedRes.currentEc <= 1.85 ? 'Đạt chuẩn' : 'Lệch ngưỡng'}
-              </span>
-            </div>
-            <div className="kpi-value" style={{ color: 'var(--info-text)' }}>
-              {selectedRes.currentEc.toFixed(2)} <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>mS/cm</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
-              Mục tiêu: 1.60 - 1.80 mS/cm
-            </div>
-          </div>
-        </div>
+          // Tank channels
+          const resChans = channels.filter(c => c.reservoirId === res.id);
+          const totalActivePlants = resChans.reduce((sum, c) => sum + c.activePlants, 0);
 
-        {/* Metric 3: Water Temp */}
-        <div className="kpi-card">
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="kpi-label">Nhiệt độ nước bồn</span>
-                <AgronomicTooltip 
-                  title="Nhiệt độ nước bồn chứa" 
-                  optimalRange="20.0 - 23.5°C" 
-                  explanation="Nhiệt độ dung dịch mát giúp duy trì rễ cây trắng tinh, hô hấp và hấp thu phân bón khỏe mạnh."
-                  warningNotice="Nước ấm > 24.5°C làm tăng nguy cơ nấm bệnh Pythium bùng phát gây thối rễ xà lách."
-                />
-              </div>
-              <span className={`badge ${selectedRes.currentWaterTemp <= 24.0 ? 'badge-success' : 'badge-warning'}`}>
-                {selectedRes.currentWaterTemp <= 24.0 ? 'Mát mẻ' : 'Hơi ấm'}
-              </span>
-            </div>
-            <div className="kpi-value">
-              {selectedRes.currentWaterTemp.toFixed(1)} <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>°C</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
-              Tối ưu cho xà lách: 20 - 23.5°C
-            </div>
-          </div>
-        </div>
+          // Status badges
+          const isPhOk = res.currentPh >= 5.6 && res.currentPh <= 6.2;
+          const isEcOk = res.currentEc >= 1.5 && res.currentEc <= 1.85;
+          const isTempOk = res.currentWaterTemp >= 19 && res.currentWaterTemp <= 24;
 
-        {/* Metric 4: Water Volume */}
-        <div className="kpi-card">
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="kpi-label">Thể tích nước hiện tại</span>
-                <AgronomicTooltip 
-                  title="Mực nước & Thể tích bể" 
-                  explanation="Lượng nước dinh dưỡng hiện có trong bể chứa. Cần đảm bảo trên 50% dung tích để máy bơm tuần hoàn màng NFT luôn ổn định, tránh hụt nước khi nắng to."
-                />
-              </div>
-              <span className="badge badge-neutral">
-                {Math.round((selectedRes.currentVolumeLiters / selectedRes.capacityLiters) * 100)}% đầy
-              </span>
-            </div>
-            <div className="kpi-value">
-              {selectedRes.currentVolumeLiters} <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>/ {selectedRes.capacityLiters} L</span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
-              Tuần hoàn: Bơm {selectedRes.pumpStatus === 'running' ? 'Đang chạy' : 'Dừng'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Tab Navigation */}
-      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid var(--border-subtle)', paddingBottom: '0' }}>
-        {[
-          { id: 'dosing',   label: 'Châm dinh dưỡng & Công thức', icon: <Calculator size={14} /> },
-          { id: 'channels', label: 'Máng trồng (Channel)', icon: <Layers size={14} /> },
-          { id: 'history',  label: 'Lịch sử xả bể', icon: <History size={14} /> },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: '0.8125rem', fontWeight: 600,
-              color: activeTab === tab.id ? 'var(--primary-600)' : 'var(--text-muted)',
-              borderBottom: activeTab === tab.id ? '2px solid var(--primary-600)' : '2px solid transparent',
-              marginBottom: '-2px'
-            }}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 4. Main Operational Section: Dosing Tab */}
-      {activeTab === 'dosing' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1.25fr', gap: '20px' }}>
-        {/* Left Column: Châm dinh dưỡng vào bể */}
-        <div className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card-header" style={{ marginBottom: 0 }}>
-            <div>
-              <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calculator size={18} color="var(--primary-600)" />
-                <span>Châm dinh dưỡng vào {selectedRes.name.split('-')[0].trim()}</span>
-              </h3>
-              <p className="card-subtitle">
-                Định lượng dung dịch mẹ Stock A & B cần rót vào bể ({selectedRes.currentVolumeLiters}L nước)
-              </p>
-            </div>
-          </div>
-
-          {/* Status Indicator */}
-          <div style={{
-            backgroundColor: calcDeltaEc === 0 ? 'var(--primary-50)' : '#fffbeb',
-            border: `1px solid ${calcDeltaEc === 0 ? 'var(--primary-200)' : '#fde68a'}`,
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            {calcDeltaEc === 0 ? (
-              <CheckCircle2 size={18} color="var(--primary-700)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            ) : (
-              <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-            )}
-            <div style={{ fontSize: '0.8125rem', lineHeight: 1.45 }}>
-              {calcDeltaEc === 0 ? (
-                <span style={{ color: 'var(--primary-900)' }}>
-                  <strong>Nồng độ EC hiện tại ({selectedRes.currentEc} mS/cm) đang lý tưởng.</strong> Không cần châm thêm phân lúc này.
-                </span>
-              ) : (
-                <span style={{ color: '#92400e' }}>
-                  <strong>Cần tăng thêm +{calcDeltaEc} mS/cm</strong> để đưa EC từ {selectedRes.currentEc} lên {calcTargetEc} mS/cm.
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Mode Selector: Top-up vs New Tank */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setCalcMode('topup')}
-              className={`btn btn-sm ${calcMode === 'topup' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, fontSize: '0.75rem' }}
+          return (
+            <div 
+              key={res.id} 
+              className="clean-card"
+              style={{
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-xs)'
+              }}
             >
-              Nâng EC bể hiện tại ({selectedRes.currentVolumeLiters}L)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCalcMode('new_tank')}
-              className={`btn btn-sm ${calcMode === 'new_tank' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, fontSize: '0.75rem' }}
-            >
-              Pha nước mới toàn bộ bồn
-            </button>
-          </div>
-
-          {/* Inputs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.75rem' }}>Thể tích nước trong bể</label>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', padding: '6px 10px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                {selectedRes.currentVolumeLiters} Lít (bể {selectedRes.capacityLiters}L)
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: '0.75rem' }}>EC mục tiêu mong muốn</label>
-              <input
-                type="number"
-                step="0.05"
-                min="1.0"
-                max="2.5"
-                className="form-input"
-                style={{ height: '34px', fontSize: '0.8125rem' }}
-                value={calcTargetEc}
-                onChange={e => setCalcTargetEc(parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-
-          {/* Dosing Result Box */}
-          <div style={{
-            backgroundColor: 'var(--bg-subtle)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px'
-          }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)', marginBottom: '8px' }}>
-              {calcMode === 'topup' 
-                ? (calcDeltaEc === 0 ? 'Lượng dinh dưỡng cần châm lúc này:' : `Lượng dinh dưỡng cần châm để tăng +${calcDeltaEc} mS/cm:`)
-                : `Lượng dinh dưỡng pha mới cho ${selectedRes.currentVolumeLiters}L:`}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--primary-700)' }}>Dung dịch Mẹ Stock A</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary-800)', marginTop: '2px' }}>
-                  {calculatedDoseMl.toLocaleString('vi-VN')} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>ml</span>
-                </div>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>({calculatedDoseLiters} Lít)</div>
-              </div>
-
-              <div style={{ backgroundColor: '#ffffff', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--info-text)' }}>Dung dịch Mẹ Stock B</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--info-text)', marginTop: '2px' }}>
-                  {calculatedDoseMl.toLocaleString('vi-VN')} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>ml</span>
-                </div>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>({calculatedDoseLiters} Lít)</div>
-              </div>
-            </div>
-
-            {/* Action button to execute dosing */}
-            {calculatedDoseMl > 0 && (
-              <button
-                type="button"
-                onClick={handleExecuteDosing}
-                className="btn btn-primary"
-                style={{ width: '100%', marginTop: '12px', justifyContent: 'center', height: '36px' }}
-              >
-                <CheckCircle2 size={16} />
-                <span>Xác nhận đã châm phân vào {selectedRes.name.split('-')[0].trim()}</span>
-              </button>
-            )}
-          </div>
-
-          {/* 3 Step Safety Guide */}
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.45, borderTop: '1px solid var(--border-subtle)', paddingTop: '8px' }}>
-            <strong style={{ color: 'var(--text-main)' }}>Quy trình châm an toàn:</strong> Rót Stock A vào bể &rarr; Chờ bơm tuần hoàn chạy 15 phút &rarr; Mới rót tiếp Stock B. <em>(Tuyệt đối không đổ A và B cùng lúc vào 1 xô múc để tránh vón cục thạch cao).</em>
-          </div>
-        </div>
-
-        {/* Right Column: Công thức pha can 10L ở kho */}
-        <div className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card-header" style={{ marginBottom: 0, alignItems: 'flex-start' }}>
-            <div>
-              <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FlaskConical size={18} color="var(--primary-600)" />
-                <span>Công thức pha can 10L mẹ ở kho</span>
-              </h3>
-              <p className="card-subtitle">
-                Định lượng hóa chất khi pha sẵn can 10 Lít đậm đặc (tỷ lệ 1:100)
-              </p>
-            </div>
-            
-            {/* Formula Selector Dropdown */}
-            {formulas.length > 1 && (
-              <select
-                value={selectedFormulaId}
-                onChange={e => setSelectedFormulaId(e.target.value)}
-                className="form-select"
-                style={{ fontSize: '0.75rem', padding: '4px 8px', height: '30px', maxWidth: '200px' }}
-              >
-                {formulas.map(f => (
-                  <option key={f.id} value={f.id}>{f.name.split('(')[0].trim()}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Active Formula Description Badge */}
-          <div style={{ fontSize: '0.75rem', color: 'var(--primary-800)', backgroundColor: 'var(--primary-50)', padding: '6px 10px', borderRadius: 'var(--radius-sm)' }}>
-            <strong>Áp dụng:</strong> {activeFormula?.applicableCrop} | <em>{activeFormula?.scientificStandard}</em>
-          </div>
-
-          {/* 2 Can Side-by-Side Boxes */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {/* Can A */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid var(--primary-200)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary-700)' }}>
-                  Can Mẹ Stock A
-                </span>
-                <span className="badge badge-success" style={{ fontSize: '0.6875rem' }}>10 Lít</span>
-              </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-subtle)' }}>
-                Nhóm Canxi & Sắt (Giữ riêng biệt)
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem' }}>
-                {activeFormula?.stockAItems?.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed var(--border-subtle)' }}>
-                    <span>{item.name}</span>
-                    <strong style={{ color: 'var(--primary-800)' }}>{item.gramsPer10LStock} g</strong>
+              
+              {/* Header bể & Nút đo */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ 
+                      width: '9px', 
+                      height: '9px', 
+                      borderRadius: '50%', 
+                      backgroundColor: 'var(--primary-500)',
+                      boxShadow: '0 0 0 3px var(--primary-100)'
+                    }} />
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                      {shortName}
+                    </h3>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Can B */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid var(--info-border, #bfdbfe)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--info-text)' }}>
-                  Can Mẹ Stock B
-                </span>
-                <span className="badge badge-info" style={{ fontSize: '0.6875rem' }}>10 Lít</span>
-              </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-subtle)' }}>
-                Nhóm Lân, Sunfat & Vi lượng
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem' }}>
-                {activeFormula?.stockBItems?.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed var(--border-subtle)' }}>
-                    <span>{item.name}</span>
-                    <strong style={{ color: 'var(--info-text)' }}>{item.gramsPer10LStock} g</strong>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-subtle)', marginTop: '2px', marginLeft: '17px' }}>
+                    {subTitle}
                   </div>
-                ))}
+                </div>
+
+                <button
+                  onClick={() => openLogModal(res)}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '0.78rem', height: '30px', padding: '0 10px' }}
+                >
+                  <Plus size={14} />
+                  <span>Ghi số đo</span>
+                </button>
               </div>
-            </div>
-          </div>
 
-          {/* Why separate note */}
-          <div style={{
-            backgroundColor: '#fffdf5',
-            border: '1px solid #fde68a',
-            borderRadius: 'var(--radius-md)',
-            padding: '10px 12px',
-            fontSize: '0.75rem',
-            lineHeight: 1.45,
-            color: '#92400e'
-          }}>
-            <strong>Tại sao phải chia Can A và Can B?</strong> {activeFormula?.chemicalIncompatibilityReason || 'Canxi trong Can A nếu gặp Lân và Sunfat trong Can B ở nồng độ đậm đặc sẽ phản ứng kết tủa thành thạch cao không tan (CaSO4 và Ca3(PO4)2), làm nghẹt máng NFT và cây bị cháy mép lá.'}
-          </div>
-        </div>
+              {/* Mực nước & Nút thao tác nhanh */}
+              <div style={{
+                backgroundColor: 'var(--bg-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Droplet size={15} color="var(--info)" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                      Mực nước: {res.currentVolumeLiters} / {res.capacityLiters} Lít
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+                      ({fillPercent}%)
+                    </span>
+                  </div>
 
-        </div>
-      )}
+                  {/* 2 Nút thao tác nước */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => openTopUpModal(res)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.72rem', height: '26px', padding: '0 8px' }}
+                    >
+                      + Bù nước
+                    </button>
+                    <button
+                      onClick={() => openDrainModal(res)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.72rem', height: '26px', padding: '0 8px', color: 'var(--danger-text)' }}
+                    >
+                      Xả bể
+                    </button>
+                  </div>
+                </div>
 
-      {/* Channels Tab */}
-      {activeTab === 'channels' && (
-        <div className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card-header" style={{ marginBottom: 0 }}>
-            <div>
-              <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={18} color="var(--primary-600)" />
-                <span>Máng trồng của {selectedRes.name.split('-')[0].trim()}</span>
-              </h3>
-              <p className="card-subtitle">
-                Mỗi máng gắn với 1 lô cây. Một bể có thể cấp dung dịch cho nhiều lô đồng thời.
-              </p>
-            </div>
-            <span className="badge badge-neutral">
-              {resChannels.filter(c => c.status === 'active').length} máng đang hoạt động
-            </span>
-          </div>
+                {/* Thanh tiến trình mực nước */}
+                <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${fillPercent}%`,
+                    backgroundColor: fillPercent > 50 ? 'var(--info)' : 'var(--warning)',
+                    borderRadius: '999px',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
 
-          {/* Channel table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--bg-subtle)' }}>
-                  {['Máng', 'Lô cây', 'Giống', 'Số slot', 'Cây đang trồng', 'Trạng thái', 'Ghi chú'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {resChannels.map((ch, idx) => {
-                  const batch = batches.find(b => b.id === ch.batchId);
-                  const occupancy = ch.slotCount > 0 ? Math.round((ch.activePlants / ch.slotCount) * 100) : 0;
-                  return (
-                    <tr key={ch.id} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : 'var(--bg-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-main)' }}>{ch.name}</td>
-                      <td style={{ padding: '10px 12px' }}>
-                        {batch
-                          ? <span className="mono" style={{ fontSize: '0.75rem', background: 'var(--primary-50)', color: 'var(--primary-700)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>{batch.batchCode}</span>
-                          : <span style={{ color: 'var(--text-subtle)', fontStyle: 'italic' }}>—</span>
-                        }
-                      </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{batch?.cultivarName || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)', textAlign: 'center' }}>{ch.slotCount}</td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{ch.activePlants}</span>
-                          <div style={{ flex: 1, height: '4px', backgroundColor: 'var(--border-subtle)', borderRadius: '2px', minWidth: '50px' }}>
-                            <div style={{ height: '100%', width: `${occupancy}%`, backgroundColor: ch.status === 'empty' ? 'var(--border-medium)' : 'var(--primary-600)', borderRadius: '2px' }} />
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>{occupancy}%</span>
+                {/* Thiết bị bơm & sục khí */}
+                <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  <span>
+                    Bơm: <strong style={{ color: res.pumpStatus === 'running' ? 'var(--primary-700)' : 'var(--text-muted)' }}>
+                      {res.pumpStatus === 'running' ? '● Đang chạy' : '○ Dừng'}
+                    </strong>
+                  </span>
+                  <span>
+                    Sục khí: <strong style={{ color: res.aerationStatus === 'active' ? 'var(--primary-700)' : 'var(--text-muted)' }}>
+                      {res.aerationStatus === 'active' ? '● Đang bật' : '○ Tắt'}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Chỉ số đo (pH, EC, Nhiệt độ) — Hiển thị song song gọn gàng */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                
+                {/* pH */}
+                <div style={{
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Độ pH</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', margin: '2px 0' }}>
+                    {res.currentPh.toFixed(2)}
+                  </div>
+                  <span className={`badge ${isPhOk ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                    {isPhOk ? 'Chuẩn' : 'Cần chỉnh'}
+                  </span>
+                </div>
+
+                {/* EC */}
+                <div style={{
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>EC (Phân)</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--primary-700)', margin: '2px 0' }}>
+                    {res.currentEc.toFixed(2)}
+                  </div>
+                  <span className={`badge ${isEcOk ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                    {isEcOk ? 'Chuẩn' : res.currentEc < 1.5 ? 'Thiếu phân' : 'Đậm phân'}
+                  </span>
+                </div>
+
+                {/* Nhiệt độ */}
+                <div style={{
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Nhiệt độ</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', margin: '2px 0' }}>
+                    {res.currentWaterTemp.toFixed(1)}°
+                  </div>
+                  <span className={`badge ${isTempOk ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                    {isTempOk ? 'Mát' : 'Hơi ấm'}
+                  </span>
+                </div>
+
+              </div>
+
+              {/* Hộp Châm phân (Dosing) — Cực kỳ trực quan, bấm 1 nút là xong */}
+              <div style={{
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                backgroundColor: '#f8fafc'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    Bù dinh dưỡng (Châm phân)
+                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Mục tiêu:</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="1.0"
+                      max="2.5"
+                      value={currentTargetEc}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setTargetEcs(prev => ({ ...prev, [res.id]: val }));
+                      }}
+                      style={{
+                        width: '56px',
+                        height: '24px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        color: 'var(--primary-700)',
+                        border: '1px solid var(--border-medium)',
+                        borderRadius: '4px',
+                        backgroundColor: '#ffffff'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>mS/cm</span>
+                  </div>
+                </div>
+
+                {/* Kết quả lượng phân cần rót */}
+                {ecDeficit > 0 ? (
+                  <div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '8px',
+                      marginBottom: '10px'
+                    }}>
+                      <div style={{ backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Can A (Canxi/Sắt)</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-800)' }}>
+                          {doseMl} ml
                         </div>
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <span className={`badge ${ch.status === 'active' ? 'badge-success' : ch.status === 'empty' ? 'badge-neutral' : 'badge-warning'}`}>
-                          {ch.status === 'active' ? 'Đang trồng' : ch.status === 'empty' ? 'Trống' : 'Bảo trì'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-subtle)', fontSize: '0.75rem' }}>{ch.notes || '—'}</td>
-                    </tr>
-                  );
-                })}
-                {resChannels.length === 0 && (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '20px 12px', textAlign: 'center', color: 'var(--text-subtle)', fontStyle: 'italic' }}>
-                      Chưa có máng nào được cấu hình cho bể này.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Summary */}
-          {resChannels.length > 0 && (
-            <div style={{ display: 'flex', gap: '20px', padding: '10px 12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem' }}>
-              <span>Tổng slot: <strong>{resChannels.reduce((s, c) => s + c.slotCount, 0)}</strong></span>
-              <span>Tổng cây đang trồng: <strong>{resChannels.reduce((s, c) => s + c.activePlants, 0)}</strong></span>
-              <span>Máng trống: <strong>{resChannels.filter(c => c.status === 'empty').length}</strong></span>
-              <span>Số lô đang dùng bể này: <strong>{new Set(resChannels.filter(c => c.batchId).map(c => c.batchId)).size}</strong></span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* History Tab */}
-      {activeTab === 'history' && (
-        <div className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card-header" style={{ marginBottom: 0 }}>
-            <div>
-              <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <History size={18} color="var(--primary-600)" />
-                <span>Lịch sử xả bể — {selectedRes.name.split('-')[0].trim()}</span>
-              </h3>
-              <p className="card-subtitle">
-                Mỗi lần xả & thay dung dịch giữa 2 lô đều được ghi nhận để truy xuất nguồn gốc.
-              </p>
-            </div>
-          </div>
-
-          {resDrainHistory.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-subtle)', fontStyle: 'italic', fontSize: '0.8125rem' }}>
-              Chưa có sự kiện xả bể nào được ghi nhận.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {resDrainHistory.map(ev => {
-                const reasonLabel: Record<string, string> = {
-                  end_of_batch: 'Kết thúc lô',
-                  scheduled_replacement: 'Thay định kỳ',
-                  contamination: 'Nhiễm bẩn',
-                  other: 'Khác'
-                };
-                return (
-                  <div key={ev.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span className="badge badge-warning">{reasonLabel[ev.reason]}</span>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
-                          Xả {ev.volumeDrainedLiters}L — {ev.drainDate}
-                        </span>
                       </div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Thực hiện: {ev.operator}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      <span>pH cuối: <strong>{ev.finalPh}</strong></span>
-                      <span>EC cuối: <strong>{ev.finalEc} mS/cm</strong></span>
-                      <span>DO cuối: <strong>{ev.finalDo} mg/L</strong></span>
-                    </div>
-                    {ev.notes && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontStyle: 'italic' }}>
-                        {ev.notes}
+
+                      <div style={{ backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Can B (Lân/Khoáng)</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0369a1' }}>
+                          {doseMl} ml
+                        </div>
                       </div>
-                    )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleApplyDosingForTank(res, currentTargetEc, doseMl)}
+                      className="btn btn-primary"
+                      style={{ width: '100%', height: '34px', fontSize: '0.82rem', fontWeight: 600 }}
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>Xác nhận đã châm {doseMl}ml Can A & B</span>
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                ) : (
+                  <div style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--primary-800)',
+                    backgroundColor: 'var(--primary-50)',
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <CheckCircle2 size={14} color="var(--primary-600)" />
+                    <span>Dinh dưỡng đang đủ ({res.currentEc} mS/cm). Chưa cần châm thêm.</span>
+                  </div>
+                )}
+              </div>
 
-      {/* Log Measurement Modal */}
+              {/* Danh sách máng trồng đang dùng nước bể này */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    <Layers size={14} color="var(--text-subtle)" />
+                    <span>Máng đang cấp nước ({resChans.length} máng)</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                    {totalActivePlants} cây
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {resChans.map(ch => {
+                    const batch = batches.find(b => b.id === ch.batchId);
+                    return (
+                      <div
+                        key={ch.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 10px',
+                          backgroundColor: 'var(--bg-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ color: 'var(--text-main)' }}>{ch.name}</strong>
+                          {batch ? (
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              {batch.cultivarName.split(' ')[0]} ({batch.batchCode})
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-disabled)' }}>Máng trống</span>
+                          )}
+                        </div>
+
+                        <span style={{ fontWeight: 600, color: ch.activePlants > 0 ? 'var(--primary-700)' : 'var(--text-muted)' }}>
+                          {ch.activePlants} / {ch.slotCount} cây
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal 1: Ghi nhận số đo mới */}
       {isLogModalOpen && (
         <div className="modal-overlay" onClick={() => setIsLogModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Ghi nhận số đo nước mới ({selectedRes.name.split('-')[0].trim()})
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Ghi số đo: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsLogModalOpen(false)}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '1.25rem' }}
-              >
-                ×
+              <button onClick={() => setIsLogModalOpen(false)} className="btn btn-ghost btn-sm">
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleLogSubmit}>
-              <div className="modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Độ pH (Mục tiêu: 5.5 - 6.2)</label>
-                    <input 
-                      type="number" 
-                      step="0.05"
-                      min="4.0"
-                      max="9.0"
-                      className="form-input" 
-                      value={formPh} 
-                      onChange={e => setFormPh(parseFloat(e.target.value))} 
-                      required 
-                    />
-                  </div>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Độ pH (Chuẩn: 5.6 - 6.2)</label>
+                  <input 
+                    type="number" 
+                    step="0.05"
+                    min="4.0"
+                    max="9.0"
+                    className="form-input" 
+                    value={formPh} 
+                    onChange={e => setFormPh(parseFloat(e.target.value))} 
+                    required 
+                  />
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label">EC (mS/cm - Mục tiêu: 1.4 - 1.9)</label>
-                    <input 
-                      type="number" 
-                      step="0.05"
-                      min="0.5"
-                      max="3.5"
-                      className="form-input" 
-                      value={formEc} 
-                      onChange={e => setFormEc(parseFloat(e.target.value))} 
-                      required 
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nồng độ EC (Chuẩn: 1.5 - 1.8 mS/cm)</label>
+                  <input 
+                    type="number" 
+                    step="0.05"
+                    min="0.5"
+                    max="3.5"
+                    className="form-input" 
+                    value={formEc} 
+                    onChange={e => setFormEc(parseFloat(e.target.value))} 
+                    required 
+                  />
+                </div>
 
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Nhiệt độ nước (°C - Chuẩn: 20 - 24)</label>
-                    <input 
-                      type="number" 
-                      step="0.1"
-                      min="15.0"
-                      max="35.0"
-                      className="form-input" 
-                      value={formTemp} 
-                      onChange={e => setFormTemp(parseFloat(e.target.value))} 
-                      required 
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Nhiệt độ nước (°C - Chuẩn: 20 - 24°C)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    min="15.0"
+                    max="35.0"
+                    className="form-input" 
+                    value={formTemp} 
+                    onChange={e => setFormTemp(parseFloat(e.target.value))} 
+                    required 
+                  />
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button 
-                  type="button" 
-                  onClick={() => setIsLogModalOpen(false)} 
-                  className="btn btn-secondary"
-                >
+                <button type="button" onClick={() => setIsLogModalOpen(false)} className="btn btn-secondary">
                   Hủy
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                >
-                  Lưu kết quả đo
+                <button type="submit" className="btn btn-primary">
+                  Lưu số đo
                 </button>
               </div>
             </form>
@@ -854,27 +595,23 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
         </div>
       )}
 
-      {/* Top Up Water Modal */}
+      {/* Modal 2: Bù nước sạch */}
       {isTopUpModalOpen && (
         <div className="modal-overlay" onClick={() => setIsTopUpModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Châm thêm nước sạch ({selectedRes.name.split('-')[0].trim()})
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Bù nước: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsTopUpModalOpen(false)}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '1.25rem' }}
-              >
-                ×
+              <button onClick={() => setIsTopUpModalOpen(false)} className="btn btn-ghost btn-sm">
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleTopUpSubmit}>
-              <div className="modal-body">
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">Số lít nước sạch châm thêm (L)</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Số lít nước châm thêm (Lít)</label>
                   <input 
                     type="number" 
                     min="10"
@@ -885,24 +622,28 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     required 
                   />
                 </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-                  Châm nước sạch giúp bù lượng nước hao hụt và pha loãng nồng độ EC khi dung dịch quá đặc.
-                </p>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[20, 50, 100].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setTopUpLiters(amt)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, fontSize: '0.75rem' }}
+                    >
+                      +{amt} Lít
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="modal-footer">
-                <button 
-                  type="button" 
-                  onClick={() => setIsTopUpModalOpen(false)} 
-                  className="btn btn-secondary"
-                >
+                <button type="button" onClick={() => setIsTopUpModalOpen(false)} className="btn btn-secondary">
                   Hủy
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                >
-                  Xác nhận
+                <button type="submit" className="btn btn-primary">
+                  Xác nhận bù nước
                 </button>
               </div>
             </form>
@@ -910,62 +651,41 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
         </div>
       )}
 
-      {/* Drain Reservoir Modal */}
+      {/* Modal 3: Xả bể */}
       {isDrainModalOpen && (
         <div className="modal-overlay" onClick={() => setIsDrainModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                <Trash2 size={18} color="var(--danger)" style={{ display: 'inline', marginRight: '8px' }} />
-                Xả bể và thay dung dịch — {selectedRes.name.split('-')[0].trim()}
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--danger-text)' }}>
+                Xác nhận xả nước {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsDrainModalOpen(false)}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '1.25rem' }}
-              >
-                ×
+              <button onClick={() => setIsDrainModalOpen(false)} className="btn btn-ghost btn-sm">
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleDrainSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: '0.8rem', color: '#92400e' }}>
-                  <strong>Lưu ý:</strong> Thao tác này sẽ xả toàn bộ {selectedRes.currentVolumeLiters}L dung dịch hiện tại. Đảm bảo đã ghi nhận số đo cuối cùng (pH, EC, DO) trước khi xả.
-                </div>
-
-                {/* Current final readings */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', padding: '10px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>pH cuối</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>{selectedRes.currentPh.toFixed(2)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>EC cuối (mS/cm)</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>{selectedRes.currentEc.toFixed(2)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>DO cuối (mg/L)</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>{(selectedRes.currentDo ?? 6.5).toFixed(2)}</div>
-                  </div>
-                </div>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Thao tác này sẽ ghi nhận xả toàn bộ <strong>{activeModalRes?.currentVolumeLiters}L</strong> nước hiện tại.
+                </p>
 
                 <div className="form-group">
-                  <label className="form-label">Lý do xả bể</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Lý do xả nước</label>
                   <select 
                     className="form-select" 
                     value={drainReason} 
                     onChange={e => setDrainReason(e.target.value as any)}
                   >
-                    <option value="end_of_batch">Kết thúc lô trồng</option>
-                    <option value="scheduled_replacement">Thay dung dịch định kỳ</option>
-                    <option value="contamination">Phát hiện nhiễm bẩn / nấm</option>
+                    <option value="end_of_batch">Kết thúc đợt trồng</option>
+                    <option value="scheduled_replacement">Thay nước định kỳ</option>
+                    <option value="contamination">Vệ sinh / Xử lý bể</option>
                     <option value="other">Lý do khác</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Người thực hiện</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Người thực hiện</label>
                   <input 
                     type="text" 
                     className="form-input" 
@@ -976,30 +696,22 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Ghi chú (trạng thái bể, vệ sinh, ...)</label>
-                  <textarea 
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Ghi chú</label>
+                  <input 
+                    type="text"
                     className="form-input" 
-                    rows={3}
                     value={drainNotes} 
                     onChange={e => setDrainNotes(e.target.value)} 
-                    placeholder="Ví dụ: Bể sạch, không có cặn. Vệ sinh bằng H2O2 0.5% sau đó xả lại bằng nước sạch."
+                    placeholder="Ví dụ: Vệ sinh bể trước khi bơm nước mới."
                   />
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button 
-                  type="button" 
-                  onClick={() => setIsDrainModalOpen(false)} 
-                  className="btn btn-secondary"
-                >
+                <button type="button" onClick={() => setIsDrainModalOpen(false)} className="btn btn-secondary">
                   Hủy
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn"
-                  style={{ backgroundColor: 'var(--danger)', color: '#ffffff', border: 'none' }}
-                >
+                <button type="submit" className="btn btn-danger">
                   Xác nhận xả bể
                 </button>
               </div>
@@ -1008,7 +720,116 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
         </div>
       )}
 
+      {/* Modal 4: Lịch sử xả nước */}
+      {isDrainHistoryModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsDrainHistoryModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={16} />
+                <span>Nhật ký xả & thay nước</span>
+              </h3>
+              <button onClick={() => setIsDrainHistoryModalOpen(false)} className="btn btn-ghost btn-sm">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ maxHeight: '380px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {drainEvents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-subtle)', fontSize: '0.82rem' }}>
+                  Chưa có lần xả nước nào được ghi nhận.
+                </div>
+              ) : (
+                drainEvents.map(ev => {
+                  const res = reservoirs.find(r => r.id === ev.reservoirId);
+                  return (
+                    <div key={ev.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <strong>{res?.name.split('-')[0].trim() || 'Bể'} • Xả {ev.volumeDrainedLiters} Lít</strong>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>{ev.drainDate}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        <span>pH: {ev.finalPh}</span>
+                        <span>EC: {ev.finalEc} mS/cm</span>
+                        <span>Người làm: {ev.operator}</span>
+                      </div>
+                      {ev.notes && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', marginTop: '4px' }}>
+                          Ghi chú: {ev.notes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setIsDrainHistoryModalOpen(false)} className="btn btn-secondary">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 5: Công thức pha can 10L mẹ ở kho */}
+      {isFormulaModalOpen && defaultFormula && (
+        <div className="modal-overlay" onClick={() => setIsFormulaModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FlaskConical size={16} color="var(--primary-600)" />
+                <span>Công thức pha can 10L tại kho</span>
+              </h3>
+              <button onClick={() => setIsFormulaModalOpen(false)} className="btn btn-ghost btn-sm">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.8rem' }}>
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                Định lượng hóa chất khi hòa tan can 10 Lít đậm đặc (tỷ lệ pha 1:100 vào bể).
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Can A */}
+                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                  <strong style={{ color: 'var(--primary-700)', display: 'block', marginBottom: '6px' }}>Can A (10 Lít)</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {defaultFormula.stockAItems?.map((it, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.name}</span>
+                        <strong>{it.gramsPer10LStock}g</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Can B */}
+                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                  <strong style={{ color: '#0369a1', display: 'block', marginBottom: '6px' }}>Can B (10 Lít)</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {defaultFormula.stockBItems?.map((it, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.name}</span>
+                        <strong>{it.gramsPer10LStock}g</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setIsFormulaModalOpen(false)} className="btn btn-secondary">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
