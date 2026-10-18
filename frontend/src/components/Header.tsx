@@ -1,158 +1,152 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Bell, User, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, Bell, Download, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   unreadAlertCount: number;
 }
 
-const ROUTE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/': {
-    title: 'Bảng điều khiển tổng quan',
-    subtitle: 'Theo dõi tình trạng trang trại, chỉ số nước và các lô cây đang canh tác'
-  },
-  '/dashboard': {
-    title: 'Bảng điều khiển tổng quan',
-    subtitle: 'Theo dõi tình trạng trang trại, chỉ số nước và các lô cây đang canh tác'
-  },
-  '/batches': {
-    title: 'Quản lý lô cây trồng',
-    subtitle: 'Theo dõi tiến độ từ ngày gieo hạt đến thu hoạch của từng máng/bể'
-  },
-  '/reservoirs': {
-    title: 'Bể nước & Dinh dưỡng',
-    subtitle: 'Kiểm tra độ pH, nồng độ dinh dưỡng EC, nhiệt độ nước và công thức Stock A/B'
-  },
-  '/forecast': {
-    title: 'Dự báo sản lượng thu hoạch',
-    subtitle: 'Ước tính trọng lượng cây và sản lượng cả lô dựa trên điều kiện sinh trưởng'
-  },
-  '/alerts': {
-    title: 'Danh sách cảnh báo',
-    subtitle: 'Thông báo các chỉ số pH, EC, nhiệt độ nước lệch ngưỡng cần xử lý'
-  },
-  '/harvest': {
-    title: 'Nhật ký thu hoạch',
-    subtitle: 'Lưu trữ kết quả thu hoạch thực tế và so sánh với ước tính ban đầu'
-  }
-};
-
 export const Header: React.FC<HeaderProps> = ({
-  unreadAlertCount
+  unreadAlertCount: _unreadAlertCount
 }) => {
-  const [timeStr, setTimeStr] = useState('');
-  const location = useLocation();
-
-  useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      setTimeStr(
-        now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-        ' ' +
-        now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      );
-    };
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const meta = ROUTE_TITLES[location.pathname] || ROUTE_TITLES['/dashboard'];
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <header className="app-header">
-      <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', paddingRight: '16px' }}>
-        <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.2, margin: 0 }}>
-          {meta.title}
-        </h1>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-subtle)', marginTop: '3px', lineHeight: 1.2, margin: 0 }}>
-          {meta.subtitle}
-        </p>
+    <header className="app-header" style={{
+      height: '68px',
+      padding: '0 32px',
+      borderBottom: '1px solid var(--border-subtle)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#ffffff',
+      gap: '20px'
+    }}>
+      {/* Search Bar - HydroSmart Pill Search */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: '#ffffff',
+        border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-full)',
+        padding: '8px 18px',
+        width: '380px',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <Search size={17} color="var(--text-disabled)" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Tìm kiếm lô cây, bể dinh dưỡng, cảnh báo, báo cáo..."
+          style={{
+            border: 'none',
+            outline: 'none',
+            width: '100%',
+            fontSize: '0.8125rem',
+            color: 'var(--text-main)',
+            background: 'transparent'
+          }}
+        />
       </div>
 
+      {/* Right Actions: Notifications, Profile, Export */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-        {/* Date and Time */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontSize: '0.8125rem',
-          color: 'var(--text-muted)'
-        }}>
-          <Clock size={14} color="var(--text-subtle)" />
-          <span>{timeStr}</span>
-        </div>
-
-        {/* Alert Bell Button with Link to /alerts */}
+        {/* Notification Bell Button */}
         <Link
           to="/alerts"
           style={{
             position: 'relative',
-            background: 'transparent',
+            background: '#ffffff',
             border: '1px solid var(--border-subtle)',
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-md)',
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             textDecoration: 'none',
-            color: 'inherit',
-            boxSizing: 'border-box'
+            color: 'var(--text-main)',
+            boxShadow: 'var(--shadow-xs)'
           }}
-          className="btn-ghost"
-          title="Xem danh sách cảnh báo"
+          title="Thông báo & Cảnh báo an toàn sinh hóa"
         >
-          <Bell size={17} color={unreadAlertCount > 0 ? 'var(--warning-text)' : 'var(--text-muted)'} />
-          {unreadAlertCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              background: 'var(--danger)',
-              color: '#ffffff',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              width: '16px',
-              height: '16px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {unreadAlertCount}
-            </span>
-          )}
+          <Bell size={18} color="var(--text-muted)" />
+          {/* Active green notification dot */}
+          <span style={{
+            position: 'absolute',
+            top: '7px',
+            right: '8px',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: '#00a651',
+            border: '1.5px solid #ffffff'
+          }} />
         </Link>
 
-        {/* User Profile */}
+        {/* User Profile Chip: Nguyen Van An, Farm Manager */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          borderLeft: '1px solid var(--border-subtle)',
-          paddingLeft: '14px',
-          height: '32px'
+          gap: '10px',
+          padding: '4px 8px',
+          cursor: 'pointer'
         }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--bg-subtle)',
-            border: '1px solid var(--border-subtle)',
+          <img
+            src="/avatar_albert.jpg"
+            alt="Nguyễn Văn An"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1px solid var(--border-subtle)'
+            }}
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = 'none';
+            }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.2 }}>
+              Nguyễn Văn An
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', lineHeight: 1.2, marginTop: '2px' }}>
+              Quản lý Trang trại
+            </span>
+          </div>
+          <ChevronDown size={14} color="var(--text-subtle)" style={{ marginLeft: '2px' }} />
+        </div>
+
+        {/* Export Button in FarmVista Green */}
+        <button
+          onClick={() => {
+            alert('Đã xuất báo cáo tổng hợp trang trại thủy canh (định dạng PDF/Excel)!');
+          }}
+          style={{
+            backgroundColor: '#00a651',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-muted)',
-            flexShrink: 0
-          }}>
-            <User size={16} />
-          </div>
-          <div style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
-            Kỹ sư Nông nghiệp
-          </div>
-        </div>
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'background-color 0.15s ease'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#008f45')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#00a651')}
+        >
+          <Download size={15} />
+          <span>Xuất Báo Cáo</span>
+        </button>
       </div>
     </header>
   );
 };
+

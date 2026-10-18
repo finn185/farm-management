@@ -69,10 +69,24 @@ export const farmStore = {
     return updated;
   },
 
-  applyDosing: (reservoirId: string, targetEc: number, _doseMl: number): void => {
+  applyDosing: (reservoirId: string, targetEc: number, doseMl: number): void => {
+    const list = farmStore.getReservoirs();
+    const res = list.find(r => r.id === reservoirId);
+    const addedLiters = (doseMl * 2) / 1000; // Stock A + Stock B in Liters
+    const newVol = res ? Math.min(res.capacityLiters, res.currentVolumeLiters + addedLiters) : 0;
+    
     farmStore.updateReservoir(reservoirId, {
       currentEc: targetEc,
+      currentVolumeLiters: newVol > 0 ? parseFloat(newVol.toFixed(1)) : undefined,
       lastTopUpDate: new Date().toISOString().split('T')[0]
+    });
+
+    // Auto-resolve any open EC low alert on this reservoir per FRS sequence diagram
+    const alerts = farmStore.getAlerts();
+    alerts.forEach(a => {
+      if (a.reservoirId === reservoirId && a.metric === 'EC' && a.title.includes('loãng') && (a.status === 'open' || a.status === 'acknowledged')) {
+        farmStore.resolveAlert(a.id, 'Hệ thống tự động', `Đã châm ${doseMl}ml Can A & B. EC bồn đã đạt ${targetEc} mS/cm.`);
+      }
     });
   },
 
@@ -101,19 +115,19 @@ export const farmStore = {
     });
     setStorage(STORAGE_KEYS.SENSORS, sensors.slice(-20)); // Keep recent 20 readings
 
-    // Rule Engine Check: Auto-generate alert if out of bounds
-    if (data.ph < 5.4 || data.ph > 6.4) {
+    // Rule Engine Check: Auto-generate alert if out of bounds (FRS Compliant)
+    if (data.ph < 5.5 || data.ph > 6.5) {
       farmStore.addAlert({
         severity: data.ph < 5.0 || data.ph > 6.8 ? 'critical' : 'warning',
         metric: 'pH',
-        title: `pH ${data.ph < 5.4 ? 'quá thấp' : 'quá cao'} (${data.ph}) tại Bể`,
+        title: `pH ${data.ph < 5.5 ? 'quá thấp' : 'quá cao'} (${data.ph}) tại Bể`,
         message: `Độ pH đo được ${data.ph} lệch khỏi khoảng tối ưu (5.5 - 6.2) cho rau xà lách. Ảnh hưởng khả năng hòa tan dinh dưỡng.`,
         reservoirId: data.reservoirId,
-        suggestedAction: data.ph < 5.4 ? 'Bổ sung dung dịch kiềm pH Up (KOH) từ từ.' : 'Bổ sung pH Down (H3PO4/HNO3) loãng và khuấy đều.'
+        suggestedAction: data.ph < 5.5 ? 'Bổ sung dung dịch kiềm pH Up (KOH) từ từ.' : 'Bổ sung pH Down (H3PO4/HNO3) loãng và khuấy đều.'
       });
     }
 
-    if (data.ec > 2.1) {
+    if (data.ec > 2.0) {
       farmStore.addAlert({
         severity: 'warning',
         metric: 'EC',
@@ -135,12 +149,12 @@ export const farmStore = {
 
     if (data.waterTemp > 24.5) {
       farmStore.addAlert({
-        severity: data.waterTemp > 26.0 ? 'critical' : 'warning',
+        severity: 'critical', // Critical per FRS: >24.5C causes severe hypoxia & Pythium root rot
         metric: 'Temp',
-        title: `Nhiệt độ nước bồn tăng cao (${data.waterTemp}°C)`,
-        message: `Nhiệt độ nước vượt ngưỡng 24.5°C làm tăng nguy cơ sốc nhiệt vùng rễ và kích thích nấm hại phát triển.`,
+        title: `Nhiệt độ nước bồn tăng cao (${data.waterTemp}°C) - Rủi ro nấm rễ`,
+        message: `Nhiệt độ nước vượt ngưỡng 24.5°C làm oxy hòa tan tụt mạnh, rễ ngạt thở và nấm rễ Pythium bùng phát nhanh.`,
         reservoirId: data.reservoirId,
-        suggestedAction: 'Bật quạt làm mát phòng hoặc bổ sung nước sạch mát hạ nhiệt bồn chứa.'
+        suggestedAction: 'Bật quạt giải nhiệt khẩn cấp, sục khí oxy mạnh và bổ sung nước sạch mát hạ nhiệt bồn.'
       });
     }
   },
@@ -174,11 +188,11 @@ export const farmStore = {
     return updated;
   },
 
-  addBatchObservation: (batchId: string, obs: { avgLeafCount: number; avgHeightCm: number; sampleWeightG: number; notes?: string }): CropBatch[] => {
-    const now = new Date().toISOString().split('T')[0];
+  addBatchObservation: (batchId: string, obs: { date?: string; avgLeafCount: number; avgHeightCm: number; sampleWeightG: number; notes?: string }): CropBatch[] => {
+    const obsDate = obs.date || new Date().toISOString().split('T')[0];
     return farmStore.updateBatch(batchId, {
       lastObservation: {
-        date: now,
+        date: obsDate,
         avgLeafCount: obs.avgLeafCount,
         avgHeightCm: obs.avgHeightCm,
         sampleWeightG: obs.sampleWeightG,

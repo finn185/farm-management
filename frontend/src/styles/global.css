@@ -5,17 +5,19 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: var(--font-sans);
 }
 
 html, body {
   height: 100%;
   width: 100%;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans) !important;
   background-color: var(--bg-page);
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -23,19 +25,17 @@ html, body {
   display: flex;
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--text-main);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+/* Enforce unified font inheritance across all form controls and HTML elements */
+button, input, select, textarea, optgroup, option {
+  font-family: var(--font-sans) !important;
 }
 
-p {
-  color: var(--text-muted);
+h1, h2, h3, h4, h5, h6, p, span, a, label, table, th, td, div {
+  font-family: var(--font-sans);
 }
 
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }
 
 /* App Layout Grid */
@@ -85,9 +85,9 @@ p {
 }
 
 .content-body {
-  padding: 24px 28px 40px;
+  padding: 24px 32px 48px;
   flex: 1;
-  max-width: 1400px;
+  max-width: 1560px;
   width: 100%;
   margin: 0 auto;
 }
@@ -304,16 +304,21 @@ p {
 }
 
 .form-label {
+  display: block;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
 }
 
 .form-input, .form-select, .form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
   background-color: var(--bg-input);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: 9px 12px;
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.875rem;
@@ -322,8 +327,8 @@ p {
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--primary-600);
-  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15);
+  border-color: var(--farmvista-green);
+  box-shadow: 0 0 0 2px rgba(0, 166, 81, 0.15);
 }
 
 .form-input::placeholder, .form-textarea::placeholder {
@@ -370,16 +375,20 @@ table.data-table tr:hover td {
   background-color: #fafbfc;
 }
 
-/* Modal Overlay */
-.modal-overlay {
+/* Modal Overlay & Backdrop */
+.modal-overlay,
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: 20px;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .modal-content {
@@ -445,3 +454,115 @@ table.data-table tr:hover td {
     opacity: 1;
   }
 }
+
+/* FarmVista Theme Custom Components */
+.farmvista-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: box-shadow var(--transition-fast);
+}
+
+.farmvista-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.farmvista-btn-green {
+  background-color: var(--farmvista-green);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.farmvista-btn-green:hover {
+  background-color: var(--farmvista-green-hover);
+}
+
+.farmvista-btn-secondary {
+  background-color: #ffffff;
+  color: var(--text-main);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.farmvista-btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.farmvista-btn-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.farmvista-btn-danger:hover {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.farmvista-select-pill {
+  appearance: none;
+  background-color: #ffffff;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  padding: 5px 28px 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color var(--transition-fast);
+}
+
+.farmvista-select-pill:hover, .farmvista-select-pill:focus {
+  border-color: var(--farmvista-green);
+}
+
+/* Ensure Recharts peak tooltips and custom dots never get cut off at top edges */
+.recharts-wrapper, .recharts-surface {
+  overflow: visible !important;
+}
+
+/* Hide native number input spinners for clean custom numeric inputs */
+input.clean-number::-webkit-inner-spin-button,
+input.clean-number::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.clean-number {
+  -moz-appearance: textfield;
+}
+
+

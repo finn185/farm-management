@@ -112,7 +112,7 @@ export const App: React.FC = () => {
   const handleDrainReservoir = (event: any) => {
     farmStore.addDrainEvent(event);
     refreshState();
-    showToast('Đã xử lý cảnh báo', 'Cảnh báo đã được đánh dấu hoàn thành', 'success');
+    showToast('Xả bể thành công', 'Đã ghi nhận sự kiện xả bể và thay dung dịch mới', 'success');
   };
 
   const handleRecordHarvest = (data: any) => {
@@ -224,6 +224,7 @@ export const App: React.FC = () => {
                 <HarvestView
                   harvests={harvests}
                   batches={batches}
+                  reservoirs={reservoirs}
                   onRecordHarvest={handleRecordHarvest}
                 />
               }

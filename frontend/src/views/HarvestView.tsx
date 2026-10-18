@@ -3,19 +3,21 @@ import {
   Plus, 
   Download
 } from 'lucide-react';
-import type { HarvestRecord, CropBatch } from '../types/farm';
+import type { HarvestRecord, CropBatch, Reservoir } from '../types/farm';
 
 import { predictLettuceYield } from '../services/aiPredictor';
 
 interface HarvestViewProps {
   harvests: HarvestRecord[];
   batches: CropBatch[];
+  reservoirs?: Reservoir[];
   onRecordHarvest: (data: Omit<HarvestRecord, 'id' | 'differencePercent' | 'lossPercentage'>) => void;
 }
 
 export const HarvestView: React.FC<HarvestViewProps> = ({
   harvests,
   batches,
+  reservoirs = [],
   onRecordHarvest
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,10 +42,11 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
 
     const avgWeightG = Math.round(((Number(totalWeightKg) * 1000) / Number(harvestedPlants)) * 10) / 10;
     
-    // Compute genuine AI model prediction for this batch as Ground Truth reference
+    // Compute genuine AI model prediction using actual reservoir parameters of this batch
     const seedTime = new Date(selectedBatch.seedDate).getTime();
     const hDate = new Date(harvestDate).getTime();
     const ageDays = Math.max(1, Math.round((hDate - seedTime) / (1000 * 3600 * 24)));
+    const batchRes = reservoirs.find(r => r.id === selectedBatch.reservoirId);
     
     const predResult = predictLettuceYield({
       batchId: selectedBatch.id,
@@ -52,9 +55,9 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
       plantAgeDays: ageDays,
       leafCount: selectedBatch.lastObservation?.avgLeafCount || Math.max(16, Math.round(ageDays * 0.6)),
       plantHeightCm: selectedBatch.lastObservation?.avgHeightCm || Math.max(16, Math.round(ageDays * 0.55)),
-      avgEc: 1.72,
-      avgPh: 5.85,
-      avgWaterTemp: 22.4,
+      avgEc: batchRes ? batchRes.currentEc : 1.72,
+      avgPh: batchRes ? batchRes.currentPh : 5.85,
+      avgWaterTemp: batchRes ? batchRes.currentWaterTemp : 22.4,
       expectedPlants: Number(harvestedPlants)
     });
     const aiPredG = predResult.predictedFreshWeightG;
@@ -103,11 +106,41 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleExportAITrainingData = () => {
+    const headers = ['batch_code', 'cultivar', 'harvest_date', 'harvested_plants', 'total_weight_kg', 'actual_fresh_weight_g', 'ai_predicted_weight_g', 'difference_percent', 'loss_percent', 'grade'];
+    const rows = harvests.map(h => [
+      h.batchCode,
+      h.cultivarName,
+      h.harvestDate,
+      h.harvestedPlants,
+      h.totalWeightKg,
+      h.avgWeightG,
+      h.aiPredictedWeightG,
+      h.differencePercent,
+      h.lossPercentage,
+      h.grade
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + 
+      [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ai_ground_truth_dataset_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const avgErrorPercent = harvests.length > 0
     ? (harvests.reduce((acc, h) => acc + Math.abs(h.differencePercent), 0) / harvests.length).toFixed(2)
     : '0.00';
 
   const totalHarvestKg = harvests.reduce((acc, h) => acc + h.totalWeightKg, 0).toFixed(1);
+
+  const gradeACount = harvests.filter(h => h.grade === 'A').length;
+  const gradeAPercent = harvests.length > 0 ? Math.round((gradeACount / harvests.length) * 100) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -118,6 +151,15 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
         </div>
 
         <div className="toolbar-group">
+          <button 
+            onClick={handleExportAITrainingData}
+            className="btn btn-secondary"
+            title="Xuất tập dữ liệu đối chứng Ground Truth để tái huấn luyện mô hình Machine Learning"
+            style={{ height: '36px', boxSizing: 'border-box' }}
+          >
+            <Download size={15} color="var(--primary-700)" />
+            <span>Xuất Dataset Huấn Luyện AI</span>
+          </button>
           <button 
             onClick={handleExportCSV}
             className="btn btn-secondary"
@@ -150,16 +192,31 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
 
         <div className="kpi-card">
           <div>
-            <div className="kpi-label">Độ lệch trung bình so với dự báo</div>
+            <div className="kpi-label">Độ lệch TB so với AI dự báo</div>
             <div className="kpi-value" style={{ color: 'var(--primary-700)' }}>
               ±{avgErrorPercent}%
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
+              Độ chính xác {parseFloat(avgErrorPercent) < 5 ? 'xuất sắc (< ±5%)' : 'chấp nhận được'}
             </div>
           </div>
         </div>
 
         <div className="kpi-card">
           <div>
-            <div className="kpi-label">Số đợt thu hoạch đã ghi nhận</div>
+            <div className="kpi-label">Tỷ lệ rau loại 1 (Grade A)</div>
+            <div className="kpi-value" style={{ color: 'var(--primary-700)' }}>
+              {gradeAPercent}% <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-muted)' }}>({gradeACount}/{harvests.length} đợt)</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
+              Tiêu chuẩn xuất bán siêu thị
+            </div>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div>
+            <div className="kpi-label">Số đợt thu hoạch</div>
             <div className="kpi-value">
               {harvests.length} <span style={{ fontSize: '0.8125rem', fontWeight: 400, color: 'var(--text-muted)' }}>đợt</span>
             </div>

@@ -37,10 +37,10 @@ Sau khi chạy, terminal sẽ hiển thị địa chỉ truy cập cục bộ:
 ```text
   VITE v8.x.x  ready in ~250 ms
 
-  ➜  Local:   http://localhost:5173/
+  ➜  Local:   http://localhost:3000/
   ➜  Network: use --host to expose
 ```
-👉 Mở trình duyệt và truy cập: **[http://localhost:5173](http://localhost:5173)**
+👉 Mở trình duyệt và truy cập: **[http://localhost:3000](http://localhost:3000)**
 
 #### Bước 4: Đóng gói và chạy thử bản Production (Tùy chọn):
 ```bash
@@ -85,14 +85,30 @@ farm-management/
 ├── .gitignore             # Cấu hình bỏ qua node_modules, dist, logs, env
 ├── README.md              # Tài liệu hướng dẫn cài đặt & khởi chạy (File này)
 ├── OVERVIEW.md            # Tài liệu phân tích nghiệp vụ, dinh dưỡng & kiến trúc đề tài
+├── documents/             # Tài liệu FRS v1.0 & Báo cáo đối chiếu hệ thống
+├── ai_service/            # Module Python Machine Learning & REST API
+│   ├── dataset_generator.py # Sinh tập dữ liệu nông học chuẩn hóa (5,000 mẫu)
+│   ├── train_model.py     # Huấn luyện XGBoost Regressor (R² >= 0.92)
+│   ├── api.py             # FastAPI REST Server cho dự báo & XAI
+│   └── requirements.txt   # Thư viện Python (xgboost, scikit-learn, fastapi...)
 └── frontend/              # Ứng dụng Web Frontend React + Vite
     ├── src/
-    │   ├── components/    # Header, Sidebar đồng bộ
+    │   ├── components/    # Header, Sidebar, LifecycleProgressBar, Tooltips
     │   ├── mock/          # Dữ liệu mẫu khởi tạo & LocalStorage Store
-    │   ├── services/      # Logic AI dự báo & khuyến nghị nông học
+    │   ├── services/      # Logic AI dự báo & kết nối API
     │   ├── styles/        # CSS Tokens & giao diện Clean SaaS
     │   ├── types/         # TypeScript types (Farm, Batch, Reservoir...)
     │   └── views/         # 6 Màn hình chức năng chính
     ├── package.json
     └── vite.config.ts
 ```
+
+---
+
+## 🤖 Bản Chất Ứng Dụng AI Trong Dự Án
+
+1. **Dự báo trước sản lượng thu hoạch ($kg$):**  
+   Nhìn nhận tình trạng cây hôm nay (ngày tuổi, số lá thật, chiều cao, nồng độ phân bón EC, pH, nhiệt độ nước) để dự báo chính xác khối lượng búp tươi ($g/\text{cây}$) và tổng sản lượng cả lô ($kg$) tại ngày thu hoạch $\rightarrow$ Kỹ sư và người quản lý chủ động ký kết hợp đồng xuất bán với siêu thị, loại bỏ rủi ro thiếu hụt hoặc dư thừa rau.
+
+2. **Chỉ đúng nguyên nhân và khuyến nghị xử lý (Explainable AI - XAI):**  
+   Khi cây sinh trưởng chậm hoặc năng suất dự báo sụt giảm, AI bóc tách tỷ trọng đóng góp của từng chỉ số (chuẩn hóa 100%) để chỉ đích danh nguyên nhân (ví dụ: do sốc nhiệt nước bồn $>24.5^\circ\text{C}$, hay do lệch pH khóa chất) $\rightarrow$ Ngăn ngừa tình trạng kỹ sư đoán mò đổ thêm phân bón làm ngộ độc rễ và chết giàn rau.

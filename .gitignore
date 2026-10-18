@@ -49,3 +49,12 @@ Thumbs.db
 # Private workspace docs & agent files (kept externally in workspace root)
 docs/
 AGENTS.md
+
+# Python & AI service
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+*.pkl
