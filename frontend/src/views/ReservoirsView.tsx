@@ -12,7 +12,8 @@ import {
   Search,
   ArrowUpDown,
   Activity,
-  Calendar
+  Calendar,
+  Sprout
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -445,6 +446,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           // Channels connected to this reservoir
           const resChans = channels.filter(c => c.reservoirId === res.id);
           const totalActivePlants = resChans.reduce((sum, c) => sum + c.activePlants, 0);
+          const resBatches = batches.filter(b => b.reservoirId === res.id && b.status === 'active');
 
           // Evaluation status
           const isPhOk = res.currentPh >= 5.6 && res.currentPh <= 6.2;
@@ -844,6 +846,86 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     <span>Dinh dưỡng đang ở mức tối ưu ({res.currentEc} mS/cm). Chưa cần châm thêm.</span>
                   </div>
                 )}
+              </div>
+
+              {/* Connected Batches & Cultivar Agronomic Standards */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1.5px solid #d1fae5',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#16a34a' }}>
+                    <Sprout size={15} />
+                    <span>Giống Cây & Lô Canh Tác Đang Cấp Dinh Dưỡng ({resBatches.length} lô)</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Tiêu chuẩn nông học NFT
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {resBatches.length > 0 ? (
+                    resBatches.map(b => (
+                      <div
+                        key={b.id}
+                        style={{
+                          padding: '8px 10px',
+                          backgroundColor: '#f8fafc',
+                          borderRadius: '6px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '6px'
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: '#0f172a' }}>{b.cultivarName}</strong>
+                          <span style={{ color: '#64748b', marginLeft: '6px' }}>({b.batchCode} — Giàn {b.zoneCode || 'NFT'})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ color: '#475569' }}>
+                            pH: <strong>{b.cultivarName.includes('Oak') ? '5.6 - 6.2' : b.cultivarName.includes('Romaine') ? '5.5 - 6.0' : '5.8 - 6.3'}</strong>
+                          </span>
+                          <span style={{ color: '#475569' }}>
+                            EC: <strong>{b.cultivarName.includes('Oak') ? '1.4 - 1.9' : b.cultivarName.includes('Romaine') ? '1.6 - 2.1' : '1.5 - 2.0'}</strong> mS/cm
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const target = b.cultivarName.includes('Romaine') ? 1.85 : 1.75;
+                              setTargetEcs(prev => ({ ...prev, [res.id]: target }));
+                            }}
+                            style={{
+                              padding: '2px 8px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              borderRadius: '4px',
+                              border: '1px solid #86efac',
+                              backgroundColor: '#f0fdf4',
+                              color: '#16a34a',
+                              cursor: 'pointer'
+                            }}
+                            title="Đặt mục tiêu EC theo chuẩn giống này"
+                          >
+                            Áp chuẩn
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic', padding: '4px 0' }}>
+                      Chưa có lô cây trồng liên kết trực tiếp
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Connected NFT Gullies / Channels */}

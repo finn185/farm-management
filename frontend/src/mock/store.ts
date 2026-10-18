@@ -380,6 +380,24 @@ export const farmStore = {
       actualHarvestDate: harvestData.harvestDate
     });
 
+    // Update zone status to completed
+    const allBatches = farmStore.getBatches();
+    const targetBatch = allBatches.find(b => b.id === harvestData.batchId);
+    if (targetBatch?.zoneId) {
+      farmStore.updateZone(targetBatch.zoneId, { status: 'completed' });
+    }
+    if (targetBatch?.zoneCode) {
+      farmStore.updateZone(targetBatch.zoneCode, { status: 'completed' });
+    }
+
+    // Auto-resolve open alerts for this batch
+    const alerts = farmStore.getAlerts();
+    alerts.forEach(a => {
+      if (a.batchId === harvestData.batchId && (a.status === 'open' || a.status === 'acknowledged')) {
+        farmStore.resolveAlert(a.id, harvestData.operatorName || 'Quản lý thu hoạch', 'Lô cây trồng đã hoàn thành thu hoạch thành công.');
+      }
+    });
+
     return newRecord;
   },
 

@@ -3,6 +3,11 @@ import cors from 'cors';
 import { config } from './config/env';
 import authRoutes from './modules/auth/auth.routes';
 import batchRoutes from './modules/batches/batches.routes';
+import reservoirRoutes from './modules/reservoirs/reservoirs.routes';
+import alertRoutes from './modules/alerts/alerts.routes';
+import harvestRoutes from './modules/harvests/harvests.routes';
+import cultivarRoutes from './modules/cultivars/cultivars.routes';
+import zoneRoutes from './modules/zones/zones.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -40,6 +45,21 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/v1/batches', batchRoutes);
 app.use('/api/batches', batchRoutes);
+
+app.use('/api/v1/reservoirs', reservoirRoutes);
+app.use('/api/reservoirs', reservoirRoutes);
+
+app.use('/api/v1/alerts', alertRoutes);
+app.use('/api/alerts', alertRoutes);
+
+app.use('/api/v1/harvests', harvestRoutes);
+app.use('/api/harvests', harvestRoutes);
+
+app.use('/api/v1/cultivars', cultivarRoutes);
+app.use('/api/cultivars', cultivarRoutes);
+
+app.use('/api/v1/zones', zoneRoutes);
+app.use('/api/zones', zoneRoutes);
 
 // 404 Route Handler
 app.use((_req: Request, res: Response) => {

@@ -15,6 +15,9 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import { farmStore } from './mock/store';
 import { batchesApi } from './services/batchesApi';
+import { reservoirsApi } from './services/reservoirsApi';
+import { alertsApi } from './services/alertsApi';
+import { harvestsApi } from './services/harvestsApi';
 import type { CropBatch, GrowthStage, BatchStatus } from './types/farm';
 import { useToast } from './components/Toast';
 
@@ -50,11 +53,25 @@ export const App: React.FC = () => {
 
   // Sync with backend on initial load
   useEffect(() => {
-    batchesApi.getBatches().then(remoteBatches => {
-      if (remoteBatches && remoteBatches.length > 0) {
-        setBatches(remoteBatches);
+    Promise.allSettled([
+      batchesApi.getBatches(),
+      reservoirsApi.getReservoirs(),
+      alertsApi.getAlerts(),
+      harvestsApi.getHarvests()
+    ]).then(([batchesRes, reservoirsRes, alertsRes, harvestsRes]) => {
+      if (batchesRes.status === 'fulfilled' && batchesRes.value?.length) {
+        setBatches(batchesRes.value);
       }
-    }).catch(() => {});
+      if (reservoirsRes.status === 'fulfilled' && reservoirsRes.value?.length) {
+        setReservoirs(reservoirsRes.value);
+      }
+      if (alertsRes.status === 'fulfilled' && alertsRes.value?.length) {
+        setAlerts(alertsRes.value);
+      }
+      if (harvestsRes.status === 'fulfilled' && harvestsRes.value?.length) {
+        setHarvests(harvestsRes.value);
+      }
+    });
   }, []);
 
   const handleAddBatch = async (data: any) => {
@@ -71,30 +88,26 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleAddMeasurement = (data: any) => {
-    farmStore.addMeasurementRecord(data);
+  const handleAddMeasurement = async (data: any) => {
+    await reservoirsApi.logWaterQuality(data.reservoirId, data);
     refreshState();
     showToast('Đã ghi nhận số đo', `pH ${data.ph} | EC ${data.ec} mS/cm | ${data.waterTemp}°C`, 'success');
   };
 
-  const handleUpdateVolume = (resId: string, addedLiters: number) => {
-    const res = reservoirs.find(r => r.id === resId);
-    if (!res) return;
-    const newVol = Math.min(res.capacityLiters, res.currentVolumeLiters + addedLiters);
-    const newEc = Math.max(1.2, parseFloat((res.currentEc * (res.currentVolumeLiters / newVol)).toFixed(2)));
-    farmStore.updateReservoir(resId, {
-      currentVolumeLiters: newVol,
-      currentEc: newEc,
-      lastTopUpDate: new Date().toISOString().split('T')[0]
-    });
+  const handleUpdateVolume = async (resId: string, addedLiters: number) => {
+    await reservoirsApi.topUpWater(resId, { waterLitersAdded: addedLiters });
     refreshState();
     showToast('Châm nước thành công', `Đã châm thêm ${addedLiters}L nước sạch vào bể`, 'info');
   };
 
-  const handleApplyDosing = (reservoirId: string, targetEc: number, doseMl: number) => {
-    farmStore.applyDosing(reservoirId, targetEc, doseMl);
+  const handleApplyDosing = async (reservoirId: string, targetEc: number, doseMl: number) => {
+    await reservoirsApi.doseNutrient(reservoirId, {
+      amountStockAMl: doseMl,
+      amountStockBMl: doseMl,
+      targetEc
+    });
     refreshState();
-    showToast('Châm dinh dưỡng thành công', `Đã châm ${doseMl}ml Can A & B. EC bồn đạt ${targetEc} mS/cm.`, 'success');
+    showToast('Châm dinh dưỡng thành công', `Đã châm ${doseMl}ml Stock A & B. EC bồn đạt ${targetEc} mS/cm.`, 'success');
   };
 
   const handleAddObservation = async (batchId: string, obs: any) => {
@@ -129,24 +142,30 @@ export const App: React.FC = () => {
     showToast('Cập nhật trạng thái', `Lô đã chuyển sang: ${statusNames[status] || status}`, 'info');
   };
 
-  const handleResolveAlert = (id: string, by?: string, note?: string) => {
-    farmStore.resolveAlert(id, by, note);
+  const handleResolveAlert = async (id: string, by?: string, note?: string) => {
+    await alertsApi.resolveAlert(id, by || 'Kỹ sư Nông nghiệp', note);
     refreshState();
+    showToast('Đã giải quyết sự cố', 'Cảnh báo đã được đóng thành công', 'success');
   };
 
-  const handleAcknowledgeAlert = (id: string, by: string) => {
-    farmStore.acknowledgeAlert(id, by);
+  const handleAcknowledgeAlert = async (id: string, by: string) => {
+    await alertsApi.acknowledgeAlert(id, by);
     refreshState();
+    showToast('Đã tiếp nhận sự cố', 'Trạng thái chuyển sang Đang theo dõi', 'info');
   };
 
-  const handleDrainReservoir = (event: any) => {
-    farmStore.addDrainEvent(event);
+  const handleDrainReservoir = async (event: any) => {
+    await reservoirsApi.drainReservoir(event.reservoirId, {
+      reason: event.reason,
+      operator: event.operator,
+      notes: event.notes
+    });
     refreshState();
     showToast('Xả bể thành công', 'Đã ghi nhận sự kiện xả bể và thay dung dịch mới', 'success');
   };
 
-  const handleRecordHarvest = (data: any) => {
-    farmStore.recordHarvest(data);
+  const handleRecordHarvest = async (data: any) => {
+    await harvestsApi.recordHarvest(data);
     refreshState();
     showToast('Thu hoạch hoàn tất', `Ghi nhận ${data.totalWeightKg}kg thành phẩm cho lô ${data.batchCode}`, 'success');
   };

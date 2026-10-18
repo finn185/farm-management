@@ -103,6 +103,9 @@ model Reservoir {
 
   zones               FarmZone[]
   batches             CropBatch[]
+  alerts              Alert[]
+  waterLogs           WaterQualityLog[]
+  drainEvents         SolutionDrainEvent[]
 
   @@map("reservoirs")
 }
@@ -122,6 +125,7 @@ model FarmZone {
 
   reservoir    Reservoir?  @relation(fields: [reservoirId], references: [id])
   batches      CropBatch[]
+  alerts       Alert[]
 
   @@map("farm_zones")
 }
@@ -150,6 +154,8 @@ model CropBatch {
   reservoir           Reservoir         @relation(fields: [reservoirId], references: [id])
   zone                FarmZone?         @relation(fields: [zoneId], references: [id])
   observations        CropObservation[]
+  alerts              Alert[]
+  harvestRecords      HarvestRecord[]
 
   @@map("crop_batches")
 }
@@ -167,5 +173,109 @@ model CropObservation {
   batch         CropBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   @@map("crop_observations")
+}
+
+model Alert {
+  id              String      @id @default(uuid())
+  severity        String      @default("warning") // critical, warning, info
+  status          String      @default("open")    // open, acknowledged, resolved
+  metric          String      // pH, EC, DO, Temp, Nutrient, System
+  title           String
+  message         String
+  suggestedAction String?
+  reservoirId     String?
+  batchId         String?
+  zoneId          String?
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  resolutionNote  String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  reservoir       Reservoir?  @relation(fields: [reservoirId], references: [id])
+  batch           CropBatch?  @relation(fields: [batchId], references: [id])
+  zone            FarmZone?   @relation(fields: [zoneId], references: [id])
+
+  @@map("alerts")
+}
+
+model HarvestRecord {
+  id                  String     @id @default(uuid())
+  batchId             String
+  batchCode           String
+  cultivarName        String
+  harvestDate         String
+  harvestedPlants     Int
+  totalWeightKg       Float
+  avgWeightG          Float
+  rejectedWeightKg    Float      @default(0)
+  aiPredictedWeightG  Float      @default(0)
+  differencePercent   Float      @default(0)
+  lossPercentage      Float      @default(0)
+  grade               String     @default("A") // A, B, C
+  unitPriceVnd        Float      @default(45000)
+  totalRevenueVnd     Float      @default(0)
+  notes               String?
+  operatorName        String?
+  createdAt           DateTime   @default(now())
+
+  batch               CropBatch  @relation(fields: [batchId], references: [id])
+
+  @@map("harvest_records")
+}
+
+model NutrientFormula {
+  id                             String   @id @default(uuid())
+  name                           String
+  applicableCrop                 String
+  systemType                     String   @default("NFT")
+  scientificStandard             String
+  targetEc                       Float
+  targetPh                       Float
+  dosingRatio                    String
+  chemicalIncompatibilityReason  String
+  stockADetails                  String
+  stockBDetails                  String
+  notes                          String?
+  createdAt                      DateTime @default(now())
+
+  @@map("nutrient_formulas")
+}
+
+model WaterQualityLog {
+  id          String     @id @default(uuid())
+  reservoirId String
+  ph          Float
+  ec          Float
+  waterTemp   Float
+  doLevel     Float?
+  recordedBy  String?
+  source      String     @default("sensor") // sensor, manual
+  createdAt   DateTime   @default(now())
+
+  reservoir   Reservoir  @relation(fields: [reservoirId], references: [id])
+
+  @@map("water_quality_logs")
+}
+
+model SolutionDrainEvent {
+  id                  String     @id @default(uuid())
+  reservoirId         String
+  batchId             String?
+  drainDate           String
+  volumeDrainedLiters Float
+  finalPh             Float
+  finalEc             Float
+  finalDo             Float?
+  reason              String     // end_of_batch, salt_accumulation, contamination, maintenance
+  operator            String
+  notes               String?
+  createdAt           DateTime   @default(now())
+
+  reservoir           Reservoir  @relation(fields: [reservoirId], references: [id])
+
+  @@map("solution_drain_events")
 }
 

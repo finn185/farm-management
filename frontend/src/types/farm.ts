@@ -196,6 +196,7 @@ export interface Alert {
   message: string;
   reservoirId?: string;
   batchId?: string;
+  zoneId?: string;
   /** @deprecated use status instead */
   resolved: boolean;
   suggestedAction: string;
@@ -274,5 +275,8 @@ export interface HarvestRecord {
   aiPredictedWeightG: number;
   differencePercent: number;
   grade: 'A' | 'B' | 'C';
+  unitPriceVnd?: number;
+  totalRevenueVnd?: number;
+  operatorName?: string;
   notes?: string;
 }

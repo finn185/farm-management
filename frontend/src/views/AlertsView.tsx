@@ -8,7 +8,9 @@ import {
   ChevronDown, 
   ChevronUp,
   Search,
-  ExternalLink
+  ExternalLink,
+  Droplets,
+  Sprout
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Alert } from '../types/farm';
@@ -462,6 +464,24 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                             <ExternalLink size={10} />
                           </Link>
                         )}
+
+                        {alert.zoneId && (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: '#0369a1',
+                              backgroundColor: '#e0f2fe',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            <span>Giàn {alert.zoneId.replace('zone-', '').toUpperCase()}</span>
+                          </span>
+                        )}
                       </div>
 
                       <div style={{
@@ -551,6 +571,26 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {(alert.metric === 'EC' || alert.metric === 'pH' || alert.metric === 'Nutrient') && alert.status !== 'resolved' && (
+                            <Link
+                              to="/reservoirs"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', height: '30px', display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
+                            >
+                              <Droplets size={12} color="#00a651" /> Bù Dinh Dưỡng
+                            </Link>
+                          )}
+
+                          {(alert.title.includes('thu hoạch') || alert.metric === 'System') && alert.status !== 'resolved' && (
+                            <Link
+                              to="/harvest"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', height: '30px', display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
+                            >
+                              <Sprout size={12} color="#16a34a" /> Thu Hoạch
+                            </Link>
+                          )}
+
                           {alert.status === 'open' && (
                             <button
                               onClick={() => onAcknowledgeAlert(alert.id, 'Kỹ sư Nông nghiệp')}
