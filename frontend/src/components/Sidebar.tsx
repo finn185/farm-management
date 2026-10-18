@@ -7,8 +7,10 @@ import {
   CloudSun, 
   Settings2, 
   ClipboardCheck, 
+  User,
   LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   unreadAlertCount: number;
@@ -17,8 +19,10 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({
   unreadAlertCount,
-  onResetData
+  onResetData: _onResetData
 }) => {
+  const { logout } = useAuth();
+
   const navItems = [
     { path: '/dashboard', label: 'Bảng điều khiển', icon: LayoutGrid },
     { path: '/batches', label: 'Quản lý lô trồng', icon: Sprout },
@@ -26,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { path: '/forecast', label: 'Dự báo năng suất AI', icon: CloudSun },
     { path: '/harvest', label: 'Nhật ký thu hoạch', icon: ClipboardCheck },
     { path: '/alerts', label: 'Cảnh báo sinh hóa', icon: Settings2, badge: unreadAlertCount },
+    { path: '/profile', label: 'Hồ sơ cá nhân', icon: User },
   ];
 
   return (
@@ -67,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           fontSize: '1.25rem',
           fontWeight: 800,
           color: '#00a651',
-          letterSpacing: '-0.02em'
+          letterSpacing: '0.005em'
         }}>
           HydroSmart
         </span>
@@ -136,8 +141,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div style={{ padding: '16px 14px', borderTop: '1px solid var(--border-subtle)' }}>
         <button
           onClick={() => {
-            if (window.confirm('Khôi phục lại dữ liệu trang trại ban đầu?')) {
-              onResetData();
+            if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?')) {
+              logout();
             }
           }}
           style={{

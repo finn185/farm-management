@@ -316,7 +316,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
               Dự Báo Sản Lượng & Năng Suất AI
             </h1>
             <span style={{
@@ -486,7 +486,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '0.005em' }}>
                 Đường Cong Sinh Trưởng & Dự Báo Sinh Khối ({targetDays} Ngày)
               </h3>
               <span style={{ fontSize: '0.72rem', backgroundColor: '#e8f8f0', color: '#00a651', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>

@@ -1,11 +1,12 @@
 @import './variables.css';
 
-/* CSS Reset & Base */
+/* CSS Reset & Base - Vietnamese Typography Optimized */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
+  letter-spacing: 0.008em;
 }
 
 html, body {
@@ -14,7 +15,9 @@ html, body {
   font-family: var(--font-sans) !important;
   background-color: var(--bg-page);
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  word-spacing: 0.03em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -28,14 +31,24 @@ html, body {
 /* Enforce unified font inheritance across all form controls and HTML elements */
 button, input, select, textarea, optgroup, option {
   font-family: var(--font-sans) !important;
+  letter-spacing: 0.01em;
 }
 
-h1, h2, h3, h4, h5, h6, p, span, a, label, table, th, td, div {
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans) !important;
+  letter-spacing: 0.005em !important;
+  line-height: 1.35 !important;
+  word-spacing: 0.02em;
+}
+
+p, span, a, label, table, th, td, div {
   font-family: var(--font-sans);
+  letter-spacing: 0.008em;
 }
 
 .mono {
   font-family: var(--font-sans);
+  letter-spacing: 0.02em;
 }
 
 /* App Layout Grid */

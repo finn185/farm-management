@@ -123,7 +123,7 @@ const SegmentedRainbowGauge: React.FC = () => {
           fontWeight="800"
           fill="#0f172a"
           fontFamily="var(--font-sans)"
-          letterSpacing="-0.02em"
+          letterSpacing="0.005em"
         >
           1.000 tấn
         </text>
@@ -484,7 +484,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* THẺ 1: Lời chào & Thời tiết Thực */}
         <div className="farmvista-card" style={{ padding: '22px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}>
           <div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-sans)' }}>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', letterSpacing: '0.005em', margin: 0, fontFamily: 'var(--font-sans)' }}>
               {getGreeting()}
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '6px', lineHeight: 1.4, margin: '6px 0 0 0' }}>
@@ -589,7 +589,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   fontWeight: 800,
                   color: '#0f172a',
                   lineHeight: 1,
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '0.005em',
                   whiteSpace: 'nowrap',
                   opacity: isWeatherLoading ? 0.45 : 1,
                   transition: 'opacity 0.2s ease'
@@ -725,7 +725,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em' }}>
                 4.500 cây
               </div>
 
@@ -762,7 +762,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em' }}>
                 125.000.000 ₫
               </div>
 

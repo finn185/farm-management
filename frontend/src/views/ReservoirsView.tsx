@@ -222,7 +222,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           ======================================================== */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
             Quản Lý Bể & Dinh Dưỡng Thủy Canh
           </h1>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 0 0' }}>

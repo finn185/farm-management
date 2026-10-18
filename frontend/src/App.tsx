@@ -8,6 +8,11 @@ import { ReservoirsView } from './views/ReservoirsView';
 import { AIPredictorView } from './views/AIPredictorView';
 import { AlertsView } from './views/AlertsView';
 import { HarvestView } from './views/HarvestView';
+import { LoginView } from './views/LoginView';
+import { RegisterView } from './views/RegisterView';
+import { ProfileView } from './views/ProfileView';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
 import { farmStore } from './mock/store';
 import type { CropBatch } from './types/farm';
 import { useToast } from './components/Toast';
@@ -15,6 +20,7 @@ import { useToast } from './components/Toast';
 export const App: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   // State from Store
   const [batches, setBatches] = useState(() => farmStore.getBatches());
@@ -139,102 +145,126 @@ export const App: React.FC = () => {
   const unreadAlertsCount = alerts.filter(a => a.status === 'open' || a.status === 'acknowledged').length;
 
   return (
-    <div className="app-container">
-      {/* Sidebar with Route Links */}
-      <Sidebar
-        unreadAlertCount={unreadAlertsCount}
-        onResetData={handleResetData}
+    <Routes>
+      {/* Public Authentication Routes */}
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginView />}
+      />
+      <Route
+        path="/register"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterView />}
       />
 
-      {/* Main Area */}
-      <div className="app-main">
-        <Header unreadAlertCount={unreadAlertsCount} />
+      {/* Protected Dashboard Application Routes */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <div className="app-container">
+              {/* Sidebar with Route Links */}
+              <Sidebar
+                unreadAlertCount={unreadAlertsCount}
+                onResetData={handleResetData}
+              />
 
-        <main className="content-body">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route
-              path="/dashboard"
-              element={
-                <DashboardView
-                  batches={batches}
-                  reservoirs={reservoirs}
-                  sensorHistory={sensorHistory}
-                  alerts={alerts}
-                  onNavigateTab={handleNavigateTab}
-                  onSelectBatchForAI={handleSelectBatchForAI}
-                />
-              }
-            />
-            <Route
-              path="/batches"
-              element={
-                <BatchesView
-                  batches={batches}
-                  cultivars={cultivars}
-                  reservoirs={reservoirs}
-                  onAddBatch={handleAddBatch}
-                  onDeleteBatch={handleDeleteBatch}
-                  onSelectBatchForAI={handleSelectBatchForAI}
-                  onAddObservation={handleAddObservation}
-                  onAdvanceStage={handleAdvanceStage}
-                />
-              }
-            />
-            <Route
-              path="/reservoirs"
-              element={
-                <ReservoirsView
-                  reservoirs={reservoirs}
-                  formulas={formulas}
-                  channels={channels}
-                  batches={batches}
-                  drainEvents={drainEvents}
-                  onAddMeasurement={handleAddMeasurement}
-                  onUpdateVolume={handleUpdateVolume}
-                  onDrainReservoir={handleDrainReservoir}
-                  onApplyDosing={handleApplyDosing}
-                />
-              }
-            />
-            <Route
-              path="/forecast"
-              element={
-                <AIPredictorView
-                  batches={batches}
-                  selectedBatch={selectedBatchForAI}
-                  reservoirs={reservoirs}
-                  cultivars={cultivars}
-                />
-              }
-            />
-            <Route
-              path="/alerts"
-              element={
-                <AlertsView
-                  alerts={alerts}
-                  onAcknowledgeAlert={handleAcknowledgeAlert}
-                  onResolveAlert={handleResolveAlert}
-                />
-              }
-            />
-            <Route
-              path="/harvest"
-              element={
-                <HarvestView
-                  harvests={harvests}
-                  batches={batches}
-                  reservoirs={reservoirs}
-                  onRecordHarvest={handleRecordHarvest}
-                />
-              }
-            />
-            {/* Catch-all redirect to /dashboard */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
+              {/* Main Area */}
+              <div className="app-main">
+                <Header unreadAlertCount={unreadAlertsCount} />
+
+                <main className="content-body">
+                  <Routes>
+                    <Route path="" element={<Navigate to="/dashboard" replace />} />
+                    <Route
+                      path="dashboard"
+                      element={
+                        <DashboardView
+                          batches={batches}
+                          reservoirs={reservoirs}
+                          sensorHistory={sensorHistory}
+                          alerts={alerts}
+                          onNavigateTab={handleNavigateTab}
+                          onSelectBatchForAI={handleSelectBatchForAI}
+                        />
+                      }
+                    />
+                    <Route
+                      path="batches"
+                      element={
+                        <BatchesView
+                          batches={batches}
+                          cultivars={cultivars}
+                          reservoirs={reservoirs}
+                          onAddBatch={handleAddBatch}
+                          onDeleteBatch={handleDeleteBatch}
+                          onSelectBatchForAI={handleSelectBatchForAI}
+                          onAddObservation={handleAddObservation}
+                          onAdvanceStage={handleAdvanceStage}
+                        />
+                      }
+                    />
+                    <Route
+                      path="reservoirs"
+                      element={
+                        <ReservoirsView
+                          reservoirs={reservoirs}
+                          formulas={formulas}
+                          channels={channels}
+                          batches={batches}
+                          drainEvents={drainEvents}
+                          onAddMeasurement={handleAddMeasurement}
+                          onUpdateVolume={handleUpdateVolume}
+                          onDrainReservoir={handleDrainReservoir}
+                          onApplyDosing={handleApplyDosing}
+                        />
+                      }
+                    />
+                    <Route
+                      path="forecast"
+                      element={
+                        <AIPredictorView
+                          batches={batches}
+                          selectedBatch={selectedBatchForAI}
+                          reservoirs={reservoirs}
+                          cultivars={cultivars}
+                        />
+                      }
+                    />
+                    <Route
+                      path="alerts"
+                      element={
+                        <AlertsView
+                          alerts={alerts}
+                          onAcknowledgeAlert={handleAcknowledgeAlert}
+                          onResolveAlert={handleResolveAlert}
+                        />
+                      }
+                    />
+                    <Route
+                      path="harvest"
+                      element={
+                        <HarvestView
+                          harvests={harvests}
+                          batches={batches}
+                          reservoirs={reservoirs}
+                          onRecordHarvest={handleRecordHarvest}
+                        />
+                      }
+                    />
+                    <Route
+                      path="profile"
+                      element={<ProfileView />}
+                    />
+                    {/* Fallback route */}
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </div>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 };
 

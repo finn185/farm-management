@@ -72,7 +72,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
       {/* 1. Header tinh gọn */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
             Cảnh Báo Sinh Hóa
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 0 0' }}>
