@@ -1,8 +1,4 @@
 # BÁO CÁO KỸ THUẬT MODULE AI & HƯỚNG DẪN TÍCH HỢP HỆ THỐNG
-**Đề tài:** Smart Hydroponic Farm - Hệ thống Quản lý Trang trại Thủy canh Thông minh  
-**Học phần / Module:** Trí tuệ Nhân tạo & Xử lý Dữ liệu (AI & Data Science Module)  
-**Người thực hiện:** Kỹ sư Module AI  
-**Ngày cập nhật:** Tháng 10/2026  
 
 ---
 
@@ -11,7 +7,6 @@
 2. [CHI TIẾT MÃ NGUỒN GOOGLE COLAB (BẢN CHUẨN HOÀN CHỈNH)](#2-chi-tiết-mã-nguồn-google-colab-bản-chuẩn-hoàn-chỉnh)
 3. [KẾT QUẢ ĐÁNH GIÁ & KIỂM CHỨNG ĐA KỊCH BẢN (MULTI-SCENARIO TESTING)](#3-kết-quả-đánh-giá--kiểm-chứng-đa-kịch-bản-multi-scenario-testing)
 4. [HƯỚNG DẪN DÀNH CHO TEAMMATES (SỬ DỤNG CHO BACKEND, FRONTEND, TESTER, DEVOPS)](#4-hướng-dẫn-dành-cho-teammates-sử-dụng-cho-backend-frontend-tester-devops)
-5. [HƯỚNG DẪN ĐẨY CODE LÊN GITHUB (TẠO NHÁNH `AI` VÀ PUSH VÀO REPO CỦA BẠN)](#5-hướng-dẫn-đẩy-code-lên-github-tạo-nhánh-ai-và-push-vào-repo-của-bạn)
 
 ---
 
@@ -60,7 +55,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # Đọc file dữ liệu đã làm sạch
 df = pd.read_csv('Cleaned_Data_Batches_Final.csv')
-print("✅ Đã tải dữ liệu thành công! Tổng số dòng:", len(df))
+print("Đã tải dữ liệu thành công! Tổng số dòng:", len(df))
 display(df.head(3))
 ```
 
@@ -72,7 +67,7 @@ df['Date'] = pd.to_datetime(df['Date'])
 # Tự động tính số ngày tuổi cây (Plant_Age_Days) từ ngày đầu tiên của mỗi Batch_ID
 df['Plant_Age_Days'] = df.groupby('Batch_ID')['Date'].transform(lambda x: (x - x.min()).dt.days + 1)
 
-print("✅ Đã tạo thành công đặc trưng 'Plant_Age_Days' (Số ngày tuổi cây trong vụ).")
+print("Đã tạo thành công đặc trưng 'Plant_Age_Days' (Số ngày tuổi cây trong vụ).")
 display(df[['Batch_ID', 'Date', 'Plant_Age_Days', 'Target_Shoot_Weight_g']].head())
 ```
 
@@ -106,7 +101,7 @@ mae = mean_absolute_error(y_test, y_pred)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 r2 = r2_score(y_test, y_pred)
 
-print(f"📊 KẾT QUẢ ĐÁNH GIÁ AI 1:")
+print(f"KẾT QUẢ ĐÁNH GIÁ AI 1:")
 print(f"- MAE (Sai số tuyệt đối trung bình): {mae:.2f} gram")
 print(f"- RMSE (Sai số căn bậc hai trung bình): {rmse:.2f} gram")
 print(f"- R² Score (Hệ số xác định): {r2:.4f}")
@@ -133,14 +128,14 @@ iso_model = IsolationForest(contamination=0.05, random_state=42)
 df.loc[iso_data.index, 'Anomaly_Score'] = iso_model.fit_predict(iso_data)
 df['Status_Check'] = df['Anomaly_Score'].apply(lambda x: 'Bình thường' if x == 1 else 'BẤT THƯỜNG')
 
-print("📈 THỐNG KÊ TRẠNG THÁI TOÀN BỘ DỮ LIỆU:")
+print("THỐNG KÊ TRẠNG THÁI TOÀN BỘ DỮ LIỆU:")
 print(df['Status_Check'].value_counts())
 ```
 
 ### CELL 5: Kiểm chứng Đa Kịch bản Toàn diện (Multi-Scenario Validation)
 ```python
 print("==================================================")
-print("🔍 BẮT ĐẦU KIỂM CHỨNG TOÀN DIỆN 2 MÔ HÌNH AI (ĐA KỊCH BẢN)")
+print("BẮT ĐẦU KIỂM CHỨNG TOÀN DIỆN 2 MÔ HÌNH AI (ĐA KỊCH BẢN)")
 print("==================================================")
 
 # ==========================================
@@ -149,7 +144,7 @@ print("==================================================")
 print("\n--- [AI 1: YIELD PREDICTION - KIỂM CHỨNG ĐA KỊCH BẢN] ---")
 
 # Kịch bản A: Lấy ngẫu nhiên 3 mẫu thật từ tập kiểm thử (Test Set) để đối chiếu trực tiếp
-print("\n1️⃣ Kiểm chứng đối chiếu với dữ liệu thực tế (Ground Truth trong Dataset):")
+print("\n1️ Kiểm chứng đối chiếu với dữ liệu thực tế (Ground Truth trong Dataset):")
 random_samples = X_test.sample(3, random_state=42)
 comparison_results = []
 
@@ -169,7 +164,7 @@ df_compare = pd.DataFrame(comparison_results)
 display(df_compare)
 
 # Kịch bản B: Giả lập tiến trình sinh trưởng theo các giai đoạn tuổi cây khác nhau
-print("\n2️⃣ Kiểm chứng theo các giai đoạn phát triển sinh học của xà lách:")
+print("\n2️ Kiểm chứng theo các giai đoạn phát triển sinh học của xà lách:")
 growth_stages = pd.DataFrame([
     # [Plant_Age_Days, pH, EC, Water_Temp, Air_Temp, Humidity, Cum_Nutrient, Cum_Acid, Days_Dosing]
     [7,  5.8, 1.4, 21.0, 23.0, 70.0, 200.0,  10.0, 1],  # Giai đoạn cây con (Cây còn nhỏ)
@@ -179,7 +174,7 @@ growth_stages = pd.DataFrame([
 
 stage_preds = rf_model.predict(growth_stages)
 for i, row in growth_stages.iterrows():
-    print(f"   🌱 Cây ở ngày tuổi {int(row['Plant_Age_Days'])} ➔ AI dự báo khối lượng: {stage_preds[i]:.2f} gram/cây (Hợp lý sinh học)")
+    print(f"    Cây ở ngày tuổi {int(row['Plant_Age_Days'])} ➔ AI dự báo khối lượng: {stage_preds[i]:.2f} gram/cây (Hợp lý sinh học)")
 
 # ==========================================
 # PHẦN 2: KIỂM CHỨNG AI 2 (ANOMALY DETECTION)
@@ -197,9 +192,9 @@ anomaly_test_cases = pd.DataFrame([
 
 anomaly_preds = iso_model.predict(anomaly_test_cases)
 
-print("\n📋 Kết quả quét trạng thái của AI 2 trên các kịch bản giả lập:")
+print("\n Kết quả quét trạng thái của AI 2 trên các kịch bản giả lập:")
 for i, pred in enumerate(anomaly_preds):
-    status = "🟢 BÌNH THƯỜNG (An toàn)" if pred == 1 else "🔴 BẤT THƯỜNG (Phát hiện nguy cơ rủi ro!)"
+    status = " BÌNH THƯỜNG (An toàn)" if pred == 1 else " BẤT THƯỜNG (Phát hiện nguy cơ rủi ro!)"
     scenario_desc = [
         "Chuẩn tối ưu", 
         "pH quá chua (Nguy hiểm)", 
@@ -210,7 +205,7 @@ for i, pred in enumerate(anomaly_preds):
     print(f"   - Kịch bản {i+1} [{scenario_desc}] | Thông số: {anomaly_test_cases.iloc[i].to_dict()} ➔ {status}")
 
 print("\n==================================================")
-print("✨ HOÀN TẤT KIỂM CHỨNG TOÀN DIỆN CHO CẢ 2 MÔ HÌNH AI!")
+print(" HOÀN TẤT KIỂM CHỨNG TOÀN DIỆN CHO CẢ 2 MÔ HÌNH AI!")
 print("==================================================")
 ```
 
@@ -269,55 +264,6 @@ Các thành viên khác trong nhóm có thể đưa báo cáo này cho Trợ lý
 - **Tệp thử nghiệm:** Sử dụng trực tiếp danh sách 5 Kịch bản tại **CELL 5** của báo cáo này để làm tập Test Cases tự động kiểm thử API tích hợp.
 
 ---
-
-## 5. HƯỚNG DẪN ĐẨY CODE LÊN GITHUB (TẠO NHÁNH `AI` VÀ PUSH VÀO REPO CỦA BẠN)
-
-Dưới đây là các bước thao tác chi tiết từng bước (Step-by-step) để bạn tạo nhánh mới tên là `AI` và push mã nguồn lên Repository GitHub của bạn trong nhóm.
-
-### Bước 1: Tải File Notebook từ Google Colab về Máy tính
-1. Trên giao diện Google Colab, chọn **File** (Tệp) $\rightarrow$ **Download** (Tải xuống) $\rightarrow$ **Download .ipynb** (Tải xuống .ipynb).
-2. Đổi tên file vừa tải về thành: `hydroponic_ai_model.ipynb`.
-3. Đảm bảo bạn đã có sẵn file dữ liệu `Cleaned_Data_Batches_Final.csv` trong cùng thư mục với file notebook này.
-
-### Bước 2: Mở Terminal / Command Prompt tại Thư mục Dự án
-1. Trên máy tính, mở ứng dụng **Terminal** (macOS/Linux) hoặc **Command Prompt / Git Bash** (Windows).
-2. Di chuyển vào thư mục dự án của bạn (ví dụ):
-   ```bash
-   cd path/to/your/project-folder
-   ```
-
-### Bước 3: Khởi tạo Git và Tạo Nhánh Mới `AI`
-Chạy lần lượt các lệnh sau:
-
-```bash
-# 1. Khởi tạo kho chứa Git cục bộ (nếu thư mục chưa có Git)
-git init
-
-# 2. Thêm toàn bộ các file (Notebook, File CSV, File Report Markdown) vào danh sách theo dõi
-git add .
-
-# 3. Tạo một bản sao lưu (Commit) đầu tiên
-git commit -m "Feat: Complete AI Yield Prediction and Anomaly Detection Module"
-
-# 4. Tạo nhánh mới tên là 'AI' và chuyển sang nhánh đó
-git checkout -b AI
-```
-
-### Bước 4: Kết nối với Repository GitHub của Bạn trong Nhóm
-1. Yêu cầu bạn trong nhóm gửi link Repository GitHub của dự án (URL có dạng `https://github.com/TenBanCuaBan/Ten-Repo-Nhom.git`).
-2. Liên kết thư mục trên máy bạn với GitHub của bạn đó bằng lệnh:
-   ```bash
-   git remote add origin https://github.com/TenBanCuaBan/Ten-Repo-Nhom.git
-   ```
-   *(Ghi chú: Nếu máy báo `remote origin already exists`, bạn chạy lệnh `git remote set-url origin https://github.com/TenBanCuaBan/Ten-Repo-Nhom.git` để cập nhật lại URL).*
-
-### Bước 5: Đẩy (Push) Nhánh `AI` lên GitHub
-Chạy lệnh đẩy nhánh `AI` lên GitHub:
-
-```bash
-git push -u origin AI
-```
-
 ### Bước 6: Xác minh trên GitHub
 1. Mở trình duyệt web và truy cập vào link Repository GitHub của bạn nhóm.
 2. Tại nút thả xuống **Branches** (mặc định đang ở `main` hoặc `master`), bấm chọn nhánh **`AI`**.
