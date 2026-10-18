@@ -262,10 +262,3 @@ Các thành viên khác trong nhóm có thể đưa báo cáo này cho Trợ lý
 ### 4.3. Kiểm thử viên (Tester / QA) & DevOps
 - **Mục đích:** Chạy Integration Test và triển khai Pipeline CI/CD.
 - **Tệp thử nghiệm:** Sử dụng trực tiếp danh sách 5 Kịch bản tại **CELL 5** của báo cáo này để làm tập Test Cases tự động kiểm thử API tích hợp.
-
----
-### Bước 6: Xác minh trên GitHub
-1. Mở trình duyệt web và truy cập vào link Repository GitHub của bạn nhóm.
-2. Tại nút thả xuống **Branches** (mặc định đang ở `main` hoặc `master`), bấm chọn nhánh **`AI`**.
-3. Bạn sẽ thấy file code `.ipynb`, file dữ liệu `.csv` và file báo cáo `AI_Technical_Report_And_Integration_Guide.md` đã xuất hiện đầy đủ trên nhánh `AI`.
-4. Báo với bạn trong nhóm tạo một **Pull Request (PR)** để Merge nhánh `AI` vào nhánh chính khi cần thiết.
