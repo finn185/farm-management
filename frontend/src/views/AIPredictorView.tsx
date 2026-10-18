@@ -646,7 +646,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       {/* ========================================================
           4. HÀNG 2 CỘT: KHUYẾN NGHỊ KỸ THUẬT (Trái) & GIẢ ĐỊNH (Phải)
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 1fr)', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         
         {/* CỘT TRÁI: 3 VIỆC AI KHUYÊN LÀM HÔM NAY (Agronomic Actions) */}
         <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

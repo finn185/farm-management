@@ -15,7 +15,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return (
       <div style={{
         height: '100vh',
-        width: '100vw',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

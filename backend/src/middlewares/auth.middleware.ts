@@ -54,3 +54,34 @@ export async function authenticateToken(
     sendError(res, 'Phiên đăng nhập hết hạn hoặc Token không hợp lệ', 401);
   }
 }
+
+export async function optionalAuthToken(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, config.JWT_SECRET) as AuthUserPayload;
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, role: true, fullName: true, isActive: true }
+    });
+    if (user && user.isActive) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        fullName: user.fullName
+      };
+    }
+  } catch {
+    // Ignore invalid/expired token in optional auth
+  }
+  next();
+}

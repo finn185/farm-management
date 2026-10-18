@@ -1,4 +1,4 @@
-import type { CropBatch, Reservoir, Cultivar, NutrientFormula, Alert, HarvestRecord, Channel, SolutionDrainEvent, GrowthStage } from '../types/farm';
+import type { CropBatch, Reservoir, Cultivar, NutrientFormula, Alert, HarvestRecord, Channel, SolutionDrainEvent, GrowthStage, FarmZone } from '../types/farm';
 import { 
   INITIAL_BATCHES, 
   INITIAL_RESERVOIRS, 
@@ -8,7 +8,8 @@ import {
   INITIAL_ALERTS, 
   INITIAL_HARVESTS,
   INITIAL_CHANNELS,
-  INITIAL_DRAIN_EVENTS
+  INITIAL_DRAIN_EVENTS,
+  INITIAL_ZONES
 } from './initialData';
 
 const STORAGE_KEYS = {
@@ -20,7 +21,8 @@ const STORAGE_KEYS = {
   ALERTS: 'hydrosmart_alerts',
   HARVESTS: 'hydrosmart_harvests',
   CHANNELS: 'hydrosmart_channels',
-  DRAIN_EVENTS: 'hydrosmart_drain_events'
+  DRAIN_EVENTS: 'hydrosmart_drain_events',
+  ZONES: 'hydrosmart_zones'
 };
 
 function getStorage<T>(key: string, fallback: T): T {
@@ -42,6 +44,23 @@ function setStorage<T>(key: string, data: T): void {
 }
 
 export const farmStore = {
+  // Farm Zones (Sơ đồ thực địa NFT A1, A2, B2, D1, C1, E1)
+  getZones: (): FarmZone[] => {
+    return getStorage<FarmZone[]>(STORAGE_KEYS.ZONES, INITIAL_ZONES);
+  },
+
+  getZoneById: (idOrCode: string): FarmZone | undefined => {
+    const zones = farmStore.getZones();
+    return zones.find(z => z.id === idOrCode || z.code === idOrCode);
+  },
+
+  updateZone: (idOrCode: string, updates: Partial<FarmZone>): FarmZone[] => {
+    const list = farmStore.getZones();
+    const updated = list.map(z => (z.id === idOrCode || z.code === idOrCode) ? { ...z, ...updates } : z);
+    setStorage(STORAGE_KEYS.ZONES, updated);
+    return updated;
+  },
+
   // Cultivars
   getCultivars: (): Cultivar[] => {
     return getStorage<Cultivar[]>(STORAGE_KEYS.CULTIVARS, INITIAL_CULTIVARS);
@@ -204,6 +223,13 @@ export const farmStore = {
   advanceBatchStage: (batchId: string, newStage: GrowthStage): CropBatch[] => {
     return farmStore.updateBatch(batchId, {
       currentStage: newStage
+    });
+  },
+
+  updateBatchStatus: (batchId: string, status: 'active' | 'harvested' | 'failed', actualHarvestDate?: string): CropBatch[] => {
+    return farmStore.updateBatch(batchId, {
+      status,
+      actualHarvestDate: status === 'harvested' ? (actualHarvestDate || new Date().toISOString().split('T')[0]) : undefined
     });
   },
 

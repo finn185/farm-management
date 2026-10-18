@@ -478,7 +478,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ======================================================== */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 1.35fr) minmax(260px, 0.9fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '20px'
       }}>
         {/* THẺ 1: Lời chào & Thời tiết Thực */}
@@ -780,7 +780,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ======================================================== */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.4fr) minmax(360px, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: '20px'
       }}>
         {/* THẺ TRÁI: Phân Tích Năng Suất Hàng Tháng */}
@@ -938,7 +938,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ======================================================== */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.4fr) minmax(360px, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: '20px'
       }}>
         {/* THẺ TRÁI: Bảng Phân Công Nhiệm Vụ Trang Trại */}

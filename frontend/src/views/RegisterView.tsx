@@ -70,7 +70,7 @@ export const RegisterView: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      width: '100vw',
+      width: '100%',
       backgroundColor: 'var(--bg-page, #f8fafc)',
       display: 'flex',
       flexDirection: 'column',

@@ -903,7 +903,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* ========================================================
           5. BOTTOM GRID: 7-Day Trend Chart + Standard Formulation
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(360px, 1fr)', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         
         {/* Card Left: 7-Day EC & pH Trend Chart */}
         <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

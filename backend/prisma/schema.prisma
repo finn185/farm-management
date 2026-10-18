@@ -44,3 +44,128 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+enum GrowthStage {
+  seed
+  germination
+  seedling
+  transplant
+  vegetative
+  pre_harvest
+  harvest
+}
+
+enum BatchStatus {
+  active
+  harvested
+  failed
+}
+
+model Cultivar {
+  id                  String      @id @default(uuid())
+  cropName            String
+  name                String
+  scientificName      String
+  description         String
+  targetCycleDays     Int         @default(35)
+  expectedWeightG     Float       @default(200.0)
+  recommendedPhMin    Float       @default(5.5)
+  recommendedPhMax    Float       @default(6.5)
+  recommendedEcMin    Float       @default(1.4)
+  recommendedEcMax    Float       @default(2.0)
+  optimalWaterTempMin Float       @default(18.0)
+  optimalWaterTempMax Float       @default(24.0)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  batches             CropBatch[]
+
+  @@map("cultivars")
+}
+
+model Reservoir {
+  id                  String      @id @default(uuid())
+  name                String
+  systemType          String      @default("NFT")
+  capacityLiters      Float       @default(600.0)
+  currentVolumeLiters Float       @default(540.0)
+  currentPh           Float       @default(5.8)
+  currentEc           Float       @default(1.7)
+  currentWaterTemp    Float       @default(22.0)
+  currentDo           Float?
+  formulaName         String      @default("Chuẩn Hoagland - Resh")
+  lastTopUpDate       String?
+  lastReplacementDate String?
+  pumpStatus          String      @default("running")
+  aerationStatus      String      @default("active")
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  zones               FarmZone[]
+  batches             CropBatch[]
+
+  @@map("reservoirs")
+}
+
+model FarmZone {
+  id           String      @id @default(uuid())
+  code         String      @unique
+  name         String
+  greenhouse   String      @default("Nhà màng 1")
+  areaM2       Float
+  slotCapacity Int         @default(10000)
+  color        String      @default("#16a34a")
+  status       String      @default("growing")
+  reservoirId  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  reservoir    Reservoir?  @relation(fields: [reservoirId], references: [id])
+  batches      CropBatch[]
+
+  @@map("farm_zones")
+}
+
+model CropBatch {
+  id                  String            @id @default(uuid())
+  batchCode           String            @unique
+  cultivarId          String
+  reservoirId         String
+  zoneId              String?
+  systemType          String            @default("NFT")
+  plantQuantity       Int
+  currentQuantity     Int
+  seedDate            String
+  transplantDate      String
+  expectedHarvestDate String
+  actualHarvestDate   String?
+  currentStage        GrowthStage       @default(seedling)
+  status              BatchStatus       @default(active)
+  densityPlantsPerM2  Float             @default(25.0)
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  cultivar            Cultivar          @relation(fields: [cultivarId], references: [id])
+  reservoir           Reservoir         @relation(fields: [reservoirId], references: [id])
+  zone                FarmZone?         @relation(fields: [zoneId], references: [id])
+  observations        CropObservation[]
+
+  @@map("crop_batches")
+}
+
+model CropObservation {
+  id            String    @id @default(uuid())
+  batchId       String
+  date          String
+  avgLeafCount  Float
+  avgHeightCm   Float
+  sampleWeightG Float
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  batch         CropBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@map("crop_observations")
+}
+

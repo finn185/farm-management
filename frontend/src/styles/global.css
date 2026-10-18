@@ -12,6 +12,8 @@
 html, body {
   height: 100%;
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: var(--font-sans) !important;
   background-color: var(--bg-page);
   color: var(--text-main);
@@ -25,7 +27,10 @@ html, body {
 
 #root {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   display: flex;
+  overflow-x: hidden;
 }
 
 /* Enforce unified font inheritance across all form controls and HTML elements */
@@ -51,12 +56,14 @@ p, span, a, label, table, th, td, div {
   letter-spacing: 0.02em;
 }
 
-/* App Layout Grid */
+/* App Layout Grid - Zero Horizontal Overflow */
 .app-container {
   display: flex;
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   background-color: var(--bg-page);
+  overflow-x: hidden;
 }
 
 .app-sidebar {
@@ -70,6 +77,7 @@ p, span, a, label, table, th, td, div {
   top: 0;
   height: 100vh;
   z-index: 50;
+  box-sizing: border-box;
 }
 
 .app-main {
@@ -77,8 +85,11 @@ p, span, a, label, table, th, td, div {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   height: 100vh;
+  box-sizing: border-box;
 }
 
 .app-header {
@@ -95,14 +106,18 @@ p, span, a, label, table, th, td, div {
   top: 0;
   z-index: 40;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .content-body {
   padding: 24px 32px 48px;
   flex: 1;
-  max-width: 1560px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Standardized Page Toolbar (Unified across all pages) */

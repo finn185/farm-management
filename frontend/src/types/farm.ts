@@ -36,6 +36,42 @@ export interface Cultivar {
   optimalWaterTempMax: number;
 }
 
+export type ZoneStatus = 'growing' | 'ready_soon' | 'completed' | 'needs_attention' | 'empty';
+
+export interface FarmZone {
+  id: string;
+  code: string; // 'A1', 'A2', 'B2', 'D1', 'C1', 'E1'
+  name: string;
+  greenhouse: string;
+  areaM2: number;
+  slotCapacity: number;
+  color: string;
+  status: ZoneStatus;
+  currentBatchId?: string;
+  currentBatchCode?: string;
+  cultivarName?: string;
+  cropName?: string;
+  plantQuantity?: number;
+  currentQuantity?: number;
+  currentStage?: GrowthStage;
+  expectedHarvestDate?: string;
+  seedDate?: string;
+  daysRemaining?: number;
+  biomassProgress?: number;
+  reservoirId?: string;
+  reservoirName?: string;
+  ph?: number;
+  ec?: number;
+  waterTemp?: number;
+}
+
+export interface ZoneLegendCounts {
+  growing: number;
+  ready_soon: number;
+  completed: number;
+  needs_attention: number;
+}
+
 export interface CropBatch {
   id: string;
   batchCode: string;
@@ -45,6 +81,9 @@ export interface CropBatch {
   systemType: SystemType;
   reservoirId: string;
   reservoirName: string;
+  zoneId?: string;
+  zoneCode?: string;
+  zoneName?: string;
   plantQuantity: number;
   currentQuantity: number;
   seedDate: string;

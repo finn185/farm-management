@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { config } from './config/env';
 import authRoutes from './modules/auth/auth.routes';
+import batchRoutes from './modules/batches/batches.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -35,6 +36,10 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // Application Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+
+app.use('/api/v1/batches', batchRoutes);
+app.use('/api/batches', batchRoutes);
 
 // 404 Route Handler
 app.use((_req: Request, res: Response) => {

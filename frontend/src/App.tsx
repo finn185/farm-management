@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -14,7 +14,8 @@ import { ProfileView } from './views/ProfileView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import { farmStore } from './mock/store';
-import type { CropBatch } from './types/farm';
+import { batchesApi } from './services/batchesApi';
+import type { CropBatch, GrowthStage, BatchStatus } from './types/farm';
 import { useToast } from './components/Toast';
 
 export const App: React.FC = () => {
@@ -47,17 +48,26 @@ export const App: React.FC = () => {
     setDrainEvents(farmStore.getDrainEvents());
   };
 
-  const handleAddBatch = (data: any) => {
-    farmStore.addBatch(data);
+  // Sync with backend on initial load
+  useEffect(() => {
+    batchesApi.getBatches().then(remoteBatches => {
+      if (remoteBatches && remoteBatches.length > 0) {
+        setBatches(remoteBatches);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleAddBatch = async (data: any) => {
+    await batchesApi.createBatch(data);
     refreshState();
-    showToast('Tạo lô thành công', `Đã thêm lô ${data.batchCode || ''} vào máng canh tác`, 'success');
+    showToast('Tạo lô thành công', `Đã thêm lô ${data.batchCode || ''} vào giàn canh tác`, 'success');
   };
 
-  const handleDeleteBatch = (id: string) => {
+  const handleDeleteBatch = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa lô trồng này?')) {
-      farmStore.deleteBatch(id);
+      await batchesApi.deleteBatch(id);
       refreshState();
-      showToast('Đã xóa lô', 'Lô trồng đã được loại bỏ khỏi danh sách', 'info');
+      showToast('Đã xóa lô', 'Lô trồng đã được loại bỏ khỏi hệ thống', 'info');
     }
   };
 
@@ -87,22 +97,36 @@ export const App: React.FC = () => {
     showToast('Châm dinh dưỡng thành công', `Đã châm ${doseMl}ml Can A & B. EC bồn đạt ${targetEc} mS/cm.`, 'success');
   };
 
-  const handleAddObservation = (batchId: string, obs: any) => {
-    farmStore.addBatchObservation(batchId, obs);
+  const handleAddObservation = async (batchId: string, obs: any) => {
+    await batchesApi.addObservation(batchId, obs);
     refreshState();
     showToast('Đã lưu đo đạc sinh trưởng', `${obs.avgLeafCount} lá | ${obs.avgHeightCm} cm | mẫu ${obs.sampleWeightG}g`, 'success');
   };
 
-  const handleAdvanceStage = (batchId: string, newStage: any) => {
-    farmStore.advanceBatchStage(batchId, newStage);
+  const handleAdvanceStage = async (batchId: string, newStage: GrowthStage) => {
+    await batchesApi.advanceStage(batchId, newStage);
     refreshState();
     const stageNames: Record<string, string> = {
+      seed: 'Hạt giống',
+      germination: 'Nảy mầm',
       seedling: 'Cây con',
+      transplant: 'Chuyển máng',
       vegetative: 'Sinh dưỡng',
-      pre_harvest: 'Sắp thu hoạch',
-      harvested: 'Đã thu hoạch'
+      pre_harvest: 'Tích lũy sinh khối',
+      harvest: 'Sẵn sàng thu hoạch'
     };
     showToast('Chuyển giai đoạn', `Lô đã chuyển sang: ${stageNames[newStage] || newStage}`, 'info');
+  };
+
+  const handleUpdateBatchStatus = async (batchId: string, status: BatchStatus) => {
+    await batchesApi.updateStatus(batchId, status);
+    refreshState();
+    const statusNames: Record<string, string> = {
+      active: 'Đang trồng',
+      harvested: 'Đã thu hoạch',
+      failed: 'Hư hỏng / Thất bại'
+    };
+    showToast('Cập nhật trạng thái', `Lô đã chuyển sang: ${statusNames[status] || status}`, 'info');
   };
 
   const handleResolveAlert = (id: string, by?: string, note?: string) => {
@@ -200,6 +224,7 @@ export const App: React.FC = () => {
                           onSelectBatchForAI={handleSelectBatchForAI}
                           onAddObservation={handleAddObservation}
                           onAdvanceStage={handleAdvanceStage}
+                          onUpdateStatus={handleUpdateBatchStatus}
                         />
                       }
                     />
