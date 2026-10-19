@@ -476,7 +476,7 @@ VALUES
 -- 4. Bể dinh dưỡng tuần hoàn NFT
 INSERT INTO "reservoirs" ("id", "name", "systemType", "capacityLiters", "currentVolumeLiters", "currentPh", "currentEc", "currentWaterTemp", "currentDo", "formulaName", "lastTopUpDate", "lastReplacementDate", "pumpStatus", "aerationStatus")
 VALUES
-  ('res-01', 'Bể Tuần Hoàn 01 - Giàn NFT Tầng 1 (Khu A & E)', 'NFT', 600.0, 540.0, 5.85, 1.72, 22.4, 6.8, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-09', '2026-08-25', 'running', 'active'),
+  ('res-01', 'Bể Tuần Hoàn 01 - Giàn NFT Tầng 1 (Khu A & E)', 'NFT', 600.0, 540.0, 5.85, 1.42, 22.4, 6.8, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-09', '2026-08-25', 'running', 'active'),
   ('res-02', 'Bể Tuần Hoàn 02 - Giàn NFT Tầng 2 (Khu B, C, D)', 'NFT', 1000.0, 920.0, 6.75, 1.84, 21.8, 7.2, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-08', '2026-08-20', 'running', 'active');
 
 -- 5. Phân khu thực địa & Giàn canh tác NFT (farm_zones)
@@ -507,7 +507,7 @@ VALUES
 INSERT INTO "sensors" ("id", "code", "name", "sensorType", "status", "reservoirId", "zoneId", "lastReading", "unit", "batteryLevel", "lastSeenAt")
 VALUES
   ('sen-01', 'SEN-PH-01',   'Cảm biến pH Bể Tuần Hoàn 01',             'ph',          'online', 'res-01', NULL,      5.85, 'pH',      98.0, CURRENT_TIMESTAMP),
-  ('sen-02', 'SEN-EC-01',   'Cảm biến Độ dẫn điện EC Bể Tuần Hoàn 01', 'ec',          'online', 'res-01', NULL,      1.72, 'mS/cm',   97.0, CURRENT_TIMESTAMP),
+  ('sen-02', 'SEN-EC-01',   'Cảm biến Độ dẫn điện EC Bể Tuần Hoàn 01', 'ec',          'warning', 'res-01', NULL,      1.42, 'mS/cm',   97.0, CURRENT_TIMESTAMP),
   ('sen-03', 'SEN-TEMP-01', 'Cảm biến Nhiệt độ nước Bể 01',            'water_temp',  'online', 'res-01', NULL,      22.4, '°C',      99.0, CURRENT_TIMESTAMP),
   ('sen-04', 'SEN-DO-01',   'Cảm biến Oxy hòa tan DO Bể 01',           'do',          'online', 'res-01', NULL,      6.8,  'mg/L',    95.0, CURRENT_TIMESTAMP),
   ('sen-05', 'SEN-LVL-01',  'Cảm biến Mực nước Bể 01',                 'water_level', 'online', 'res-01', NULL,      90.0, '%',       99.0, CURRENT_TIMESTAMP),
@@ -558,9 +558,10 @@ VALUES
 -- 11. Nhật ký đo đạc chất lượng nước (water_quality_logs)
 INSERT INTO "water_quality_logs" ("id", "reservoirId", "ph", "ec", "waterTemp", "doLevel", "waterLevelPercent", "recordedBy", "source", "createdAt")
 VALUES
-  ('wlog-01', 'res-01', 5.85, 1.72, 22.4, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
-  ('wlog-02', 'res-01', 5.82, 1.70, 22.6, 6.7, 88.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),
-  ('wlog-03', 'res-01', 5.84, 1.71, 22.5, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP),
+  ('wlog-01', 'res-01', 5.85, 1.72, 22.4, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '6 hour'),
+  ('wlog-02', 'res-01', 5.82, 1.65, 22.6, 6.7, 88.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+  ('wlog-03', 'res-01', 5.84, 1.55, 22.5, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),
+  ('wlog-08', 'res-01', 5.85, 1.42, 22.4, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP),
   ('wlog-04', 'res-02', 6.02, 1.84, 21.8, 7.2, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '6 hour'),
   ('wlog-05', 'res-02', 6.10, 1.80, 22.0, 7.1, 91.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
   ('wlog-06', 'res-02', 6.25, 1.82, 21.9, 7.1, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),

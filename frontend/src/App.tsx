@@ -165,7 +165,7 @@ export const App: React.FC = () => {
   };
 
   const handleAddMeasurement = async (data: any) => {
-    const engineerName = user?.fullName || 'Kỹ sư Nông nghiệp';
+    const engineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
     await reservoirsApi.logWaterQuality(data.reservoirId, {
       ...data,
       recordedBy: engineerName
@@ -175,16 +175,22 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateVolume = async (resId: string, addedLiters: number) => {
-    await reservoirsApi.topUpWater(resId, { waterLitersAdded: addedLiters });
+    const engineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
+    await reservoirsApi.topUpWater(resId, {
+      waterLitersAdded: addedLiters,
+      operator: engineerName
+    });
     refreshState();
     showToast('Châm nước thành công', `Đã châm thêm ${addedLiters}L nước sạch vào bể`, 'info');
   };
 
   const handleApplyDosing = async (reservoirId: string, targetEc: number, doseMl: number) => {
+    const engineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
     await reservoirsApi.doseNutrient(reservoirId, {
       amountStockAMl: doseMl,
       amountStockBMl: doseMl,
-      targetEc
+      targetEc,
+      operator: engineerName
     });
     refreshState();
     showToast('Châm dinh dưỡng thành công', `Đã châm ${doseMl}ml Stock A & B. EC bồn đạt ${targetEc} mS/cm.`, 'success');
@@ -257,6 +263,36 @@ export const App: React.FC = () => {
               }
             }
           }
+        } else if (targetAlert.metric === 'Temp' || targetAlert.metric === 'WaterTemp') {
+          // Bắt số nhiệt độ nước từ 15 đến 35°C
+          const matches = note.match(/\b([1-3]\d(?:[.,]\d{1,2})?)\b/g);
+          if (matches && matches.length > 0) {
+            for (let i = matches.length - 1; i >= 0; i--) {
+              const val = parseFloat(matches[i].replace(',', '.'));
+              if (val >= 15 && val <= 35) {
+                resolvedValue = val;
+                break;
+              }
+            }
+          }
+        } else if (targetAlert.metric === 'DO') {
+          // Bắt số Oxy DO từ 4 đến 12 mg/L
+          const matches = note.match(/\b([4-9]|1[0-2](?:[.,]\d{1,2})?)\b/g);
+          if (matches && matches.length > 0) {
+            for (let i = matches.length - 1; i >= 0; i--) {
+              const val = parseFloat(matches[i].replace(',', '.'));
+              if (val >= 4 && val <= 12) {
+                resolvedValue = val;
+                break;
+              }
+            }
+          }
+        } else if (targetAlert.metric === 'WaterLevel') {
+          // Bắt số mực nước từ 10 đến 100%
+          const matches = note.match(/\b([1-9]\d|100)\b/g);
+          if (matches && matches.length > 0) {
+            resolvedValue = parseFloat(matches[matches.length - 1]);
+          }
         }
       }
 
@@ -266,9 +302,9 @@ export const App: React.FC = () => {
           await reservoirsApi.logWaterQuality(targetAlert.reservoirId, {
             ph: targetAlert.metric === 'pH' ? resolvedValue : res.currentPh,
             ec: targetAlert.metric === 'EC' ? resolvedValue : res.currentEc,
-            waterTemp: res.currentWaterTemp,
-            doLevel: res.currentDo ?? 6.8,
-            waterLevelPercent: res.currentWaterLevelPercent ?? 90,
+            waterTemp: (targetAlert.metric === 'Temp' || targetAlert.metric === 'WaterTemp') ? resolvedValue : res.currentWaterTemp,
+            doLevel: targetAlert.metric === 'DO' ? resolvedValue : (res.currentDo ?? 6.8),
+            waterLevelPercent: targetAlert.metric === 'WaterLevel' ? resolvedValue : (res.currentWaterLevelPercent ?? 90),
             recordedBy: engineer
           });
         }
@@ -287,9 +323,10 @@ export const App: React.FC = () => {
   };
 
   const handleDrainReservoir = async (event: any) => {
+    const engineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
     await reservoirsApi.drainReservoir(event.reservoirId, {
       reason: event.reason,
-      operator: event.operator,
+      operator: event.operator || engineerName,
       notes: event.notes
     });
     refreshState();
@@ -307,7 +344,11 @@ export const App: React.FC = () => {
   };
 
   const handleRecordHarvest = async (data: any) => {
-    await harvestsApi.recordHarvest(data);
+    const engineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
+    await harvestsApi.recordHarvest({
+      ...data,
+      operatorName: data.operatorName || engineerName
+    });
     handleCloseHarvestModal();
     refreshState();
     showToast('Thu hoạch hoàn tất', `Ghi nhận ${data.totalWeightKg}kg thành phẩm cho lô ${data.batchCode}`, 'success');
