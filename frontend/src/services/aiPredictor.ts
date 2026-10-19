@@ -223,10 +223,33 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
 }
 
 /**
- * Optional remote API call to Python FastAPI backend (http://localhost:8000)
- * Gracefully falls back to local calibrated simulator if server is offline.
+ * Remote API call to AI Microservice (FastAPI or Node.js Backend Gateway)
+ * Gracefully falls back to local calibrated simulator if servers are offline.
  */
 export async function predictLettuceYieldRemote(input: AIPredictorInput): Promise<AIPredictionResult> {
+  // 1. Thử gọi qua Backend Node.js Gateway nếu có batchId
+  if (input.batchId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/ai/batches/${input.batchId}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          simEc: input.avgEc,
+          simPh: input.avgPh,
+          simWaterTemp: input.avgWaterTemp,
+          expectedPlants: input.expectedPlants
+        })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.prediction) {
+          return json.data.prediction;
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Thử gọi trực tiếp FastAPI Microservice (http://localhost:8000)
   try {
     const res = await fetch('http://localhost:8000/api/v1/predict', {
       method: 'POST',
@@ -239,6 +262,76 @@ export async function predictLettuceYieldRemote(input: AIPredictorInput): Promis
   } catch {
     // Backend offline, fallback to local simulator
   }
+
   return predictLettuceYield(input);
 }
+
+export interface AnomalyDetectionResult {
+  reservoirId?: string;
+  reservoirName?: string;
+  isAnomaly: boolean;
+  status: 'NORMAL' | 'ANOMALY';
+  anomalyScore: number;
+  severity: 'info' | 'warning' | 'critical';
+  riskFactors: string[];
+  suggestedAction: string;
+}
+
+/**
+ * Phát hiện bất thường bồn dinh dưỡng qua mô hình IsolationForest
+ */
+export async function detectReservoirAnomalyRemote(params: {
+  avgPh: number;
+  avgEc: number;
+  avgWaterTemp: number;
+  reservoirId?: string;
+  reservoirName?: string;
+}): Promise<AnomalyDetectionResult> {
+  // 1. Thử gọi qua Backend Gateway
+  if (params.reservoirId) {
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/ai/reservoirs/${params.reservoirId}/detect-anomaly`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoCreateAlert: true })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.anomaly) {
+          return json.data.anomaly;
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Thử gọi trực tiếp FastAPI
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/detect-anomaly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {}
+
+  // 3. Fallback logic nông học khi offline
+  const isAnomaly = params.avgPh < 5.3 || params.avgPh > 6.6 || params.avgEc > 2.2 || params.avgEc < 1.2 || params.avgWaterTemp > 25.0;
+  return {
+    reservoirId: params.reservoirId,
+    reservoirName: params.reservoirName,
+    isAnomaly,
+    status: isAnomaly ? 'ANOMALY' : 'NORMAL',
+    anomalyScore: isAnomaly ? -0.15 : 0.25,
+    severity: (params.avgWaterTemp > 26 || params.avgEc > 2.4) ? 'critical' : (isAnomaly ? 'warning' : 'info'),
+    riskFactors: [
+      ...(params.avgPh < 5.3 ? [`pH (${params.avgPh}) quá thấp`] : params.avgPh > 6.6 ? [`pH (${params.avgPh}) quá cao`] : []),
+      ...(params.avgEc > 2.2 ? [`EC (${params.avgEc}) quá cao`] : params.avgEc < 1.2 ? [`EC (${params.avgEc}) quá loãng`] : []),
+      ...(params.avgWaterTemp > 25.0 ? [`Nhiệt độ nước (${params.avgWaterTemp}°C) quá cao`] : [])
+    ],
+    suggestedAction: isAnomaly ? 'Kiểm tra bồn dung dịch và cân chỉnh thông số.' : 'Bể dinh dưỡng bình thường.'
+  };
+}
+
 

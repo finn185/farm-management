@@ -87,10 +87,10 @@ farm-management/
 ├── OVERVIEW.md            # Tài liệu phân tích nghiệp vụ, dinh dưỡng & kiến trúc đề tài
 ├── documents/             # Tài liệu FRS v1.0 & Báo cáo đối chiếu hệ thống
 ├── ai_service/            # Module Python Machine Learning & REST API
-│   ├── dataset_generator.py # Sinh tập dữ liệu nông học chuẩn hóa (5,000 mẫu)
-│   ├── train_model.py     # Huấn luyện XGBoost Regressor (R² >= 0.92)
-│   ├── api.py             # FastAPI REST Server cho dự báo & XAI
-│   └── requirements.txt   # Thư viện Python (xgboost, scikit-learn, fastapi...)
+│   ├── Cleaned_Data_Batches_Final.csv # Dữ liệu canh tác thực tế từ các lô xà lách
+│   ├── train_models.py    # Huấn luyện RandomForest (R² = 0.967) & IsolationForest Anomaly
+│   ├── api.py             # FastAPI REST Server cho dự báo & phát hiện bất thường
+│   └── requirements.txt   # Thư viện Python (scikit-learn, fastapi, pandas...)
 └── frontend/              # Ứng dụng Web Frontend React + Vite
     ├── src/
     │   ├── components/    # Header, Sidebar, LifecycleProgressBar, Tooltips

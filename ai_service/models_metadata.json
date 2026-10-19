@@ -1,0 +1,78 @@
+{
+  "yield_model": {
+    "algorithm": "RandomForestRegressor(n_estimators=100)",
+    "features": [
+      "Plant_Age_Days",
+      "Avg_pH",
+      "Avg_EC",
+      "Avg_Water_Temp",
+      "Avg_Air_Temp",
+      "Avg_Humidity",
+      "Cumulative_Nutrient_AB_ml",
+      "Cumulative_Acid_ml",
+      "Days_Since_Last_Dosing"
+    ],
+    "target": "Target_Shoot_Weight_g",
+    "metrics": {
+      "r2_score": 0.967,
+      "mae_g": 3.25,
+      "rmse_g": 6.92
+    },
+    "top_features": [
+      {
+        "feature": "Avg_Air_Temp",
+        "importance_percent": 42.79
+      },
+      {
+        "feature": "Cumulative_Acid_ml",
+        "importance_percent": 22.49
+      },
+      {
+        "feature": "Cumulative_Nutrient_AB_ml",
+        "importance_percent": 16.02
+      },
+      {
+        "feature": "Avg_Water_Temp",
+        "importance_percent": 7.91
+      },
+      {
+        "feature": "Avg_EC",
+        "importance_percent": 5.78
+      },
+      {
+        "feature": "Plant_Age_Days",
+        "importance_percent": 2.31
+      },
+      {
+        "feature": "Avg_Humidity",
+        "importance_percent": 1.59
+      },
+      {
+        "feature": "Avg_pH",
+        "importance_percent": 1.03
+      },
+      {
+        "feature": "Days_Since_Last_Dosing",
+        "importance_percent": 0.08
+      }
+    ]
+  },
+  "anomaly_model": {
+    "algorithm": "IsolationForest(contamination=0.05)",
+    "features": [
+      "Avg_pH",
+      "Avg_EC",
+      "Avg_Water_Temp"
+    ],
+    "contamination": 0.05
+  },
+  "dataset_info": {
+    "filename": "Cleaned_Data_Batches_Final.csv",
+    "total_records": 93,
+    "batches": [
+      "BATCH_1",
+      "BATCH_2",
+      "BATCH_3"
+    ]
+  }
+}
