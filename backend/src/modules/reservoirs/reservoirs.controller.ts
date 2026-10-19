@@ -13,6 +13,24 @@ import { sendSuccess, sendError } from '../../utils/response';
 const reservoirsService = new ReservoirsService();
 
 export class ReservoirsController {
+  async getFormulas(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const formulas = await reservoirsService.getFormulas();
+      return sendSuccess(res, formulas, 'Lấy danh sách công thức dinh dưỡng thành công');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDrainEvents(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const events = await reservoirsService.getDrainEvents();
+      return sendSuccess(res, events, 'Lấy lịch sử xả bể thành công');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getAll(_req: Request, res: Response, next: NextFunction) {
     try {
       const reservoirs = await reservoirsService.getAllReservoirs();

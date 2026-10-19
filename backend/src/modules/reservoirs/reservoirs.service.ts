@@ -10,6 +10,18 @@ import type {
 } from './reservoirs.dto';
 
 export class ReservoirsService {
+  async getFormulas() {
+    return prisma.nutrientFormula.findMany({
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async getDrainEvents() {
+    return prisma.solutionDrainEvent.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async getAllReservoirs() {
     return prisma.reservoir.findMany({
       include: {

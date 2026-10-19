@@ -1,0 +1,60 @@
+{
+  "model_name": "XGBoost Hydroponic Lettuce Yield Predictor",
+  "version": "1.0.0",
+  "r2_score": 0.9944,
+  "rmse_g": 4.9,
+  "mae_g": 3.79,
+  "mape_percent": 4.89,
+  "feature_columns": [
+    "target_cycle_days",
+    "plant_age_days",
+    "leaf_count",
+    "plant_height_cm",
+    "avg_ec",
+    "avg_ph",
+    "avg_water_temp",
+    "air_temp",
+    "humidity_rh",
+    "vpd_kpa",
+    "cultivar_Green Oakleaf",
+    "cultivar_Lollo Rossa",
+    "cultivar_Batavia",
+    "cultivar_Romaine"
+  ],
+  "cultivars_supported": [
+    "Green Oakleaf",
+    "Lollo Rossa",
+    "Batavia",
+    "Romaine"
+  ],
+  "top_features": [
+    {
+      "feature": "plant_age_days",
+      "importance_percent": 63.37
+    },
+    {
+      "feature": "leaf_count",
+      "importance_percent": 14.86
+    },
+    {
+      "feature": "plant_height_cm",
+      "importance_percent": 6.82
+    },
+    {
+      "feature": "cultivar_Lollo Rossa",
+      "importance_percent": 6.48
+    },
+    {
+      "feature": "target_cycle_days",
+      "importance_percent": 2.79
+    },
+    {
+      "feature": "cultivar_Green Oakleaf",
+      "importance_percent": 1.8
+    },
+    {
+      "feature": "avg_water_temp",
+      "importance_percent": 1.45
+    }
+  ]
+}

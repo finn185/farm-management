@@ -109,7 +109,8 @@ export class AlertEngineService {
         lowEmergencyThreshold: 4.5,
         highEmergencyThreshold: 7.8,
         actionHigh: `Châm 150ml - 250ml axit Phosphoric (pH Down 10%) để hạ pH về mức ${((targetPhMin + targetPhMax) / 2).toFixed(1)}.`,
-        actionLow: `Châm 100ml - 200ml dung dịch KOH (pH Up 10%) để nâng pH về ngưỡng thích hợp.`
+        actionLow: `Châm 100ml - 200ml dung dịch KOH (pH Up 10%) để nâng pH về ngưỡng thích hợp.`,
+        recordedBy: data.recordedBy
       });
       if (phAlert) generatedAlerts.push(phAlert);
 
@@ -287,6 +288,7 @@ export class AlertEngineService {
     highEmergencyThreshold?: number;
     actionHigh?: string;
     actionLow?: string;
+    recordedBy?: string;
   }) {
     const {
       reservoirId,
@@ -303,7 +305,8 @@ export class AlertEngineService {
       lowEmergencyThreshold,
       highEmergencyThreshold,
       actionHigh,
-      actionLow
+      actionLow,
+      recordedBy
     } = params;
 
     const isNormal = actualValue >= min && actualValue <= max;
@@ -322,13 +325,14 @@ export class AlertEngineService {
     // 1. NẾU CHỈ SỐ ĐÃ TRỞ VỀ MỨC AN TOÀN -> TỰ ĐỘNG GIẢI QUYẾT CẢNH BÁO
     if (isNormal) {
       if (openAlert) {
+        const resolver = recordedBy || 'Kỹ sư Nông nghiệp (Tự động xác thực)';
         return prisma.alert.update({
           where: { id: openAlert.id },
           data: {
             status: 'resolved',
-            resolvedBy: 'Hệ thống giám sát tự động',
+            resolvedBy: resolver,
             resolvedAt: new Date(),
-            resolutionNote: `Chỉ số đo ${metric} đã trở lại ngưỡng an toàn (${actualValue} ${unit}, tiêu chuẩn: ${min} - ${max} ${unit}).`
+            resolutionNote: `Chỉ số đo ${metric} đã trở lại ngưỡng an toàn (${actualValue} ${unit}, tiêu chuẩn: ${min} - ${max} ${unit}). Đã xác nhận bởi: ${resolver}.`
           }
         });
       }

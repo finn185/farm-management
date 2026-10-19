@@ -1,4 +1,4 @@
-import type { Reservoir } from '../types/farm';
+import type { Reservoir, NutrientFormula, SolutionDrainEvent } from '../types/farm';
 import { farmStore } from '../mock/store';
 
 const API_BASE_URL = 'http://localhost:5000/api/v1/reservoirs';
@@ -207,5 +207,41 @@ export const reservoirsApi = {
       waterLevelPercent: data.waterLevelPercent
     });
     return null;
+  },
+
+  async getFormulas(): Promise<NutrientFormula[]> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/formulas`, {
+        headers: getAuthHeaders(),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return json.data;
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+    return farmStore.getFormulas();
+  },
+
+  async getDrainEvents(): Promise<SolutionDrainEvent[]> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/drain-events`, {
+        headers: getAuthHeaders(),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          return json.data;
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+    return farmStore.getDrainEvents();
   }
 };

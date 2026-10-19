@@ -441,7 +441,7 @@ export const farmStore = {
       ...a,
       resolved: true,
       status: 'resolved' as const,
-      resolvedBy: resolvedBy || 'Kỹ sư Nông nghiệp',
+      resolvedBy: resolvedBy || 'Lê Thị Kỹ Sư Nông Học',
       resolvedAt: timeStr,
       resolutionNote: resolutionNote || ''
     } : a);
