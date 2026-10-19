@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Download,
@@ -16,6 +17,8 @@ interface HarvestViewProps {
   harvests: HarvestRecord[];
   batches: CropBatch[];
   reservoirs?: Reservoir[];
+  selectedBatchId?: string | null;
+  onOpenRecordHarvest?: () => void;
   onRecordHarvest: (data: Omit<HarvestRecord, 'id' | 'differencePercent' | 'lossPercentage'>) => void;
 }
 
@@ -23,23 +26,117 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
   harvests,
   batches,
   reservoirs = [],
+  selectedBatchId: propSelectedBatchId,
+  onOpenRecordHarvest,
   onRecordHarvest
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Eligible batches for harvest (active)
   const readyBatches = batches.filter(b => b.status === 'active');
 
-  // Form state
-  const [selectedBatchId, setSelectedBatchId] = useState(readyBatches[0]?.id || '');
+  const getBatchDefaults = (b?: CropBatch) => {
+    if (!b) return { plants: 500, weightKg: 95 };
+    const plants = b.currentQuantity || b.plantQuantity || 500;
+    const weightKg = Math.round((plants * 0.19) * 10) / 10;
+    return { plants, weightKg };
+  };
+
+  // Determine initial batch ID from URL query (?batchId=...), location.state, props, or first ready batch
+  const initialBatchId = 
+    searchParams.get('batchId') || 
+    (location.state as any)?.batchId || 
+    propSelectedBatchId || 
+    readyBatches[0]?.id || 
+    '';
+
+  const [selectedBatchId, setSelectedBatchId] = useState(initialBatchId);
+  const [isModalOpen, setIsModalOpen] = useState(() => {
+    return searchParams.get('openModal') === 'true' || 
+           searchParams.get('autoOpen') === 'true' || 
+           Boolean((location.state as any)?.autoOpen);
+  });
+
+  // Always bind to an active readyBatch, fallback to first readyBatch
+  const selectedBatch = readyBatches.find(b => b.id === selectedBatchId) || readyBatches[0];
+  const initialDefaults = getBatchDefaults(selectedBatch);
+
   const [harvestDate, setHarvestDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [harvestedPlants, setHarvestedPlants] = useState(600);
-  const [totalWeightKg, setTotalWeightKg] = useState(115.5);
-  const [rejectedWeightKg, setRejectedWeightKg] = useState(3.5);
+  const [harvestedPlants, setHarvestedPlants] = useState(initialDefaults.plants);
+  const [totalWeightKg, setTotalWeightKg] = useState(initialDefaults.weightKg);
+  const [rejectedWeightKg, setRejectedWeightKg] = useState(3.0);
   const [grade, setGrade] = useState<'A' | 'B' | 'C'>('A');
   const [notes, setNotes] = useState('');
 
-  const selectedBatch = batches.find(b => b.id === selectedBatchId) || readyBatches[0];
+  // Track the last handled targetKey to prevent reopening modal on batch updates/re-renders
+  const handledTargetKeyRef = useRef<string>('');
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    // Clear URL parameters and location state so modal never reopens on background refreshes
+    if (
+      searchParams.get('autoOpen') || 
+      searchParams.get('openModal') || 
+      searchParams.get('batchId') || 
+      (location.state as any)?.autoOpen
+    ) {
+      navigate('/harvest', { replace: true, state: {} });
+    }
+  };
+
+  const handleOpenModal = (targetBatchId?: string) => {
+    const target = targetBatchId 
+      ? readyBatches.find(b => b.id === targetBatchId) 
+      : (readyBatches.find(b => b.id === selectedBatchId) || readyBatches[0]);
+
+    if (target) {
+      setSelectedBatchId(target.id);
+      const { plants, weightKg } = getBatchDefaults(target);
+      setHarvestedPlants(plants);
+      setTotalWeightKg(weightKg);
+    }
+    setIsModalOpen(true);
+  };
+
+  // Auto-sync once when URL params, location.state, or prop changes
+  useEffect(() => {
+    const targetId = 
+      searchParams.get('batchId') || 
+      (location.state as any)?.batchId || 
+      propSelectedBatchId;
+
+    const shouldAutoOpen = 
+      searchParams.get('openModal') === 'true' || 
+      searchParams.get('autoOpen') === 'true' || 
+      Boolean((location.state as any)?.autoOpen);
+
+    const targetKey = `${targetId || ''}_${shouldAutoOpen}`;
+
+    if (!targetId && !shouldAutoOpen) {
+      return;
+    }
+
+    if (handledTargetKeyRef.current === targetKey) {
+      return;
+    }
+    handledTargetKeyRef.current = targetKey;
+
+    if (targetId) {
+      const found = readyBatches.find(b => b.id === targetId) || batches.find(b => b.id === targetId);
+      if (found) {
+        setSelectedBatchId(found.id);
+        const { plants, weightKg } = getBatchDefaults(found);
+        setHarvestedPlants(plants);
+        setTotalWeightKg(weightKg);
+      }
+    }
+
+    if (shouldAutoOpen) {
+      setIsModalOpen(true);
+    }
+  }, [searchParams, location.state, propSelectedBatchId]);
 
   const handleHarvestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +178,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
       notes
     });
 
-    setIsModalOpen(false);
+    handleCloseModal();
   };
 
   const handleExportCSV = () => {
@@ -191,7 +288,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
           </button>
 
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => onOpenRecordHarvest ? onOpenRecordHarvest() : handleOpenModal()}
             className="farmvista-btn-green"
             style={{ height: '34px', fontSize: '0.78rem', padding: '0 14px' }}
           >
@@ -369,15 +466,15 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
       {/* ========================================================
           4. RECORD HARVEST MODAL: Clean Pop-up
           ======================================================== */}
-      {isModalOpen && (
-        <div className="harvest-modal-overlay" onClick={() => setIsModalOpen(false)}>
+      {!onOpenRecordHarvest && isModalOpen && (
+        <div className="harvest-modal-overlay" onClick={handleCloseModal}>
           <div className="harvest-modal-content" onClick={e => e.stopPropagation()}>
             <div className="harvest-modal-header">
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                 Ghi Nhận Thu Hoạch Đợt Mới
               </h3>
               <button 
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleCloseModal}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}
               >
                 <X size={18} />
@@ -394,16 +491,47 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
                     <select 
                       className="farmvista-select-pill"
                       style={{ width: '100%', height: '38px', borderRadius: '8px' }}
-                      value={selectedBatchId}
-                      onChange={e => setSelectedBatchId(e.target.value)}
+                      value={selectedBatch?.id || ''}
+                      onChange={e => {
+                        const newId = e.target.value;
+                        setSelectedBatchId(newId);
+                        const b = readyBatches.find(item => item.id === newId);
+                        if (b) {
+                          const { plants, weightKg } = getBatchDefaults(b);
+                          setHarvestedPlants(plants);
+                          setTotalWeightKg(weightKg);
+                        }
+                      }}
                     >
-                      {readyBatches.map(b => (
-                        <option key={b.id} value={b.id}>
-                          {b.batchCode} - {b.cultivarName} ({b.currentQuantity} cây)
-                        </option>
-                      ))}
+                      {readyBatches.length === 0 ? (
+                        <option value="" disabled>Không có lô nào đang trồng để thu hoạch</option>
+                      ) : (
+                        readyBatches.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.batchCode} - {b.cultivarName} ({b.currentQuantity || b.plantQuantity} cây)
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
+
+                  {selectedBatch && (
+                    <div style={{
+                      gridColumn: 'span 2',
+                      backgroundColor: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.75rem',
+                      color: '#166534',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span>Giống: <strong>{selectedBatch.cultivarName}</strong> • {selectedBatch.reservoirName || 'Bể tuần hoàn'}</span>
+                      <span style={{ fontWeight: 700, color: '#00a651' }}>{selectedBatch.currentQuantity || selectedBatch.plantQuantity} rọ khả dụng</span>
+                    </div>
+                  )}
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
@@ -498,7 +626,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
               <div className="harvest-modal-footer">
                 <button 
                   type="button" 
-                  onClick={() => setIsModalOpen(false)} 
+                  onClick={handleCloseModal} 
                   className="farmvista-btn-secondary"
                   style={{ height: '36px', fontSize: '0.8125rem', padding: '0 14px' }}
                 >
@@ -506,8 +634,15 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
                 </button>
                 <button 
                   type="submit" 
+                  disabled={!selectedBatch}
                   className="farmvista-btn-green"
-                  style={{ height: '36px', fontSize: '0.8125rem', padding: '0 16px' }}
+                  style={{ 
+                    height: '36px', 
+                    fontSize: '0.8125rem', 
+                    padding: '0 16px',
+                    opacity: !selectedBatch ? 0.6 : 1,
+                    cursor: !selectedBatch ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   Lưu Thu Hoạch
                 </button>

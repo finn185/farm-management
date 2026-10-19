@@ -17,7 +17,8 @@ import {
   Layers,
   ArrowUpDown,
   X,
-  Sparkles
+  Sparkles,
+  Scale
 } from 'lucide-react';
 import type { CropBatch, Cultivar, Reservoir, GrowthStage, BatchStatus, FarmZone } from '../types/farm';
 import { INITIAL_ZONES } from '../mock/initialData';
@@ -31,6 +32,7 @@ interface BatchesViewProps {
   onAddBatch: (batch: Omit<CropBatch, 'id' | 'status'>) => void;
   onDeleteBatch: (id: string) => void;
   onSelectBatchForAI: (batch: CropBatch) => void;
+  onSelectBatchForHarvest?: (batch: CropBatch) => void;
   onAddObservation?: (batchId: string, obs: { date?: string; avgLeafCount: number; avgHeightCm: number; sampleWeightG: number; notes?: string }) => void;
   onAdvanceStage?: (batchId: string, newStage: GrowthStage) => void;
   onUpdateStatus?: (batchId: string, status: BatchStatus) => void;
@@ -409,6 +411,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   onAddBatch,
   onDeleteBatch,
   onSelectBatchForAI,
+  onSelectBatchForHarvest,
   onAddObservation,
   onAdvanceStage,
   onUpdateStatus
@@ -1070,6 +1073,22 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 </button>
                               )}
 
+                              {/* Navigate to Harvest recording */}
+                              {onSelectBatchForHarvest && batch.status === 'active' && (
+                                <button
+                                  onClick={() => {
+                                    onSelectBatchForHarvest(batch);
+                                    setActiveActionMenuId(null);
+                                  }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.78rem', color: '#059669', borderRadius: '4px' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#ecfdf5')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                >
+                                  <Scale size={14} />
+                                  <span>Ghi nhận Thu Hoạch</span>
+                                </button>
+                              )}
+
                               {/* Change status to Harvested or Failed */}
                               {onUpdateStatus && batch.status === 'active' && (
                                 <>
@@ -1213,11 +1232,22 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   <button
                     onClick={() => onSelectBatchForAI(batch)}
                     className="farmvista-btn-green"
-                    style={{ flex: 1, padding: '7px 12px', fontSize: '0.78rem', justifyContent: 'center' }}
+                    style={{ flex: 1, padding: '7px 10px', fontSize: '0.78rem', justifyContent: 'center' }}
                   >
                     <TrendingUp size={14} />
                     <span>Dự báo AI</span>
                   </button>
+                  {onSelectBatchForHarvest && batch.status === 'active' && (
+                    <button
+                      onClick={() => onSelectBatchForHarvest(batch)}
+                      className="btn btn-secondary"
+                      style={{ padding: '7px 10px', fontSize: '0.78rem', color: '#059669', borderColor: '#a7f3d0', backgroundColor: '#f0fdf4' }}
+                      title="Chuyển sang ghi nhận thu hoạch cho lô này"
+                    >
+                      <Scale size={14} />
+                      <span>Thu hoạch</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => handleOpenObservationModal(batch)}
                     className="btn btn-secondary"

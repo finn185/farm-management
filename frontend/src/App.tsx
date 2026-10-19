@@ -8,6 +8,7 @@ import { ReservoirsView } from './views/ReservoirsView';
 import { AIPredictorView } from './views/AIPredictorView';
 import { AlertsView } from './views/AlertsView';
 import { HarvestView } from './views/HarvestView';
+import { RecordHarvestModal } from './components/RecordHarvestModal';
 import { LoginView } from './views/LoginView';
 import { RegisterView } from './views/RegisterView';
 import { ProfileView } from './views/ProfileView';
@@ -39,6 +40,9 @@ export const App: React.FC = () => {
 
   // Batch targeted for AI simulation
   const [selectedBatchForAI, setSelectedBatchForAI] = useState<CropBatch | null>(null);
+  // Batch targeted for direct Harvest recording
+  const [selectedBatchForHarvest, setSelectedBatchForHarvest] = useState<CropBatch | null>(null);
+  const [isHarvestModalOpen, setIsHarvestModalOpen] = useState(false);
 
   // Sync state whenever actions happen (fetches from Backend API with automatic local fallback)
   const refreshState = async () => {
@@ -180,10 +184,22 @@ export const App: React.FC = () => {
     showToast('Xả bể thành công', 'Đã ghi nhận sự kiện xả bể và thay dung dịch mới', 'success');
   };
 
+  const handleOpenHarvestModal = (batch?: CropBatch | null) => {
+    setSelectedBatchForHarvest(batch || null);
+    setIsHarvestModalOpen(true);
+  };
+
+  const handleCloseHarvestModal = () => {
+    setIsHarvestModalOpen(false);
+    setSelectedBatchForHarvest(null);
+  };
+
   const handleRecordHarvest = async (data: any) => {
     await harvestsApi.recordHarvest(data);
+    handleCloseHarvestModal();
     refreshState();
     showToast('Thu hoạch hoàn tất', `Ghi nhận ${data.totalWeightKg}kg thành phẩm cho lô ${data.batchCode}`, 'success');
+    navigate('/harvest');
   };
 
   const handleResetData = () => {
@@ -195,6 +211,12 @@ export const App: React.FC = () => {
   const handleSelectBatchForAI = (batch: CropBatch) => {
     setSelectedBatchForAI(batch);
     navigate('/forecast');
+  };
+
+  const handleSelectBatchForHarvest = (batch: CropBatch) => {
+    // Open harvest modal in-place without navigating away prematurely
+    setSelectedBatchForHarvest(batch);
+    setIsHarvestModalOpen(true);
   };
 
   const handleNavigateTab = (tab: string) => {
@@ -242,8 +264,10 @@ export const App: React.FC = () => {
                           reservoirs={reservoirs}
                           sensorHistory={sensorHistory}
                           alerts={alerts}
+                          harvests={harvests}
                           onNavigateTab={handleNavigateTab}
                           onSelectBatchForAI={handleSelectBatchForAI}
+                          onSelectBatchForHarvest={handleSelectBatchForHarvest}
                         />
                       }
                     />
@@ -257,6 +281,7 @@ export const App: React.FC = () => {
                           onAddBatch={handleAddBatch}
                           onDeleteBatch={handleDeleteBatch}
                           onSelectBatchForAI={handleSelectBatchForAI}
+                          onSelectBatchForHarvest={handleSelectBatchForHarvest}
                           onAddObservation={handleAddObservation}
                           onAdvanceStage={handleAdvanceStage}
                           onUpdateStatus={handleUpdateBatchStatus}
@@ -307,6 +332,7 @@ export const App: React.FC = () => {
                           harvests={harvests}
                           batches={batches}
                           reservoirs={reservoirs}
+                          onOpenRecordHarvest={() => handleOpenHarvestModal(null)}
                           onRecordHarvest={handleRecordHarvest}
                         />
                       }
@@ -320,6 +346,16 @@ export const App: React.FC = () => {
                   </Routes>
                 </main>
               </div>
+
+              {/* Shared In-Place Harvest Recording Modal */}
+              <RecordHarvestModal
+                isOpen={isHarvestModalOpen}
+                onClose={handleCloseHarvestModal}
+                targetBatch={selectedBatchForHarvest}
+                batches={batches}
+                reservoirs={reservoirs}
+                onSubmit={handleRecordHarvest}
+              />
             </div>
           </ProtectedRoute>
         }

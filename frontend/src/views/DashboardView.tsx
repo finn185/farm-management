@@ -12,7 +12,8 @@ import {
   ArrowRight,
   TrendingUp,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Scale
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -39,8 +40,10 @@ interface DashboardViewProps {
   reservoirs: Reservoir[];
   sensorHistory: any[];
   alerts: Alert[];
+  harvests?: any[];
   onNavigateTab: (tab: any) => void;
   onSelectBatchForAI: (batch: CropBatch) => void;
+  onSelectBatchForHarvest?: (batch: CropBatch) => void;
 }
 
 // Monthly Yield Data (kg)
@@ -61,8 +64,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
   reservoirs = [],
   alerts = [],
+  harvests: propHarvests = [],
   onNavigateTab,
   onSelectBatchForAI,
+  onSelectBatchForHarvest,
 }) => {
   const [selectedResId, setSelectedResId] = useState<string>('res-01');
   const [zoneFilter, setZoneFilter] = useState<'all' | 'growing' | 'ready_soon' | 'completed'>('all');
@@ -96,7 +101,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Farm Store data
   const zones: FarmZone[] = useMemo(() => farmStore.getZones(), []);
-  const harvestRecords = useMemo(() => farmStore.getHarvests(), []);
+  const harvestRecords = useMemo(() => {
+    if (propHarvests && propHarvests.length > 0) return propHarvests;
+    return farmStore.getHarvests();
+  }, [propHarvests]);
 
   // Aggregated KPIs
   const activeBatches = useMemo(() => batches.filter(b => b.status === 'active'), [batches]);
@@ -655,16 +663,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {b.currentStage === 'seedling' ? 'Cây con' : b.currentStage === 'vegetative' ? 'Sinh dưỡng' : 'Tích lũy sinh khối'}
                     </span>
                   </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => onSelectBatchForAI(b)}
-                      className="dash-zone-btn dash-zone-btn-ai"
-                      style={{ padding: '4px 10px', display: 'inline-flex', width: 'auto' }}
-                      title="Chạy mô hình dự báo năng suất AI"
-                    >
-                      <Sparkles size={11} />
-                      <span>Dự báo AI</span>
-                    </button>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => onSelectBatchForAI(b)}
+                        className="dash-zone-btn dash-zone-btn-ai"
+                        style={{ padding: '4px 8px', display: 'inline-flex', width: 'auto', fontSize: '0.72rem' }}
+                        title="Chạy mô hình dự báo năng suất AI"
+                      >
+                        <Sparkles size={11} />
+                        <span>Dự báo AI</span>
+                      </button>
+                      <button
+                        onClick={() => onSelectBatchForHarvest ? onSelectBatchForHarvest(b) : onNavigateTab('harvest')}
+                        className="dash-zone-btn"
+                        style={{
+                          padding: '4px 8px',
+                          display: 'inline-flex',
+                          width: 'auto',
+                          fontSize: '0.72rem',
+                          backgroundColor: '#f0fdf4',
+                          color: '#15803d',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                        title="Ghi nhận thu hoạch cho lô này"
+                      >
+                        <Scale size={11} />
+                        <span>Thu hoạch</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
