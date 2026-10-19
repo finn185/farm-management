@@ -28,6 +28,7 @@ import {
   Legend
 } from 'recharts';
 import type { Reservoir, NutrientFormula, Channel, SolutionDrainEvent, CropBatch } from '../types/farm';
+import { useAuth } from '../context/AuthContext';
 import './ReservoirsView.css';
 
 interface ReservoirsViewProps {
@@ -53,6 +54,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   onDrainReservoir,
   onApplyDosing
 }) => {
+  const { user } = useAuth();
+
   // Navigation & Filter state
   const [activeTab, setActiveTab] = useState<'all' | 'res-01' | 'res-02' | 'needs-dosing' | 'optimal'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,7 +92,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const [formWaterLevel, setFormWaterLevel] = useState(90);
   const [topUpLiters, setTopUpLiters] = useState(50);
   const [drainReason, setDrainReason] = useState<SolutionDrainEvent['reason']>('end_of_batch');
-  const [drainOperator, setDrainOperator] = useState('Kỹ thuật viên trang trại');
+  const [drainOperator, setDrainOperator] = useState(user?.fullName || 'Lê Thị Kỹ Sư Nông Học');
   const [drainNotes, setDrainNotes] = useState('');
 
   // Top KPI calculations

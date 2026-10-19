@@ -407,7 +407,9 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                                   setResolvedMetricVal(
                                     alert.metric === 'pH' ? '5.80' :
                                     alert.metric === 'EC' ? '1.70' :
-                                    alert.metric === 'Temp' ? '22.0' : ''
+                                    (alert.metric === 'Temp' || alert.metric === 'WaterTemp') ? '22.0' :
+                                    alert.metric === 'DO' ? '7.0' :
+                                    alert.metric === 'WaterLevel' ? '90' : ''
                                   );
                                   setExpandedId(alert.id);
                                 }}
@@ -464,7 +466,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                               {isResolvingThis && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    {alert.reservoirId && (alert.metric === 'pH' || alert.metric === 'EC' || alert.metric === 'Temp' || alert.metric === 'WaterTemp') && (
+                                    {alert.reservoirId && (alert.metric === 'pH' || alert.metric === 'EC' || alert.metric === 'Temp' || alert.metric === 'WaterTemp' || alert.metric === 'DO' || alert.metric === 'WaterLevel') && (
                                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
                                         <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
                                           Số đo {alert.metric} mới:
@@ -474,7 +476,13 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                                           step="0.01"
                                           value={resolvedMetricVal}
                                           onChange={(e) => setResolvedMetricVal(e.target.value)}
-                                          placeholder={alert.metric === 'pH' ? '5.80' : '1.70'}
+                                          placeholder={
+                                            alert.metric === 'pH' ? '5.80' :
+                                            alert.metric === 'EC' ? '1.70' :
+                                            (alert.metric === 'Temp' || alert.metric === 'WaterTemp') ? '22.0' :
+                                            alert.metric === 'DO' ? '7.0' :
+                                            alert.metric === 'WaterLevel' ? '90' : '5.80'
+                                          }
                                           style={{
                                             width: '65px',
                                             border: '1px solid #cbd5e1',
