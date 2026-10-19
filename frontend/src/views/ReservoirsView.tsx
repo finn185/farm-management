@@ -13,8 +13,10 @@ import {
   ArrowUpDown,
   Activity,
   Calendar,
-  Sprout
+  Sprout,
+  Shield
 } from 'lucide-react';
+import { detectReservoirAnomalyRemote, type AnomalyDetectionResult } from '../services/aiPredictor';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -177,9 +179,35 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
     showNotice(`Đã ghi nhận xả bể ${activeModalRes.name.split('-')[0].trim()}`);
   };
 
+  const [anomalyMap, setAnomalyMap] = useState<Record<string, AnomalyDetectionResult>>({});
+  const [isScanningAi, setIsScanningAi] = useState<boolean>(false);
+
   const showNotice = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 4500);
+  };
+
+  const handleScanAiAnomaly = async (res: Reservoir) => {
+    try {
+      const result = await detectReservoirAnomalyRemote({
+        reservoirId: res.id,
+        reservoirName: res.name,
+        avgPh: res.currentPh,
+        avgEc: res.currentEc,
+        avgWaterTemp: res.currentWaterTemp
+      });
+      setAnomalyMap(prev => ({ ...prev, [res.id]: result }));
+      const shortName = res.name.split('-')[0].trim();
+      if (result.isAnomaly) {
+        showNotice(`🚨 AI Phát hiện bất thường tại ${shortName}: ${result.riskFactors.join('. ')}`);
+      } else {
+        showNotice(`✅ AI Giám Sát: Các chỉ số của ${shortName} an toàn (Isolation Forest).`);
+      }
+      return result;
+    } catch (err: any) {
+      showNotice('Không thể quét AI lúc này: ' + err.message);
+      return null;
+    }
   };
 
   const handleApplyDosingForTank = (res: Reservoir, targetEc: number, doseMl: number) => {
@@ -248,6 +276,29 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           >
             <History size={15} color="var(--text-subtle)" />
             <span>Nhật ký xả nước ({drainEvents.length})</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              setIsScanningAi(true);
+              for (const r of reservoirs) {
+                await handleScanAiAnomaly(r);
+              }
+              setIsScanningAi(false);
+            }}
+            className="farmvista-btn-secondary"
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              fontSize: '0.8125rem',
+              borderColor: '#38bdf8',
+              backgroundColor: '#f0f9ff',
+              color: '#0284c7',
+              fontWeight: 700
+            }}
+          >
+            <Shield size={15} color="#0284c7" />
+            <span>{isScanningAi ? 'Đang Quét AI...' : 'Quét Bất Thường AI'}</span>
           </button>
 
           <button
@@ -501,6 +552,15 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     Xả bể
                   </button>
                   <button
+                    onClick={() => handleScanAiAnomaly(res)}
+                    className="farmvista-btn-secondary"
+                    style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', borderColor: '#38bdf8', color: '#0284c7', fontWeight: 600 }}
+                    title="Quét bất thường bằng mô hình Isolation Forest"
+                  >
+                    <Shield size={13} color="#0284c7" />
+                    <span>Quét AI</span>
+                  </button>
+                  <button
                     onClick={() => openLogModal(res)}
                     className="farmvista-btn-green"
                     style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem' }}
@@ -566,6 +626,32 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* AI Isolation Forest Monitor Banner */}
+              {anomalyMap[res.id] && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: anomalyMap[res.id].isAnomaly ? '#fef2f2' : '#f0fdf4',
+                  border: `1px solid ${anomalyMap[res.id].isAnomaly ? '#fecaca' : '#bbf7d0'}`,
+                  fontSize: '0.8rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Shield size={15} color={anomalyMap[res.id].isAnomaly ? '#dc2626' : '#16a34a'} />
+                    <span style={{ fontWeight: 700, color: anomalyMap[res.id].isAnomaly ? '#991b1b' : '#166534' }}>
+                      {anomalyMap[res.id].isAnomaly
+                        ? `🚨 Cảnh báo AI: ${anomalyMap[res.id].riskFactors.join('. ')}`
+                        : '✅ AI Giám Sát: Môi trường an toàn (Mô hình Isolation Forest)'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 600 }}>
+                    Score: {anomalyMap[res.id].anomalyScore}
+                  </span>
+                </div>
+              )}
 
               {/* 4 Sensor Metric Tiles (pH, EC, Nhiệt độ, Oxy DO) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
