@@ -11,8 +11,12 @@ import {
   Eye,
   EyeOff,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  Award
 } from 'lucide-react';
+import './ProfileView.css';
 
 export const ProfileView: React.FC = () => {
   const { user, updateProfile, changePassword } = useAuth();
@@ -34,15 +38,15 @@ export const ProfileView: React.FC = () => {
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
-        return { label: 'Quản Trị Viên', color: '#7c3aed', bg: '#f5f3ff' };
+        return { label: 'Quản Trị Viên', color: '#7c3aed', bg: '#f5f3ff', badgeClass: 'purple' };
       case 'FARM_MANAGER':
-        return { label: 'Quản Lý Trang Trại', color: '#0284c7', bg: '#f0f9ff' };
+        return { label: 'Quản Lý Trang Trại', color: '#0284c7', bg: '#f0f9ff', badgeClass: 'blue' };
       case 'AGRONOMIST':
-        return { label: 'Kỹ Sư Nông Học', color: '#059669', bg: '#ecfdf5' };
+        return { label: 'Kỹ Sư Nông Học', color: '#059669', bg: '#ecfdf5', badgeClass: 'green' };
       case 'OPERATOR':
-        return { label: 'Kỹ Thuật Viên Vận Hành', color: '#d97706', bg: '#fffbeb' };
+        return { label: 'Kỹ Thuật Viên Vận Hành', color: '#d97706', bg: '#fffbeb', badgeClass: 'amber' };
       default:
-        return { label: 'Kỹ Sư Trang Trại', color: '#00a651', bg: '#e8f8f0' };
+        return { label: 'Kỹ Sư Trang Trại', color: '#00a651', bg: '#e8f8f0', badgeClass: 'green' };
     }
   };
 
@@ -103,116 +107,149 @@ export const ProfileView: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top Header Toolbar */}
-      <div className="page-toolbar" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        paddingBottom: '4px'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: 'var(--text-subtle)', marginBottom: '4px' }}>
-            <span>Hệ thống</span>
-            <span>/</span>
-            <span style={{ color: 'var(--farmvista-green)', fontWeight: 600 }}>Hồ sơ cá nhân</span>
+    <div className="profile-container">
+      {/* ========================================================
+          1. HEADER: Synchronized Top Bar
+          ======================================================== */}
+      <div className="profile-header">
+        <div className="profile-header-left">
+          <div>
+            <h1 className="profile-title">
+              <User size={22} color="#00a651" />
+              Hồ Sơ Cá Nhân & Phân Quyền
+            </h1>
+            <div className="profile-subtitle">
+              Quản lý thông tin định danh kỹ sư, vai trò quản trị hệ thống và thiết lập mật khẩu bảo mật
+            </div>
           </div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
-            Hồ Sơ Cá Nhân
-          </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-subtle)', margin: '4px 0 0 0' }}>
-            Xem và cập nhật thông tin tài khoản, mật khẩu đăng nhập hệ thống
-          </p>
         </div>
 
-        {/* Online Status Badge */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-full)',
-          backgroundColor: '#e8f8f0',
-          border: '1px solid rgba(0, 166, 81, 0.25)',
-          color: '#00a651',
-          fontSize: '0.78rem',
-          fontWeight: 700
-        }}>
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#00a651'
-          }} />
-          Đang hoạt động
+        <div className="profile-header-actions">
+          <span className="profile-status-pill">
+            <span className="dot" />
+            Tài khoản đang hoạt động
+          </span>
         </div>
       </div>
 
-      {/* Top Hero Info Summary Card */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: 'var(--radius-lg, 16px)',
-        border: '1px solid var(--border-medium, #e2e8f0)',
-        boxShadow: 'var(--shadow-sm)',
-        padding: '20px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Avatar Initials */}
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            backgroundColor: roleMeta.bg,
-            color: roleMeta.color,
-            border: `2px solid ${roleMeta.color}40`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            flexShrink: 0
-          }}>
+      {/* ========================================================
+          2. KPI CARDS: 4 Account & Security Metrics
+          ======================================================== */}
+      <div className="profile-kpis">
+        {/* Metric 1: Vai trò */}
+        <div className="profile-kpi-card">
+          <div className="profile-kpi-top">
+            <span className="profile-kpi-label">Vai Trò Hệ Thống</span>
+            <div className="profile-kpi-icon" style={{ backgroundColor: roleMeta.bg, color: roleMeta.color }}>
+              <Shield size={17} />
+            </div>
+          </div>
+          <div className="profile-kpi-val" style={{ color: roleMeta.color }}>
+            {roleMeta.label}
+          </div>
+          <div className="profile-kpi-meta">
+            <span>Đặc quyền truy cập</span>
+            <span className={`profile-kpi-badge ${roleMeta.badgeClass}`}>
+              Đầy đủ quyền
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 2: Xác thực email */}
+        <div className="profile-kpi-card">
+          <div className="profile-kpi-top">
+            <span className="profile-kpi-label">Định Danh Email</span>
+            <div className="profile-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Mail size={17} />
+            </div>
+          </div>
+          <div className="profile-kpi-val" style={{ color: '#0f172a' }}>
+            Đã Xác Minh
+          </div>
+          <div className="profile-kpi-meta">
+            <span>Địa chỉ email</span>
+            <span className="profile-kpi-badge green">
+              Chính chủ
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 3: Phiên làm việc */}
+        <div className="profile-kpi-card">
+          <div className="profile-kpi-top">
+            <span className="profile-kpi-label">Phiên Đăng Nhập</span>
+            <div className="profile-kpi-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+              <Clock size={17} />
+            </div>
+          </div>
+          <div className="profile-kpi-val" style={{ color: '#0284c7' }}>
+            Trực Tuyến
+          </div>
+          <div className="profile-kpi-meta">
+            <span>Thời hạn phiên</span>
+            <span className="profile-kpi-badge blue">
+              Tự động gia hạn
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 4: Tiêu chuẩn bảo mật */}
+        <div className="profile-kpi-card">
+          <div className="profile-kpi-top">
+            <span className="profile-kpi-label">Mức Độ An Toàn</span>
+            <div className="profile-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <ShieldCheck size={17} />
+            </div>
+          </div>
+          <div className="profile-kpi-val" style={{ color: '#16a34a' }}>
+            Mức Cao (A+)
+          </div>
+          <div className="profile-kpi-meta">
+            <span>Mã hóa dữ liệu</span>
+            <span className="profile-kpi-badge green">
+              SHA-256 / SSL
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          3. USER SUMMARY HERO CARD
+          ======================================================== */}
+      <div className="profile-user-hero">
+        <div className="profile-user-info-left">
+          <div 
+            className="profile-avatar-circle"
+            style={{ 
+              backgroundColor: roleMeta.bg, 
+              color: roleMeta.color,
+              border: `2px solid ${roleMeta.color}35`
+            }}
+          >
             {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
           </div>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                {user?.fullName || 'Người Dùng'}
-              </h2>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: roleMeta.bg,
-                color: roleMeta.color,
-                border: `1px solid ${roleMeta.color}30`
-              }}>
-                <Shield size={11} />
+              <h2 className="profile-user-name">{user?.fullName || 'Kỹ Sư Nông Nghiệp'}</h2>
+              <span 
+                className="profile-badge-pill"
+                style={{ backgroundColor: roleMeta.bg, color: roleMeta.color, border: `1px solid ${roleMeta.color}30` }}
+              >
+                <Award size={12} />
                 {roleMeta.label}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px', fontSize: '0.8125rem', color: 'var(--text-subtle)', flexWrap: 'wrap' }}>
+            <div className="profile-user-meta-row">
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Mail size={14} color="var(--text-disabled)" />
+                <Mail size={14} color="#94a3b8" />
                 {user?.email}
               </span>
               <span>•</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Phone size={14} color="var(--text-disabled)" />
-                {user?.phoneNumber || 'Chưa có SĐT'}
+                <Phone size={14} color="#94a3b8" />
+                {user?.phoneNumber || 'Chưa cập nhật SĐT'}
               </span>
             </div>
           </div>
@@ -220,291 +257,182 @@ export const ProfileView: React.FC = () => {
 
         <div style={{
           padding: '8px 16px',
-          borderRadius: 'var(--radius-md, 8px)',
+          borderRadius: '8px',
           backgroundColor: '#f8fafc',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid #e2e8f0',
           textAlign: 'right'
         }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', textTransform: 'uppercase', fontWeight: 600 }}>Vai trò hệ thống</div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: roleMeta.color, marginTop: '2px' }}>
-            {roleMeta.label}
+          <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+            Phân khu phụ trách
+          </div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+            Nhà màng NFT 01 & 02
           </div>
         </div>
       </div>
 
-      {/* 2 Clean Side-by-Side Cards: Profile Info & Change Password */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
-        gap: '20px'
-      }}>
-        {/* Card 1: Thông tin cá nhân */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--radius-lg, 16px)',
-          border: '1px solid var(--border-medium, #e2e8f0)',
-          boxShadow: 'var(--shadow-sm)',
-          padding: '24px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <User size={18} color="#00a651" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-              Thông tin cá nhân
-            </h3>
-          </div>
-
-          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Full Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Họ và Tên
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-medium, #e2e8f0)',
-                backgroundColor: '#ffffff'
-              }}>
-                <User size={15} color="var(--text-disabled)" />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nhập họ và tên"
-                  required
-                  style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.875rem', color: 'var(--text-main)', backgroundColor: 'transparent' }}
-                />
-              </div>
+      {/* ========================================================
+          4. FORMS: Personal Info & Password Management
+          ======================================================== */}
+      <div className="profile-forms-grid">
+        {/* Form 1: Cập nhật thông tin */}
+        <div className="profile-form-card">
+          <div>
+            <div className="profile-card-header">
+              <User size={18} color="#00a651" />
+              <h3 className="profile-card-title">Thông Tin Cá Nhân</h3>
             </div>
 
-            {/* Email (Readonly) */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Địa chỉ Email
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-subtle, #f1f5f9)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Mail size={15} color="var(--text-disabled)" />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user?.email}</span>
+            <form onSubmit={handleSaveProfile}>
+              {/* Họ tên */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Họ và Tên</label>
+                <div className="profile-input-wrapper">
+                  <User size={15} color="#94a3b8" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Nhập họ và tên đầy đủ"
+                    required
+                    className="profile-input-field"
+                  />
                 </div>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  color: '#00a651'
-                }}>
-                  <CheckCircle2 size={12} />
-                  Đã xác minh
-                </span>
               </div>
-            </div>
 
-            {/* Phone Number */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Số điện thoại liên hệ
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-medium, #e2e8f0)',
-                backgroundColor: '#ffffff'
-              }}>
-                <Phone size={15} color="var(--text-disabled)" />
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Ví dụ: 0901234567"
-                  style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.875rem', color: 'var(--text-main)', backgroundColor: 'transparent' }}
-                />
+              {/* Email (Readonly) */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Địa chỉ Email</label>
+                <div className="profile-input-wrapper readonly">
+                  <Mail size={15} color="#94a3b8" />
+                  <input
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="profile-input-field"
+                    style={{ color: '#64748b', cursor: 'not-allowed' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                    <CheckCircle2 size={12} />
+                    Xác minh
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Save Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button
-                type="submit"
-                disabled={isSavingInfo}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: isSavingInfo ? '#008f45' : '#00a651',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 18px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: isSavingInfo ? 'not-allowed' : 'pointer',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'background-color 0.15s ease'
-                }}
-              >
-                <Save size={15} />
-                <span>{isSavingInfo ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
-              </button>
-            </div>
-          </form>
+              {/* SĐT */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Số Điện Thoại Liên Hệ</label>
+                <div className="profile-input-wrapper">
+                  <Phone size={15} color="#94a3b8" />
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Ví dụ: 0912 345 678"
+                    className="profile-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="profile-form-actions">
+                <button
+                  type="submit"
+                  disabled={isSavingInfo}
+                  className="farmvista-btn-green"
+                  style={{ height: '36px', fontSize: '0.8125rem', padding: '0 18px' }}
+                >
+                  <Save size={15} />
+                  <span>{isSavingInfo ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        {/* Card 2: Đổi mật khẩu */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--radius-lg, 16px)',
-          border: '1px solid var(--border-medium, #e2e8f0)',
-          boxShadow: 'var(--shadow-sm)',
-          padding: '24px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Key size={18} color="#00a651" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-              Đổi mật khẩu
-            </h3>
+        {/* Form 2: Đổi mật khẩu */}
+        <div className="profile-form-card">
+          <div>
+            <div className="profile-card-header">
+              <Key size={18} color="#00a651" />
+              <h3 className="profile-card-title">Đổi Mật Khẩu Đăng Nhập</h3>
+            </div>
+
+            <form onSubmit={handleChangePassword}>
+              {/* Mật khẩu cũ */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Mật khẩu hiện tại</label>
+                <div className="profile-input-wrapper">
+                  <Lock size={15} color="#94a3b8" />
+                  <input
+                    type={showOldPass ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu đang dùng"
+                    required
+                    className="profile-input-field"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPass(!showOldPass)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+                  >
+                    {showOldPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mật khẩu mới */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Mật khẩu mới (≥ 6 ký tự)</label>
+                <div className="profile-input-wrapper">
+                  <Lock size={15} color="#94a3b8" />
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Tối thiểu 6 ký tự an toàn"
+                    required
+                    className="profile-input-field"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+                  >
+                    {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Xác nhận mật khẩu mới */}
+              <div className="profile-input-group">
+                <label className="profile-input-label">Xác nhận mật khẩu mới</label>
+                <div className="profile-input-wrapper">
+                  <Lock size={15} color="#94a3b8" />
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Nhập lại mật khẩu mới"
+                    required
+                    className="profile-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="profile-form-actions">
+                <button
+                  type="submit"
+                  disabled={isChangingPass}
+                  className="farmvista-btn-secondary"
+                  style={{ height: '36px', fontSize: '0.8125rem', padding: '0 18px', borderColor: '#cbd5e1' }}
+                >
+                  <Key size={15} color="#00a651" />
+                  <span>{isChangingPass ? 'Đang đổi...' : 'Đổi Mật Khẩu'}</span>
+                </button>
+              </div>
+            </form>
           </div>
-
-          <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Current Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Mật khẩu hiện tại
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-medium, #e2e8f0)',
-                backgroundColor: '#ffffff'
-              }}>
-                <Lock size={15} color="var(--text-disabled)" />
-                <input
-                  type={showOldPass ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu hiện tại"
-                  required
-                  style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.875rem', backgroundColor: 'transparent' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowOldPass(!showOldPass)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0 }}
-                >
-                  {showOldPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            {/* New Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Mật khẩu mới (≥ 6 ký tự)
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-medium, #e2e8f0)',
-                backgroundColor: '#ffffff'
-              }}>
-                <Lock size={15} color="var(--text-disabled)" />
-                <input
-                  type={showNewPass ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu mới"
-                  required
-                  style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.875rem', backgroundColor: 'transparent' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPass(!showNewPass)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0 }}
-                >
-                  {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm New Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '5px' }}>
-                Xác nhận lại mật khẩu mới
-              </label>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                height: '40px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-medium, #e2e8f0)',
-                backgroundColor: '#ffffff'
-              }}>
-                <Lock size={15} color="var(--text-disabled)" />
-                <input
-                  type={showNewPass ? 'text' : 'password'}
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  placeholder="Nhập lại mật khẩu mới"
-                  required
-                  style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.875rem', backgroundColor: 'transparent' }}
-                />
-              </div>
-            </div>
-
-            {/* Change Password Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-              <button
-                type="submit"
-                disabled={isChangingPass}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: isChangingPass ? '#008f45' : '#00a651',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 18px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: isChangingPass ? 'not-allowed' : 'pointer',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'background-color 0.15s ease'
-                }}
-              >
-                <Key size={15} />
-                <span>{isChangingPass ? 'Đang đổi...' : 'Đổi Mật Khẩu'}</span>
-              </button>
-            </div>
-          </form>
         </div>
       </div>
     </div>

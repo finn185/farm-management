@@ -88,7 +88,7 @@ export const alertsApi = {
   },
 
   async createAlert(data: {
-    severity: 'critical' | 'warning' | 'info';
+    severity: 'emergency' | 'critical' | 'warning' | 'info';
     metric: string;
     title: string;
     message: string;
@@ -96,6 +96,9 @@ export const alertsApi = {
     reservoirId?: string;
     batchId?: string;
     zoneId?: string;
+    thresholdValue?: number;
+    actualValue?: number;
+    unit?: string;
   }): Promise<Alert> {
     try {
       const res = await fetch(API_BASE_URL, {

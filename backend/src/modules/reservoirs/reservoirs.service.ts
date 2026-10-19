@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma';
+import { alertEngine } from '../alerts/alert-engine.service';
 import type {
   CreateReservoirInput,
   UpdateReservoirInput,
@@ -54,7 +55,8 @@ export class ReservoirsService {
         waterLogs: {
           orderBy: { createdAt: 'desc' },
           take: 15
-        }
+        },
+        sensors: true
       },
       orderBy: { name: 'asc' }
     });
@@ -81,7 +83,8 @@ export class ReservoirsService {
         drainEvents: {
           orderBy: { createdAt: 'desc' },
           take: 10
-        }
+        },
+        sensors: true
       }
     });
 
@@ -162,6 +165,8 @@ export class ReservoirsService {
       }
     });
 
+    const waterLevelPercent = Math.round((updated.currentVolumeLiters / updated.capacityLiters) * 100);
+
     // Tạo bản ghi log chất lượng nước
     await prisma.waterQualityLog.create({
       data: {
@@ -170,24 +175,20 @@ export class ReservoirsService {
         ec: newEc,
         waterTemp: updated.currentWaterTemp,
         doLevel: updated.currentDo,
+        waterLevelPercent,
         source: 'manual',
         recordedBy: data.operator || 'Kỹ thuật viên'
       }
     });
 
-    // Tự động giải quyết các cảnh báo EC thấp đang mở của bể này
-    await prisma.alert.updateMany({
-      where: {
-        reservoirId: id,
-        metric: 'EC',
-        status: 'open'
-      },
-      data: {
-        status: 'resolved',
-        resolvedBy: data.operator || 'Kỹ thuật viên',
-        resolvedAt: new Date(),
-        resolutionNote: `Tự động giải quyết sau khi châm ${data.amountStockAMl}ml Stock A & ${data.amountStockBMl}ml Stock B. EC mới: ${newEc} mS/cm.`
-      }
+    // Chạy Alert Engine đối chiếu và tự động giải quyết các cảnh báo EC thấp
+    await alertEngine.evaluateWaterQuality(id, {
+      ph: updated.currentPh,
+      ec: newEc,
+      waterTemp: updated.currentWaterTemp,
+      doLevel: updated.currentDo,
+      waterLevelPercent,
+      recordedBy: data.operator || 'Châm phân dinh dưỡng'
     });
 
     if (userId) {
@@ -224,6 +225,8 @@ export class ReservoirsService {
       }
     });
 
+    const waterLevelPercent = Math.round((newVolume / reservoir.capacityLiters) * 100);
+
     await prisma.waterQualityLog.create({
       data: {
         reservoirId: id,
@@ -231,9 +234,20 @@ export class ReservoirsService {
         ec: newEc,
         waterTemp: updated.currentWaterTemp,
         doLevel: updated.currentDo,
+        waterLevelPercent,
         source: 'manual',
         recordedBy: data.operator || 'Bù nước tự động'
       }
+    });
+
+    // Chạy Alert Engine đối chiếu sau khi bù nước
+    await alertEngine.evaluateWaterQuality(id, {
+      ph: updated.currentPh,
+      ec: newEc,
+      waterTemp: updated.currentWaterTemp,
+      doLevel: updated.currentDo,
+      waterLevelPercent,
+      recordedBy: data.operator || 'Bù nước sạch'
     });
 
     if (userId) {
@@ -286,7 +300,7 @@ export class ReservoirsService {
     await prisma.alert.updateMany({
       where: {
         reservoirId: id,
-        status: 'open'
+        status: { in: ['open', 'acknowledged'] }
       },
       data: {
         status: 'resolved',
@@ -309,8 +323,12 @@ export class ReservoirsService {
     return updated;
   }
 
-  async logWaterQuality(id: string, data: LogWaterQualityInput, userId?: string) {
+  async logWaterQuality(id: string, data: LogWaterQualityInput, _userId?: string) {
     const reservoir = await this.getReservoirById(id);
+
+    const waterLevel = data.waterLevelPercent !== undefined 
+      ? data.waterLevelPercent 
+      : Math.round((reservoir.currentVolumeLiters / reservoir.capacityLiters) * 100);
 
     const log = await prisma.waterQualityLog.create({
       data: {
@@ -319,6 +337,7 @@ export class ReservoirsService {
         ec: data.ec,
         waterTemp: data.waterTemp,
         doLevel: data.doLevel,
+        waterLevelPercent: waterLevel,
         source: data.source,
         recordedBy: data.recordedBy
       }
@@ -335,62 +354,15 @@ export class ReservoirsService {
       }
     });
 
-    // Kiểm tra ngưỡng vi phạm với các cây trồng thuộc các lô đang hoạt động kết nối với bể này
-    const activeBatches = await prisma.cropBatch.findMany({
-      where: { reservoirId: id, status: 'active' },
-      include: { cultivar: true, zone: true }
+    // Chạy Alert Engine đánh giá toàn diện các lô kết nối và chống trùng lặp cảnh báo
+    await alertEngine.evaluateWaterQuality(id, {
+      ph: data.ph,
+      ec: data.ec,
+      waterTemp: data.waterTemp,
+      doLevel: data.doLevel,
+      waterLevelPercent: waterLevel,
+      recordedBy: data.recordedBy
     });
-
-    for (const batch of activeBatches) {
-      const c = batch.cultivar;
-      // Kiểm tra EC
-      if (data.ec < c.recommendedEcMin) {
-        await prisma.alert.create({
-          data: {
-            severity: 'warning',
-            status: 'open',
-            metric: 'EC',
-            title: `EC thấp tại bể ${reservoir.name}`,
-            message: `EC đo được ${data.ec} mS/cm thấp hơn ngưỡng khuyến nghị (${c.recommendedEcMin} - ${c.recommendedEcMax}) cho giống ${c.name} (Lô ${batch.batchCode}).`,
-            suggestedAction: `Châm thêm Stock A & Stock B để nâng EC lên ${c.recommendedEcMin} mS/cm.`,
-            reservoirId: id,
-            batchId: batch.id,
-            zoneId: batch.zoneId
-          }
-        });
-      }
-
-      // Kiểm tra pH
-      if (data.ph > c.recommendedPhMax) {
-        await prisma.alert.create({
-          data: {
-            severity: 'critical',
-            status: 'open',
-            metric: 'pH',
-            title: `pH kiềm hóa tại bể ${reservoir.name}`,
-            message: `pH đo được ${data.ph} cao hơn ngưỡng tối ưu (${c.recommendedPhMin} - ${c.recommendedPhMax}) cho giống ${c.name} (Lô ${batch.batchCode}).`,
-            suggestedAction: `Châm pH Down (H3PO4 pha loãng) để đưa pH về khoảng ${(c.recommendedPhMin + c.recommendedPhMax) / 2}.`,
-            reservoirId: id,
-            batchId: batch.id,
-            zoneId: batch.zoneId
-          }
-        });
-      } else if (data.ph < c.recommendedPhMin) {
-        await prisma.alert.create({
-          data: {
-            severity: 'critical',
-            status: 'open',
-            metric: 'pH',
-            title: `pH quá chua tại bể ${reservoir.name}`,
-            message: `pH đo được ${data.ph} thấp hơn ngưỡng (${c.recommendedPhMin} - ${c.recommendedPhMax}) cho giống ${c.name} (Lô ${batch.batchCode}).`,
-            suggestedAction: `Châm pH Up (KOH pha loãng) để tăng pH về ngưỡng thích hợp.`,
-            reservoirId: id,
-            batchId: batch.id,
-            zoneId: batch.zoneId
-          }
-        });
-      }
-    }
 
     return log;
   }

@@ -14,11 +14,24 @@ export type GrowthStage =
 
 export type BatchStatus = 'active' | 'harvested' | 'failed';
 
-export type AlertSeverity = 'critical' | 'warning' | 'info';
+export type AlertSeverity = 'emergency' | 'critical' | 'warning' | 'info';
 
 export type AlertStatus = 'open' | 'acknowledged' | 'resolved' | 'escalated';
 
-export type AlertMetric = 'pH' | 'EC' | 'DO' | 'Temp' | 'Nutrient' | 'System';
+export type AlertMetric = 'pH' | 'EC' | 'DO' | 'Temp' | 'WaterTemp' | 'WaterLevel' | 'AirTemp' | 'Humidity' | 'Light' | 'Nutrient' | 'System';
+
+export interface CultivarStageConfig {
+  stage: GrowthStage;
+  days: number;
+  phMin: number;
+  phMax: number;
+  ecMin: number;
+  ecMax: number;
+  waterTempMin?: number;
+  waterTempMax?: number;
+  lightDli?: number;
+  notes?: string;
+}
 
 export interface Cultivar {
   id: string;
@@ -34,6 +47,18 @@ export interface Cultivar {
   recommendedEcMax: number;
   optimalWaterTempMin: number;
   optimalWaterTempMax: number;
+  minWaterLevelPercent?: number;
+  optimalAirTempMin?: number;
+  optimalAirTempMax?: number;
+  optimalHumidityMin?: number;
+  optimalHumidityMax?: number;
+  optimalLightPpfdMin?: number;
+  optimalLightPpfdMax?: number;
+  optimalLightDliMin?: number;
+  optimalLightDliMax?: number;
+  stageConfigs?: {
+    stages: CultivarStageConfig[];
+  };
 }
 
 export type ZoneStatus = 'growing' | 'ready_soon' | 'completed' | 'needs_attention' | 'empty';
@@ -123,6 +148,7 @@ export interface Reservoir {
   currentEc: number; // mS/cm
   currentWaterTemp: number; // °C
   currentDo?: number; // mg/L
+  currentWaterLevelPercent?: number; // %
   formulaName: string;
   lastTopUpDate: string;
   lastReplacementDate: string;
@@ -171,6 +197,8 @@ export interface WaterQualityRecord {
   ph: number;
   ec: number;
   waterTemp: number;
+  doLevel?: number;
+  waterLevelPercent?: number;
   recordedBy: string;
   source: 'manual' | 'sensor';
 }
@@ -197,6 +225,9 @@ export interface Alert {
   reservoirId?: string;
   batchId?: string;
   zoneId?: string;
+  thresholdValue?: number;
+  actualValue?: number;
+  unit?: string;
   /** @deprecated use status instead */
   resolved: boolean;
   suggestedAction: string;
@@ -208,6 +239,20 @@ export interface Alert {
   escalatedTo?: string;
   escalatedAt?: string;
   resolutionNote?: string;
+}
+
+export interface Sensor {
+  id: string;
+  code: string;
+  name: string;
+  sensorType: string;
+  status: 'online' | 'offline' | 'warning' | 'error' | 'calibrating';
+  reservoirId?: string;
+  zoneId?: string;
+  lastReading?: number;
+  unit?: string;
+  lastSeenAt?: string;
+  batteryLevel?: number;
 }
 
 export interface Channel {

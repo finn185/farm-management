@@ -40,38 +40,54 @@ export const App: React.FC = () => {
   // Batch targeted for AI simulation
   const [selectedBatchForAI, setSelectedBatchForAI] = useState<CropBatch | null>(null);
 
-  // Sync state whenever actions happen
-  const refreshState = () => {
-    setBatches(farmStore.getBatches());
-    setReservoirs(farmStore.getReservoirs());
+  // Sync state whenever actions happen (fetches from Backend API with automatic local fallback)
+  const refreshState = async () => {
+    try {
+      const [batchesRes, reservoirsRes, alertsRes, harvestsRes] = await Promise.allSettled([
+        batchesApi.getBatches(),
+        reservoirsApi.getReservoirs(),
+        alertsApi.getAlerts(),
+        harvestsApi.getHarvests()
+      ]);
+
+      if (batchesRes.status === 'fulfilled' && batchesRes.value && batchesRes.value.length > 0) {
+        setBatches(batchesRes.value);
+      } else {
+        setBatches(farmStore.getBatches());
+      }
+
+      if (reservoirsRes.status === 'fulfilled' && reservoirsRes.value && reservoirsRes.value.length > 0) {
+        setReservoirs(reservoirsRes.value);
+      } else {
+        setReservoirs(farmStore.getReservoirs());
+      }
+
+      if (alertsRes.status === 'fulfilled' && alertsRes.value) {
+        setAlerts(alertsRes.value);
+      } else {
+        setAlerts(farmStore.getAlerts());
+      }
+
+      if (harvestsRes.status === 'fulfilled' && harvestsRes.value) {
+        setHarvests(harvestsRes.value);
+      } else {
+        setHarvests(farmStore.getHarvests());
+      }
+    } catch {
+      setBatches(farmStore.getBatches());
+      setReservoirs(farmStore.getReservoirs());
+      setAlerts(farmStore.getAlerts());
+      setHarvests(farmStore.getHarvests());
+    }
+
     setSensorHistory(farmStore.getSensorHistory());
-    setAlerts(farmStore.getAlerts());
-    setHarvests(farmStore.getHarvests());
     setChannels(farmStore.getChannels());
     setDrainEvents(farmStore.getDrainEvents());
   };
 
   // Sync with backend on initial load
   useEffect(() => {
-    Promise.allSettled([
-      batchesApi.getBatches(),
-      reservoirsApi.getReservoirs(),
-      alertsApi.getAlerts(),
-      harvestsApi.getHarvests()
-    ]).then(([batchesRes, reservoirsRes, alertsRes, harvestsRes]) => {
-      if (batchesRes.status === 'fulfilled' && batchesRes.value?.length) {
-        setBatches(batchesRes.value);
-      }
-      if (reservoirsRes.status === 'fulfilled' && reservoirsRes.value?.length) {
-        setReservoirs(reservoirsRes.value);
-      }
-      if (alertsRes.status === 'fulfilled' && alertsRes.value?.length) {
-        setAlerts(alertsRes.value);
-      }
-      if (harvestsRes.status === 'fulfilled' && harvestsRes.value?.length) {
-        setHarvests(harvestsRes.value);
-      }
-    });
+    refreshState();
   }, []);
 
   const handleAddBatch = async (data: any) => {

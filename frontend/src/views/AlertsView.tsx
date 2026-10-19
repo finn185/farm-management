@@ -8,12 +8,12 @@ import {
   ChevronDown, 
   ChevronUp,
   Search,
-  ExternalLink,
   Droplets,
-  Sprout
+  ShieldAlert
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Alert } from '../types/farm';
+import './AlertsView.css';
 
 interface AlertsViewProps {
   alerts: Alert[];
@@ -28,6 +28,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 }) => {
   const [filterStatus, setFilterStatus] = useState<string>('active'); // active, open, acknowledged, resolved, all
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [filterMetric, setFilterMetric] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resolveNote, setResolveNote] = useState('');
@@ -36,7 +37,8 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   // Counts
   const openCount = alerts.filter(a => a.status === 'open').length;
   const ackCount = alerts.filter(a => a.status === 'acknowledged').length;
-  const criticalCount = alerts.filter(a => a.severity === 'critical' && a.status !== 'resolved').length;
+  const emergencyCount = alerts.filter(a => a.severity === 'emergency' && a.status !== 'resolved').length;
+  const criticalCount = alerts.filter(a => (a.severity === 'emergency' || a.severity === 'critical') && a.status !== 'resolved').length;
   const resolvedCount = alerts.filter(a => a.status === 'resolved').length;
 
   // Filtered alert list
@@ -54,6 +56,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
         return false;
       }
 
+      // Metric
+      if (filterMetric !== 'all' && a.metric !== filterMetric) {
+        return false;
+      }
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -66,271 +73,173 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
       return true;
     });
-  }, [alerts, filterStatus, filterSeverity, searchQuery]);
+  }, [alerts, filterStatus, filterSeverity, filterMetric, searchQuery]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="alerts-container">
       
-      {/* 1. Header tinh gọn */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
-            Cảnh Báo Sinh Hóa
-          </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 0 0' }}>
-            Giám sát độ lệch chỉ số EC, pH, nhiệt độ dung dịch và nồng độ oxy hòa tan NFT.
-          </p>
+      {/* ========================================================
+          1. HEADER: Synchronized with Dashboard & Reservoirs
+          ======================================================== */}
+      <div className="alerts-header">
+        <div className="alerts-header-left">
+          <div>
+            <h1 className="alerts-title">
+              <ShieldAlert size={22} color="#00a651" />
+              Cảnh Báo & Sự Cố Kỹ Thuật
+            </h1>
+            <div className="alerts-subtitle">
+              Giám sát sai lệch nồng độ EC, pH, nhiệt độ dung dịch và mực nước tuần hoàn
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            color: openCount > 0 ? '#b91c1c' : '#15803d',
-            backgroundColor: openCount > 0 ? '#fef2f2' : '#f0fdf4',
-            border: `1px solid ${openCount > 0 ? '#fecaca' : '#dcfce7'}`,
-            borderRadius: 'var(--radius-full)',
-            padding: '5px 12px'
-          }}>
+        <div className="alerts-header-actions">
+          <span className={`alerts-status-pill ${openCount > 0 ? 'danger' : 'success'}`}>
             <span style={{
               width: '6px',
               height: '6px',
               borderRadius: '50%',
               backgroundColor: openCount > 0 ? '#ef4444' : '#16a34a'
             }} />
-            {openCount > 0 ? `${openCount} sự cố cần can thiệp` : 'Chỉ số bình thường'}
+            {openCount > 0 ? `${openCount} sự cố cần xử lý` : 'Chỉ số an toàn'}
           </span>
+
+          <Link
+            to="/reservoirs"
+            className="farmvista-btn-secondary"
+            style={{ height: '34px', fontSize: '0.78rem', padding: '0 12px', textDecoration: 'none' }}
+          >
+            <Droplets size={14} color="#00a651" />
+            <span>Bể dinh dưỡng</span>
+          </Link>
         </div>
       </div>
 
       {/* ========================================================
-          2. KPI CARDS (4 Cards in a Row - Exact Match with Batches/Dashboard)
+          2. KPI CARDS: 4 Cards in Exact Synchronized SaaS Grid
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+      <div className="alerts-kpis">
         {/* Metric 1: Chưa xử lý */}
         <div
           onClick={() => setFilterStatus(filterStatus === 'open' ? 'all' : 'open')}
-          className="farmvista-card"
-          style={{
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            border: filterStatus === 'open' ? '1.5px solid #00a651' : '1px solid var(--border-subtle)',
-            backgroundColor: '#ffffff',
-            transition: 'all 0.15s ease'
-          }}
+          className={`alerts-kpi-card ${filterStatus === 'open' ? 'active' : ''}`}
         >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: '#e8f8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#00a651',
-            flexShrink: 0
-          }}>
-            <Bell size={24} />
+          <div className="alerts-kpi-top">
+            <span className="alerts-kpi-label">Chưa Xử Lý</span>
+            <div className="alerts-kpi-icon" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+              <Bell size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>
-              Sự cố chưa xử lý
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {openCount} sự cố
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              {openCount > 0 ? 'Cần tiếp nhận hiện trường' : 'Hệ thống an toàn'}
-            </div>
+          <div className="alerts-kpi-val" style={{ color: openCount > 0 ? '#dc2626' : '#0f172a' }}>
+            {openCount}
+          </div>
+          <div className="alerts-kpi-meta">
+            <span>Cần can thiệp</span>
+            <span className="alerts-kpi-badge" style={{ backgroundColor: openCount > 0 ? '#fee2e2' : '#ecfdf5', color: openCount > 0 ? '#dc2626' : '#16a34a' }}>
+              {openCount > 0 ? 'Ưu tiên cao' : 'Bình thường'}
+            </span>
           </div>
         </div>
 
-        {/* Metric 2: Đang xử lý */}
+        {/* Metric 2: Đang tiếp nhận */}
         <div
           onClick={() => setFilterStatus(filterStatus === 'acknowledged' ? 'all' : 'acknowledged')}
-          className="farmvista-card"
-          style={{
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            border: filterStatus === 'acknowledged' ? '1.5px solid #00a651' : '1px solid var(--border-subtle)',
-            backgroundColor: '#ffffff',
-            transition: 'all 0.15s ease'
-          }}
+          className={`alerts-kpi-card ${filterStatus === 'acknowledged' ? 'active' : ''}`}
         >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: '#e8f8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#00a651',
-            flexShrink: 0
-          }}>
-            <Clock size={24} />
+          <div className="alerts-kpi-top">
+            <span className="alerts-kpi-label">Đang Tiếp Nhận</span>
+            <div className="alerts-kpi-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+              <Clock size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>
-              Giàn đang theo dõi
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {ackCount} sự cố
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Kỹ sư đang xử lý tại chỗ
-            </div>
+          <div className="alerts-kpi-val">
+            {ackCount}
+          </div>
+          <div className="alerts-kpi-meta">
+            <span>Theo dõi tại giàn</span>
+            <span className="alerts-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+              Kỹ sư phụ trách
+            </span>
           </div>
         </div>
 
         {/* Metric 3: Sự cố nghiêm trọng */}
         <div
           onClick={() => setFilterSeverity(filterSeverity === 'critical' ? 'all' : 'critical')}
-          className="farmvista-card"
-          style={{
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            border: filterSeverity === 'critical' ? '1.5px solid #00a651' : '1px solid var(--border-subtle)',
-            backgroundColor: '#ffffff',
-            transition: 'all 0.15s ease'
-          }}
+          className={`alerts-kpi-card ${filterSeverity === 'critical' ? 'active' : ''}`}
         >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: '#e8f8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#00a651',
-            flexShrink: 0
-          }}>
-            <AlertTriangle size={24} />
+          <div className="alerts-kpi-top">
+            <span className="alerts-kpi-label">Nghiêm Trọng</span>
+            <div className="alerts-kpi-icon" style={{ backgroundColor: '#fff1f2', color: '#e11d48' }}>
+              <AlertTriangle size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>
-              Sự cố nghiêm trọng
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {criticalCount} sự cố
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              {criticalCount > 0 ? 'Nguy cơ sốc rễ xà lách' : 'Không có rủi ro cao'}
-            </div>
+          <div className="alerts-kpi-val" style={{ color: criticalCount > 0 ? '#e11d48' : '#0f172a' }}>
+            {criticalCount}
+          </div>
+          <div className="alerts-kpi-meta">
+            <span>Rủi ro sốc rễ NFT</span>
+            <span className="alerts-kpi-badge" style={{ backgroundColor: criticalCount > 0 ? '#ffe4e6' : '#ecfdf5', color: criticalCount > 0 ? '#e11d48' : '#16a34a' }}>
+              {emergencyCount > 0 ? `${emergencyCount} Khẩn cấp!` : criticalCount > 0 ? 'Cần cân chỉnh' : 'An toàn'}
+            </span>
           </div>
         </div>
 
-        {/* Metric 4: Đã khắc phục xong */}
+        {/* Metric 4: Đã giải quyết */}
         <div
           onClick={() => setFilterStatus(filterStatus === 'resolved' ? 'all' : 'resolved')}
-          className="farmvista-card"
-          style={{
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            border: filterStatus === 'resolved' ? '1.5px solid #00a651' : '1px solid var(--border-subtle)',
-            backgroundColor: '#ffffff',
-            transition: 'all 0.15s ease'
-          }}
+          className={`alerts-kpi-card ${filterStatus === 'resolved' ? 'active' : ''}`}
         >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: '#e8f8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#00a651',
-            flexShrink: 0
-          }}>
-            <CheckCircle2 size={24} />
+          <div className="alerts-kpi-top">
+            <span className="alerts-kpi-label">Đã Khắc Phục</span>
+            <div className="alerts-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <CheckCircle2 size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>
-              Đã khắc phục xong
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {resolvedCount} sự cố
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Chỉ số đã về mức tối ưu
-            </div>
+          <div className="alerts-kpi-val">
+            {resolvedCount}
+          </div>
+          <div className="alerts-kpi-meta">
+            <span>Thông số về chuẩn</span>
+            <span className="alerts-kpi-badge" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+              Đã tối ưu
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Toolbar lọc tối giản */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+      {/* ========================================================
+          3. FILTER TOOLBAR: Pill Tabs + Search & Filters
+          ======================================================== */}
+      <div className="alerts-toolbar">
+        <div className="alerts-filters">
           {[
+            { id: 'all', label: `Tất cả (${alerts.length})` },
             { id: 'active', label: `Cần xử lý (${openCount + ackCount})` },
             { id: 'open', label: `Chưa tiếp nhận (${openCount})` },
             { id: 'acknowledged', label: `Đang xử lý (${ackCount})` },
-            { id: 'resolved', label: `Đã xong (${resolvedCount})` },
-            { id: 'all', label: `Tất cả (${alerts.length})` }
+            { id: 'resolved', label: `Đã xong (${resolvedCount})` }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setFilterStatus(tab.id)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 'var(--radius-full)',
-                border: filterStatus === tab.id ? 'none' : '1px solid var(--border-medium)',
-                backgroundColor: filterStatus === tab.id ? '#00a651' : '#ffffff',
-                color: filterStatus === tab.id ? '#ffffff' : 'var(--text-muted)',
-                fontSize: '0.78rem',
-                fontWeight: filterStatus === tab.id ? 600 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
+              className={`alerts-filter-btn ${filterStatus === tab.id ? 'active' : ''}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Search & Severity Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--border-medium)',
-            borderRadius: '8px',
-            padding: '5px 10px',
-            width: '200px'
-          }}>
-            <Search size={14} color="var(--text-disabled)" />
+        <div className="alerts-controls">
+          <div className="alerts-search-box">
+            <Search size={14} color="#94a3b8" />
             <input
               type="text"
               placeholder="Tìm cảnh báo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ border: 'none', outline: 'none', fontSize: '0.78rem', color: 'var(--text-main)', width: '100%', background: 'transparent' }}
+              className="alerts-search-input"
             />
           </div>
 
@@ -338,334 +247,265 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
             value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
             className="farmvista-select-pill"
-            style={{ borderRadius: '8px', height: '32px', fontSize: '0.75rem' }}
+            style={{ borderRadius: '8px', height: '34px', fontSize: '0.75rem' }}
           >
             <option value="all">Mọi mức độ</option>
+            <option value="emergency">Khẩn cấp</option>
             <option value="critical">Nghiêm trọng</option>
             <option value="warning">Cảnh báo</option>
             <option value="info">Thông tin</option>
           </select>
+
+          <select
+            value={filterMetric}
+            onChange={(e) => setFilterMetric(e.target.value)}
+            className="farmvista-select-pill"
+            style={{ borderRadius: '8px', height: '34px', fontSize: '0.75rem' }}
+          >
+            <option value="all">Mọi chỉ số</option>
+            <option value="EC">EC</option>
+            <option value="pH">pH</option>
+            <option value="Temp">Nhiệt nước</option>
+            <option value="DO">Oxy DO</option>
+            <option value="WaterLevel">Mực nước</option>
+            <option value="System">Hệ thống</option>
+          </select>
         </div>
       </div>
 
-      {/* 4. Danh sách cảnh báo: Thiết kế bảng card thanh lịch, màu sắc trung tính nhẹ nhàng */}
-      <div className="farmvista-card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* ========================================================
+          4. CLEAN INCIDENT TABLE (Zero visual clutter)
+          ======================================================== */}
+      <div className="alerts-card">
         {filteredAlerts.length > 0 ? (
-          <div>
-            {filteredAlerts.map((alert, idx) => {
-              const isExpanded = expandedId === alert.id;
-              const isResolvingThis = resolveTarget === alert.id;
-              const isLast = idx === filteredAlerts.length - 1;
+          <div style={{ overflowX: 'auto' }}>
+            <table className="alerts-table">
+              <thead>
+                <tr>
+                  <th style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>Chỉ Số & Mức Độ</th>
+                  <th>Nội Dung Sự Cố & Vị Trí</th>
+                  <th style={{ minWidth: '220px', whiteSpace: 'nowrap' }}>Số Đo vs Ngưỡng Chuẩn</th>
+                  <th style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>Trạng Thái</th>
+                  <th style={{ minWidth: '160px', textAlign: 'right', whiteSpace: 'nowrap' }}>Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAlerts.map((alert) => {
+                  const isExpanded = expandedId === alert.id;
+                  const isResolvingThis = resolveTarget === alert.id;
 
-              // Simple subtle status style
-              const statusLabel = 
-                alert.status === 'open' ? 'Chưa xử lý' :
-                alert.status === 'acknowledged' ? 'Đang xử lý' : 'Đã giải quyết';
-              
-              const statusBg = 
-                alert.status === 'open' ? '#fef2f2' :
-                alert.status === 'acknowledged' ? '#fffbeb' : '#f0fdf4';
-              
-              const statusColor = 
-                alert.status === 'open' ? '#b91c1c' :
-                alert.status === 'acknowledged' ? '#b45309' : '#15803d';
+                  const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+                    open: {
+                      label: 'Chưa xử lý',
+                      bg: alert.severity === 'emergency' ? '#fee2e2' : '#fef2f2',
+                      color: alert.severity === 'emergency' ? '#991b1b' : '#b91c1c'
+                    },
+                    acknowledged: {
+                      label: 'Đang xử lý',
+                      bg: '#fef3c7',
+                      color: '#b45309'
+                    },
+                    resolved: {
+                      label: 'Đã giải quyết',
+                      bg: '#ecfdf5',
+                      color: '#065f46'
+                    },
+                    escalated: {
+                      label: 'Khẩn cấp',
+                      bg: '#fee2e2',
+                      color: '#991b1b'
+                    }
+                  };
+                  const statusStyle = statusConfig[alert.status] || { label: alert.status, bg: '#f1f5f9', color: '#475569' };
 
-              return (
-                <div
-                  key={alert.id}
-                  style={{
-                    borderBottom: isLast && !isExpanded ? 'none' : '1px solid var(--border-subtle)',
-                    backgroundColor: alert.status === 'resolved' ? '#fafafa' : '#ffffff',
-                    transition: 'background-color 0.12s ease'
-                  }}
-                >
-                  {/* Alert Main Row */}
-                  <div
-                    style={{
-                      padding: '16px 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '16px',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setExpandedId(isExpanded ? null : alert.id)}
-                  >
-                    {/* Status Dot */}
-                    <div
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#3b82f6',
-                        flexShrink: 0
-                      }}
-                      title={`Mức độ: ${alert.severity}`}
-                    />
+                  return (
+                    <React.Fragment key={alert.id}>
+                      <tr 
+                        className={`${alert.severity === 'emergency' && alert.status === 'open' ? 'row-emergency' : ''} ${alert.status === 'resolved' ? 'row-resolved' : ''}`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setExpandedId(isExpanded ? null : alert.id)}
+                      >
+                        {/* Cột 1: Chỉ số & Mức độ */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div className={`alert-type-badge ${alert.status === 'resolved' ? 'resolved' : alert.severity}`}>
+                            <span>{alert.metric}</span>
+                            <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>•</span>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 600 }}>
+                              {alert.severity === 'emergency' ? 'Khẩn cấp' : alert.severity === 'critical' ? 'Nghiêm trọng' : alert.severity === 'warning' ? 'Cảnh báo' : 'Thông tin'}
+                            </span>
+                          </div>
+                        </td>
 
-                    {/* Metric Tag (Neutral Gray Pill) */}
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      backgroundColor: '#f1f5f9',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      flexShrink: 0
-                    }}>
-                      {alert.metric}
-                    </span>
+                        {/* Cột 2: Nội dung & Vị trí */}
+                        <td>
+                          <div className="alert-title-text">{alert.title}</div>
+                          <div className="alert-location-sub">
+                            <span>{alert.reservoirId === 'res-01' ? 'Bể 01 (Tầng 1)' : alert.reservoirId === 'res-02' ? 'Bể 02 (Tầng 2)' : 'Toàn giàn'}</span>
+                            {alert.zoneId && <span>• Giàn {alert.zoneId.replace('zone-', '').toUpperCase()}</span>}
+                            <span>• {alert.timestamp}</span>
+                          </div>
+                        </td>
 
-                    {/* Content */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 700,
-                          color: 'var(--text-main)'
-                        }}>
-                          {alert.title}
-                        </span>
+                        {/* Cột 3: Giá trị đo đạc vs Ngưỡng chuẩn */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          {alert.actualValue !== undefined && alert.thresholdValue !== undefined ? (
+                            <div className="alert-val-box">
+                              <span style={{ color: alert.severity === 'emergency' || alert.severity === 'critical' ? '#dc2626' : '#d97706', fontWeight: 700 }}>
+                                {alert.actualValue} {alert.unit || ''}
+                              </span>
+                              <span style={{ color: '#cbd5e1' }}>/</span>
+                              <span style={{ color: '#64748b' }}>
+                                Chuẩn {alert.thresholdValue} {alert.unit || ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Theo dõi định kỳ</span>
+                          )}
+                        </td>
 
-                        {/* Location Link */}
-                        {alert.reservoirId && (
-                          <Link
-                            to="/reservoirs"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 500,
-                              color: '#00a651',
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            <span>{alert.reservoirId === 'res-01' ? 'Bể 01' : 'Bể 02'}</span>
-                            <ExternalLink size={10} />
-                          </Link>
-                        )}
-
-                        {alert.batchId && (
-                          <Link
-                            to="/batches"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 500,
-                              color: '#64748b',
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            <span>{alert.batchId}</span>
-                            <ExternalLink size={10} />
-                          </Link>
-                        )}
-
-                        {alert.zoneId && (
+                        {/* Cột 4: Trạng thái */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <span
                             style={{
-                              fontSize: '0.7rem',
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '9999px',
+                              fontSize: '0.72rem',
                               fontWeight: 700,
-                              color: '#0369a1',
-                              backgroundColor: '#e0f2fe',
-                              padding: '2px 7px',
-                              borderRadius: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
+                              backgroundColor: statusStyle.bg,
+                              color: statusStyle.color,
+                              whiteSpace: 'nowrap'
                             }}
                           >
-                            <span>Giàn {alert.zoneId.replace('zone-', '').toUpperCase()}</span>
+                            {statusStyle.label}
                           </span>
-                        )}
-                      </div>
+                        </td>
 
-                      <div style={{
-                        fontSize: '0.78rem',
-                        color: 'var(--text-subtle)',
-                        marginTop: '3px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: isExpanded ? 'normal' : 'nowrap'
-                      }}>
-                        {alert.message}
-                      </div>
-                    </div>
+                        {/* Cột 5: Thao tác nhanh */}
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                            {alert.status === 'open' && (
+                              <button
+                                onClick={() => onAcknowledgeAlert(alert.id, 'Kỹ sư Nông nghiệp')}
+                                className="alert-btn-action ack"
+                                title="Tiếp nhận sự cố"
+                              >
+                                <Clock size={12} />
+                                <span>Tiếp nhận</span>
+                              </button>
+                            )}
 
-                    {/* Status Badge */}
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: statusColor,
-                      backgroundColor: statusBg,
-                      padding: '3px 10px',
-                      borderRadius: 'var(--radius-full)',
-                      flexShrink: 0
-                    }}>
-                      {statusLabel}
-                    </span>
-
-                    {/* Timestamp */}
-                    <span style={{
-                      fontSize: '0.72rem',
-                      color: 'var(--text-disabled)',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}>
-                      {alert.timestamp}
-                    </span>
-
-                    {/* Expand Chevron */}
-                    <div style={{ color: 'var(--text-disabled)', flexShrink: 0 }}>
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-                  </div>
-
-                  {/* Expanded Detail View */}
-                  {isExpanded && (
-                    <div style={{
-                      padding: '0 20px 18px 44px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}>
-                      {/* Suggested Action Box (Neutral slate background) */}
-                      <div style={{
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        padding: '10px 14px',
-                        fontSize: '0.78rem',
-                        color: 'var(--text-main)',
-                        lineHeight: 1.45
-                      }}>
-                        <strong style={{ color: '#0f172a' }}>Khuyến nghị xử lý:</strong> {alert.suggestedAction}
-                      </div>
-
-                      {/* Resolution note if already resolved */}
-                      {alert.resolutionNote && (
-                        <div style={{
-                          backgroundColor: '#f0fdf4',
-                          border: '1px solid #dcfce7',
-                          borderRadius: '8px',
-                          padding: '10px 14px',
-                          fontSize: '0.78rem',
-                          color: '#166534'
-                        }}>
-                          <strong>Đã xử lý ({alert.resolvedBy} - {alert.resolvedAt}):</strong> {alert.resolutionNote}
-                        </div>
-                      )}
-
-                      {/* Bottom action row */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                          {alert.assignedTo ? (
-                            <span>Phụ trách: <strong>{alert.assignedTo}</strong> {alert.acknowledgedAt && `· Tiếp nhận lúc ${alert.acknowledgedAt}`}</span>
-                          ) : (
-                            <span>Chưa có người tiếp nhận</span>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {(alert.metric === 'EC' || alert.metric === 'pH' || alert.metric === 'Nutrient') && alert.status !== 'resolved' && (
-                            <Link
-                              to="/reservoirs"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', height: '30px', display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
-                            >
-                              <Droplets size={12} color="#00a651" /> Bù Dinh Dưỡng
-                            </Link>
-                          )}
-
-                          {(alert.title.includes('thu hoạch') || alert.metric === 'System') && alert.status !== 'resolved' && (
-                            <Link
-                              to="/harvest"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', height: '30px', display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
-                            >
-                              <Sprout size={12} color="#16a34a" /> Thu Hoạch
-                            </Link>
-                          )}
-
-                          {alert.status === 'open' && (
-                            <button
-                              onClick={() => onAcknowledgeAlert(alert.id, 'Kỹ sư Nông nghiệp')}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', height: '30px' }}
-                            >
-                              <Clock size={12} /> Tiếp nhận
-                            </button>
-                          )}
-
-                          {(alert.status === 'open' || alert.status === 'acknowledged') && !isResolvingThis && (
-                            <button
-                              onClick={() => {
-                                setResolveTarget(alert.id);
-                                setResolveNote('');
-                              }}
-                              className="farmvista-btn-green"
-                              style={{ fontSize: '0.75rem', height: '30px', padding: '0 12px' }}
-                            >
-                              <Check size={13} /> Giải quyết
-                            </button>
-                          )}
-
-                          {isResolvingThis && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <input
-                                type="text"
-                                placeholder="Ghi chú xử lý (VD: đã châm 30L nước)..."
-                                value={resolveNote}
-                                onChange={(e) => setResolveNote(e.target.value)}
-                                style={{
-                                  border: '1px solid var(--border-medium)',
-                                  borderRadius: '6px',
-                                  padding: '4px 8px',
-                                  fontSize: '0.75rem',
-                                  width: '260px',
-                                  outline: 'none'
-                                }}
-                                autoFocus
-                              />
+                            {alert.status !== 'resolved' ? (
                               <button
                                 onClick={() => {
-                                  onResolveAlert(alert.id, 'Kỹ sư Nông nghiệp', resolveNote || 'Đã kiểm tra và điều chỉnh thông số.');
-                                  setResolveTarget(null);
+                                  setResolveTarget(resolveTarget === alert.id ? null : alert.id);
+                                  setResolveNote('');
+                                  setExpandedId(alert.id);
                                 }}
-                                className="farmvista-btn-green"
-                                style={{ fontSize: '0.72rem', height: '28px', padding: '0 10px' }}
+                                className="alert-btn-action resolve"
+                                title="Giải quyết sự cố"
                               >
-                                Lưu
+                                <Check size={12} />
+                                <span>Xử lý</span>
                               </button>
-                              <button
-                                onClick={() => setResolveTarget(null)}
-                                className="btn btn-ghost btn-sm"
-                                style={{ fontSize: '0.72rem', height: '28px' }}
-                              >
-                                Hủy
-                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <CheckCircle2 size={13} />
+                                <span>Đã xong</span>
+                              </span>
+                            )}
+
+                            <button
+                              onClick={() => setExpandedId(isExpanded ? null : alert.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#94a3b8',
+                                padding: '4px',
+                                display: 'flex'
+                              }}
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Drawer: Khuyến nghị & Ghi chú xử lý */}
+                      {isExpanded && (
+                        <tr className="alert-expand-row">
+                          <td colSpan={5}>
+                            <div className="alert-expand-content">
+                              {alert.suggestedAction && (
+                                <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                                  <strong style={{ color: '#0f172a' }}>Khuyến nghị can thiệp: </strong>
+                                  {alert.suggestedAction}
+                                </div>
+                              )}
+
+                              {alert.resolutionNote && (
+                                <div style={{ fontSize: '0.75rem', color: '#166534', backgroundColor: '#f0fdf4', padding: '6px 10px', borderRadius: '6px' }}>
+                                  <strong>Đã xử lý ({alert.resolvedBy} • {alert.resolvedAt}): </strong>
+                                  {alert.resolutionNote}
+                                </div>
+                              )}
+
+                              {/* Form ghi chú xử lý tại chỗ */}
+                              {isResolvingThis && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                                  <input
+                                    type="text"
+                                    placeholder="Ghi chú xử lý (VD: Đã châm 500ml Stock A & B vào Bể 01)..."
+                                    value={resolveNote}
+                                    onChange={(e) => setResolveNote(e.target.value)}
+                                    style={{
+                                      flex: 1,
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '6px',
+                                      padding: '6px 10px',
+                                      fontSize: '0.78rem',
+                                      outline: 'none'
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      onResolveAlert(alert.id, 'Kỹ sư Nông nghiệp', resolveNote || 'Đã kiểm tra và điều chỉnh thông số chuẩn.');
+                                      setResolveTarget(null);
+                                    }}
+                                    className="farmvista-btn-green"
+                                    style={{ height: '30px', fontSize: '0.75rem', padding: '0 12px' }}
+                                  >
+                                    Lưu kết quả
+                                  </button>
+                                  <button
+                                    onClick={() => setResolveTarget(null)}
+                                    className="farmvista-btn-secondary"
+                                    style={{ height: '30px', fontSize: '0.75rem', padding: '0 10px' }}
+                                  >
+                                    Hủy
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-subtle)' }}>
-            <CheckCircle2 size={32} color="#00a651" style={{ margin: '0 auto 8px' }} />
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>
-              Không có sự cố nào
+          <div style={{ textAlign: 'center', padding: '48px 20px', color: '#64748b' }}>
+            <CheckCircle2 size={36} color="#00a651" style={{ margin: '0 auto 8px' }} />
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+              Không Có Sự Cố Nào
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-subtle)', marginTop: '2px' }}>
-              Tất cả các thông số đang nằm trong giới hạn an toàn.
+            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
+              Tất cả các thông số hóa sinh và vi khí hậu đều trong ngưỡng an toàn.
             </div>
           </div>
         )}

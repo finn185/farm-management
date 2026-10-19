@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma';
+import { alertEngine } from '../alerts/alert-engine.service';
 import type { 
   CreateBatchInput, 
   UpdateBatchInput, 
@@ -37,6 +38,9 @@ export class BatchesService {
         zone: true,
         observations: {
           orderBy: { date: 'desc' }
+        },
+        alerts: {
+          where: { status: { in: ['open', 'acknowledged'] } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -57,6 +61,9 @@ export class BatchesService {
         zone: true,
         observations: {
           orderBy: { date: 'desc' }
+        },
+        alerts: {
+          where: { status: { in: ['open', 'acknowledged'] } }
         }
       }
     });
@@ -113,6 +120,17 @@ export class BatchesService {
         observations: true
       }
     });
+
+    // Cập nhật trạng thái phân khu tương ứng thành đang sinh dưỡng/trồng
+    if (data.zoneId) {
+      await prisma.farmZone.update({
+        where: { id: data.zoneId },
+        data: {
+          status: 'growing',
+          color: '#16a34a'
+        }
+      }).catch(() => {});
+    }
 
     // Tạo bản ghi quan sát ban đầu
     await prisma.cropObservation.create({
@@ -174,7 +192,10 @@ export class BatchesService {
    * Chuyển giai đoạn sinh trưởng của lô
    */
   async advanceStage(id: string, input: AdvanceStageInput, userId?: string) {
-    const existing = await prisma.cropBatch.findUnique({ where: { id } });
+    const existing = await prisma.cropBatch.findUnique({ 
+      where: { id },
+      include: { cultivar: true, reservoir: true }
+    });
     if (!existing) throw new Error(`Không tìm thấy lô trồng với ID: ${id}`);
 
     const updated = await prisma.cropBatch.update({
@@ -186,6 +207,17 @@ export class BatchesService {
         observations: { orderBy: { date: 'desc' } }
       }
     });
+
+    // Khi chuyển sang giai đoạn mới, đánh giá lại ngưỡng kỹ thuật của bồn tuần hoàn đối với giai đoạn mới này
+    if (existing.reservoirId && existing.reservoir) {
+      await alertEngine.evaluateWaterQuality(existing.reservoirId, {
+        ph: existing.reservoir.currentPh,
+        ec: existing.reservoir.currentEc,
+        waterTemp: existing.reservoir.currentWaterTemp,
+        doLevel: existing.reservoir.currentDo,
+        recordedBy: 'Chuyển giai đoạn sinh trưởng'
+      }).catch(() => {});
+    }
 
     if (userId) {
       await prisma.auditLog.create({
@@ -223,6 +255,23 @@ export class BatchesService {
         observations: { orderBy: { date: 'desc' } }
       }
     });
+
+    // Khi thu hoạch hoặc hủy lô:
+    if (input.status === 'harvested' || input.status === 'failed') {
+      // 1. Tự động giải quyết tất cả cảnh báo đang mở của lô
+      await alertEngine.resolveBatchAlerts(id, `Lô ${updated.batchCode} đã chuyển trạng thái sang ${input.status}`);
+
+      // 2. Cập nhật phân khu thực địa
+      if (existing.zoneId) {
+        await prisma.farmZone.update({
+          where: { id: existing.zoneId },
+          data: {
+            status: input.status === 'harvested' ? 'completed' : 'empty',
+            color: input.status === 'harvested' ? '#0ea5e9' : '#64748b'
+          }
+        }).catch(() => {});
+      }
+    }
 
     if (userId) {
       await prisma.auditLog.create({
@@ -275,6 +324,17 @@ export class BatchesService {
     const existing = await prisma.cropBatch.findUnique({ where: { id } });
     if (!existing) throw new Error(`Không tìm thấy lô trồng với ID: ${id}`);
 
+    // Xóa/giải quyết các cảnh báo liên quan
+    await prisma.alert.deleteMany({ where: { batchId: id } });
+
+    // Cập nhật phân khu nếu có
+    if (existing.zoneId) {
+      await prisma.farmZone.update({
+        where: { id: existing.zoneId },
+        data: { status: 'empty', color: '#64748b' }
+      }).catch(() => {});
+    }
+
     await prisma.cropBatch.delete({ where: { id } });
 
     if (userId) {
@@ -309,16 +369,22 @@ export class BatchesService {
   }
 
   /**
-   * Lấy danh sách phân khu thực địa NFT kèm thông tin lô đang canh tác và thông số bể
+   * Lấy danh sách phân khu thực địa NFT kèm thông tin lô đang canh tác và thông số bể đồng bộ
    */
   async getZones() {
     const zones = await prisma.farmZone.findMany({
       include: {
         reservoir: true,
+        alerts: {
+          where: { status: { in: ['open', 'acknowledged'] } }
+        },
         batches: {
           where: { status: 'active' },
           include: {
             cultivar: true,
+            alerts: {
+              where: { status: { in: ['open', 'acknowledged'] } }
+            },
             observations: {
               orderBy: { date: 'desc' },
               take: 1
@@ -329,6 +395,8 @@ export class BatchesService {
       },
       orderBy: { code: 'asc' }
     });
+
+    const harvestRecordsCount = await prisma.harvestRecord.count();
 
     const calcProgress = (seedDateStr: string, harvestDateStr: string, stage: string, status: string) => {
       if (status === 'harvested') return 100;
@@ -362,6 +430,26 @@ export class BatchesService {
         daysRemaining = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       }
 
+      // Xác định trạng thái thực tế dựa trên cảnh báo mở và giai đoạn
+      const hasCriticalAlert = (z.alerts && z.alerts.some(a => a.severity === 'critical' || a.severity === 'emergency')) ||
+        (activeBatch?.alerts && activeBatch.alerts.some(a => a.severity === 'critical' || a.severity === 'emergency'));
+
+      let computedStatus = z.status;
+      let computedColor = z.color;
+
+      if (hasCriticalAlert) {
+        computedStatus = 'needs_attention';
+        computedColor = '#ef4444';
+      } else if (activeBatch) {
+        if (daysRemaining <= 3 || activeBatch.currentStage === 'pre_harvest' || activeBatch.currentStage === 'harvest') {
+          computedStatus = 'ready_soon';
+          computedColor = '#f59e0b';
+        } else {
+          computedStatus = 'growing';
+          computedColor = '#16a34a';
+        }
+      }
+
       return {
         id: z.id,
         code: z.code,
@@ -369,8 +457,8 @@ export class BatchesService {
         greenhouse: z.greenhouse,
         areaM2: z.areaM2,
         slotCapacity: z.slotCapacity,
-        color: z.color,
-        status: z.status, // 'growing' | 'ready_soon' | 'completed' | 'needs_attention' | 'empty'
+        color: computedColor,
+        status: computedStatus,
         currentBatchId: activeBatch?.id,
         currentBatchCode: activeBatch?.batchCode,
         cultivarName: activeBatch?.cultivar?.name,
@@ -391,10 +479,10 @@ export class BatchesService {
     });
 
     const legendCounts = {
-      growing: zones.filter(z => z.status === 'growing').length || 2,
-      ready_soon: zones.filter(z => z.status === 'ready_soon').length || 1,
-      completed: 6, // 6 completed harvest cycles
-      needs_attention: zones.filter(z => z.status === 'needs_attention').length || 1
+      growing: formattedZones.filter(z => z.status === 'growing').length,
+      ready_soon: formattedZones.filter(z => z.status === 'ready_soon').length,
+      completed: Math.max(formattedZones.filter(z => z.status === 'completed').length, harvestRecordsCount),
+      needs_attention: formattedZones.filter(z => z.status === 'needs_attention').length
     };
 
     return {
@@ -445,4 +533,3 @@ export class BatchesService {
     };
   }
 }
-

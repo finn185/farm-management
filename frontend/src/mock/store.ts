@@ -1,10 +1,11 @@
-import type { CropBatch, Reservoir, Cultivar, NutrientFormula, Alert, HarvestRecord, Channel, SolutionDrainEvent, GrowthStage, FarmZone } from '../types/farm';
+import type { CropBatch, Reservoir, Cultivar, NutrientFormula, Alert, HarvestRecord, Channel, SolutionDrainEvent, GrowthStage, FarmZone, Sensor } from '../types/farm';
 import { 
   INITIAL_BATCHES, 
   INITIAL_RESERVOIRS, 
   INITIAL_CULTIVARS, 
   INITIAL_FORMULAS, 
   INITIAL_SENSOR_HISTORY, 
+  INITIAL_SENSORS,
   INITIAL_ALERTS, 
   INITIAL_HARVESTS,
   INITIAL_CHANNELS,
@@ -18,6 +19,7 @@ const STORAGE_KEYS = {
   CULTIVARS: 'hydrosmart_cultivars',
   FORMULAS: 'hydrosmart_formulas',
   SENSORS: 'hydrosmart_sensors',
+  SENSORS_LIST: 'hydrosmart_sensors_list',
   ALERTS: 'hydrosmart_alerts',
   HARVESTS: 'hydrosmart_harvests',
   CHANNELS: 'hydrosmart_channels',
@@ -109,11 +111,37 @@ export const farmStore = {
     });
   },
 
-  addMeasurementRecord: (data: { reservoirId: string; ph: number; ec: number; waterTemp: number }): void => {
+  // Sensors
+  getSensors: (): Sensor[] => {
+    return getStorage<Sensor[]>(STORAGE_KEYS.SENSORS_LIST, INITIAL_SENSORS);
+  },
+
+  updateSensor: (idOrCode: string, updates: Partial<Sensor>): Sensor[] => {
+    const list = farmStore.getSensors();
+    const updated = list.map(s => (s.id === idOrCode || s.code === idOrCode) ? { ...s, ...updates } : s);
+    setStorage(STORAGE_KEYS.SENSORS_LIST, updated);
+    return updated;
+  },
+
+  addMeasurementRecord: (data: { reservoirId: string; ph: number; ec: number; waterTemp: number; doLevel?: number; waterLevelPercent?: number }): void => {
     farmStore.updateReservoir(data.reservoirId, {
       currentPh: data.ph,
       currentEc: data.ec,
-      currentWaterTemp: data.waterTemp
+      currentWaterTemp: data.waterTemp,
+      ...(data.doLevel !== undefined ? { currentDo: data.doLevel } : {}),
+      ...(data.waterLevelPercent !== undefined ? { currentWaterLevelPercent: data.waterLevelPercent } : {})
+    });
+
+    // Update IoT sensors for this reservoir
+    const sensorsList = farmStore.getSensors();
+    sensorsList.forEach(s => {
+      if (s.reservoirId === data.reservoirId) {
+        if (s.sensorType === 'ph') farmStore.updateSensor(s.id, { lastReading: data.ph });
+        if (s.sensorType === 'ec') farmStore.updateSensor(s.id, { lastReading: data.ec });
+        if (s.sensorType === 'water_temp') farmStore.updateSensor(s.id, { lastReading: data.waterTemp });
+        if (s.sensorType === 'do' && data.doLevel !== undefined) farmStore.updateSensor(s.id, { lastReading: data.doLevel });
+        if (s.sensorType === 'water_level' && data.waterLevelPercent !== undefined) farmStore.updateSensor(s.id, { lastReading: data.waterLevelPercent });
+      }
     });
 
     // Also add to sensor history for graphs
@@ -128,31 +156,95 @@ export const farmStore = {
       ph: data.ph,
       ec: data.ec,
       waterTemp: data.waterTemp,
-      airTemp: 27.5,
-      humidity: 65,
-      vpd: 1.25
+      airTemp: 26.5,
+      humidity: 68,
+      vpd: 1.15
     });
     setStorage(STORAGE_KEYS.SENSORS, sensors.slice(-20)); // Keep recent 20 readings
 
-    // Rule Engine Check: Auto-generate alert if out of bounds (FRS Compliant)
-    if (data.ph < 5.5 || data.ph > 6.5) {
+    // Auto-resolve pH alerts if back to normal range [5.5, 6.5]
+    const existingAlerts = farmStore.getAlerts();
+    if (data.ph >= 5.5 && data.ph <= 6.5) {
+      existingAlerts.forEach(a => {
+        if (a.reservoirId === data.reservoirId && a.metric === 'pH' && !a.resolved) {
+          farmStore.resolveAlert(a.id, 'Hệ thống tự động', `Chỉ số pH đã ổn định trở lại (${data.ph} pH).`);
+        }
+      });
+    }
+
+    // Auto-resolve EC alerts if back to normal range [1.4, 2.0]
+    if (data.ec >= 1.4 && data.ec <= 2.0) {
+      existingAlerts.forEach(a => {
+        if (a.reservoirId === data.reservoirId && a.metric === 'EC' && !a.resolved) {
+          farmStore.resolveAlert(a.id, 'Hệ thống tự động', `Độ dẫn điện EC đã phục hồi ngưỡng tối ưu (${data.ec} mS/cm).`);
+        }
+      });
+    }
+
+    // Auto-resolve Water Temp alerts if <= 24.0°C
+    if (data.waterTemp <= 24.0) {
+      existingAlerts.forEach(a => {
+        if (a.reservoirId === data.reservoirId && (a.metric === 'Temp' || a.metric === 'WaterTemp') && !a.resolved) {
+          farmStore.resolveAlert(a.id, 'Hệ thống tự động', `Nhiệt độ dung dịch đã hạ nhiệt an toàn (${data.waterTemp}°C).`);
+        }
+      });
+    }
+
+    // Quantitative Alert Engine Check:
+    // 1. pH Evaluation
+    if (data.ph < 4.8 || data.ph > 7.5) {
       farmStore.addAlert({
-        severity: data.ph < 5.0 || data.ph > 6.8 ? 'critical' : 'warning',
+        severity: 'emergency',
+        metric: 'pH',
+        title: `NGUY CẤP: pH bồn dinh dưỡng lệch nghiêm trọng (${data.ph})`,
+        message: `Độ pH đo được ${data.ph} rơi vào ngưỡng phá hủy tế bào rễ và tê liệt hấp thu ion đa lượng. Cây có nguy cơ héo rũ tức thì.`,
+        reservoirId: data.reservoirId,
+        thresholdValue: data.ph < 4.8 ? 5.5 : 6.5,
+        actualValue: data.ph,
+        unit: 'pH',
+        suggestedAction: data.ph < 4.8 ? 'Châm khẩn cấp dung dịch kiềm pH Up (KOH) loãng.' : 'Châm khẩn cấp dung dịch pH Down (H3PO4 10%) và sục khí mạnh.'
+      });
+    } else if (data.ph < 5.5 || data.ph > 6.5) {
+      farmStore.addAlert({
+        severity: data.ph < 5.2 || data.ph > 7.0 ? 'critical' : 'warning',
         metric: 'pH',
         title: `pH ${data.ph < 5.5 ? 'quá thấp' : 'quá cao'} (${data.ph}) tại Bể`,
         message: `Độ pH đo được ${data.ph} lệch khỏi khoảng tối ưu (5.5 - 6.2) cho rau xà lách. Ảnh hưởng khả năng hòa tan dinh dưỡng.`,
         reservoirId: data.reservoirId,
+        thresholdValue: data.ph < 5.5 ? 5.5 : 6.5,
+        actualValue: data.ph,
+        unit: 'pH',
         suggestedAction: data.ph < 5.5 ? 'Bổ sung dung dịch kiềm pH Up (KOH) từ từ.' : 'Bổ sung pH Down (H3PO4/HNO3) loãng và khuấy đều.'
       });
     }
 
-    if (data.ec > 2.0) {
+    // 2. EC Evaluation
+    if (data.ec > 2.6 || data.ec < 0.8) {
+      farmStore.addAlert({
+        severity: 'emergency',
+        metric: 'EC',
+        title: `NGUY CẤP: Nồng độ dẫn điện EC nguy hiểm (${data.ec} mS/cm)`,
+        message: data.ec > 2.6
+          ? `Nồng độ muối cực cao gây cháy chóp lá cấp tính và ngộ độc muối toàn bộ rễ giàn NFT.`
+          : `Nồng độ dinh dưỡng tụt kiệt về mức nước trắng, cây bắt đầu tự hủy diệp lục để tồn tại.`,
+        reservoirId: data.reservoirId,
+        thresholdValue: data.ec > 2.6 ? 2.0 : 1.4,
+        actualValue: data.ec,
+        unit: 'mS/cm',
+        suggestedAction: data.ec > 2.6
+          ? 'Xả bớt 30% dung dịch và bù nước sạch mát ngay lập tức.'
+          : 'Châm gấp dinh dưỡng Can A & B theo định lượng để đưa EC về mức chuẩn.'
+      });
+    } else if (data.ec > 2.0) {
       farmStore.addAlert({
         severity: 'warning',
         metric: 'EC',
         title: `EC cao bất thường (${data.ec} mS/cm)`,
         message: `Tổng lượng ion hòa tan cao, cây có nguy cơ ngộ độc phân hoặc cháy chóp lá (tipburn).`,
         reservoirId: data.reservoirId,
+        thresholdValue: 2.0,
+        actualValue: data.ec,
+        unit: 'mS/cm',
         suggestedAction: 'Bổ sung nước sạch vào bể để pha loãng dung dịch về ngưỡng 1.6 - 1.8 mS/cm.'
       });
     } else if (data.ec < 1.3) {
@@ -162,18 +254,52 @@ export const farmStore = {
         title: `EC quá loãng (${data.ec} mS/cm) tại Bể`,
         message: `Nồng độ dinh dưỡng tụt sâu dưới ngưỡng khuyến nghị (1.5 - 1.8 mS/cm). Cây có nguy cơ suy dinh dưỡng và chậm lớn.`,
         reservoirId: data.reservoirId,
+        thresholdValue: 1.4,
+        actualValue: data.ec,
+        unit: 'mS/cm',
         suggestedAction: 'Châm thêm dung dịch Stock A và Stock B theo định lượng để đưa EC về mức tối ưu.'
       });
     }
 
-    if (data.waterTemp > 24.5) {
+    // 3. Water Temperature Evaluation
+    if (data.waterTemp >= 28.0) {
       farmStore.addAlert({
-        severity: 'critical', // Critical per FRS: >24.5C causes severe hypoxia & Pythium root rot
+        severity: 'emergency',
+        metric: 'Temp',
+        title: `NGUY CẤP: Nhiệt độ nước bồn đạt mức báo động (${data.waterTemp}°C)`,
+        message: `Nhiệt độ nước vượt 28°C dẫn tới cạn kiệt oxy hòa tan và bùng phát thối rễ Pythium hủy hoại mùa vụ trong 24h.`,
+        reservoirId: data.reservoirId,
+        thresholdValue: 24.0,
+        actualValue: data.waterTemp,
+        unit: '°C',
+        suggestedAction: 'Khởi động máy làm lạnh Chiller hoặc bơm làm mát khẩn cấp, bật sục khí tối đa.'
+      });
+    } else if (data.waterTemp > 24.5) {
+      farmStore.addAlert({
+        severity: 'critical',
         metric: 'Temp',
         title: `Nhiệt độ nước bồn tăng cao (${data.waterTemp}°C) - Rủi ro nấm rễ`,
         message: `Nhiệt độ nước vượt ngưỡng 24.5°C làm oxy hòa tan tụt mạnh, rễ ngạt thở và nấm rễ Pythium bùng phát nhanh.`,
         reservoirId: data.reservoirId,
+        thresholdValue: 24.0,
+        actualValue: data.waterTemp,
+        unit: '°C',
         suggestedAction: 'Bật quạt giải nhiệt khẩn cấp, sục khí oxy mạnh và bổ sung nước sạch mát hạ nhiệt bồn.'
+      });
+    }
+
+    // 4. Water Level Evaluation
+    if (data.waterLevelPercent !== undefined && data.waterLevelPercent < 20) {
+      farmStore.addAlert({
+        severity: data.waterLevelPercent < 10 ? 'emergency' : 'critical',
+        metric: 'WaterLevel',
+        title: `Mực nước bồn dinh dưỡng quá thấp (${data.waterLevelPercent}%)`,
+        message: `Mực nước bể giảm dưới ngưỡng an toàn, nguy cơ bơm hút cạn làm cháy máy bơm tuần hoàn NFT.`,
+        reservoirId: data.reservoirId,
+        thresholdValue: 20.0,
+        actualValue: data.waterLevelPercent,
+        unit: '%',
+        suggestedAction: 'Bơm bổ sung nước sạch vào bể chứa ngay lập tức.'
       });
     }
   },

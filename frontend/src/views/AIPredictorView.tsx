@@ -14,8 +14,7 @@ import {
   Clock, 
   Sparkles,
   Download,
-  X,
-  ShieldCheck
+  X
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -30,6 +29,7 @@ import {
 } from 'recharts';
 import type { CropBatch, Reservoir, Cultivar, AIPredictionResult } from '../types/farm';
 import { predictLettuceYield, predictLettuceYieldRemote } from '../services/aiPredictor';
+import './AIPredictorView.css';
 
 interface AIPredictorViewProps {
   batches: CropBatch[];
@@ -132,6 +132,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [simEc, setSimEc] = useState<number>(1.72);
   const [simDaysOffset, setSimDaysOffset] = useState<number>(0);
+  const [simPlants, setSimPlants] = useState<number>(500);
 
   // Modal & Toast States
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -174,6 +175,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   useEffect(() => {
     setSimEc(liveData.ec);
     setSimDaysOffset(0);
+    setSimPlants(liveData.plants);
     setIsSimulating(false);
   }, [selectedBatchId, liveData]);
 
@@ -219,9 +221,9 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       avgEc: effectiveEc,
       avgPh: liveData.ph,
       avgWaterTemp: liveData.temp,
-      expectedPlants: liveData.plants
+      expectedPlants: isSimulating ? simPlants : liveData.plants
     });
-  }, [currentBatch, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, liveData]);
+  }, [currentBatch, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, simPlants, liveData]);
 
   // Asynchronous Sync with Python FastAPI / Backend Gateway Real Model
   useEffect(() => {
@@ -269,7 +271,8 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   const prediction = remotePrediction || localPrediction;
 
   const predictedWeightG = prediction?.predictedFreshWeightG || standardWeightG;
-  const totalBatchYieldKg = prediction?.totalBatchYieldKg || Math.round((predictedWeightG * liveData.plants) / 1000);
+  const currentPlantsCount = isSimulating ? simPlants : liveData.plants;
+  const totalBatchYieldKg = prediction?.totalBatchYieldKg || Math.round((predictedWeightG * currentPlantsCount) / 1000);
   const diffPercent = Math.round(((predictedWeightG - standardWeightG) / standardWeightG) * 100);
 
   // Baseline Live Yield for comparison
@@ -354,54 +357,51 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+    <div className="forecast-container">
       
       {/* ========================================================
-          1. HEADER: Title, Cultivar Quick Selector & Actions
+          1. HEADER: Synchronized Top Bar
           ======================================================== */}
-      {/* ========================================================
-          1. HEADER: Title, Current Batch Context & Actions
-          ======================================================== */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
-              Dự Báo Sản Lượng & Năng Suất AI
-            </h1>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: aiSource === 'fastapi_rf' ? '#e8f8f0' : '#fef3c7',
-              color: aiSource === 'fastapi_rf' ? '#00a651' : '#b45309',
-              padding: '4px 10px',
-              borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 700
-            }}>
-              <Sparkles size={13} color={aiSource === 'fastapi_rf' ? '#00a651' : '#b45309'} />
-              <span>{isAiLoading ? '⚡ Đang đồng bộ AI...' : aiSource === 'fastapi_rf' ? `🌲 AI Model: RandomForest (R² = ${prediction?.confidenceR2 || '0.967'})` : '⚡ AI Heuristic Engine'}</span>
-            </span>
-          </div>
-
-          {/* Direct Batch Context Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-subtle)' }}>
-              Đang xem lô: <strong style={{ color: 'var(--text-main)' }}>{currentBatch.cultivarName} (Lô {currentBatch.batchCode})</strong>
-            </span>
-            <span style={{ color: '#cbd5e1' }}>•</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-subtle)' }}>
-              Bể cấp: <strong style={{ color: 'var(--text-main)' }}>{currentReservoir?.name.split('-')[0].trim() || 'Bể Tuần Hoàn 01'}</strong>
-            </span>
-            <span style={{ color: '#cbd5e1' }}>•</span>
-            <span style={{ fontSize: '0.85rem', color: '#00a651', fontWeight: 700 }}>
-              Ngày {daysPlanted} / {targetDays} (Còn {daysLeft} ngày đến thu hoạch)
-            </span>
+      <div className="forecast-header">
+        <div className="forecast-header-left">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 className="forecast-title" style={{ margin: 0 }}>
+                <Sparkles size={22} color="#00a651" />
+                Dự Báo Sản Lượng & Năng Suất AI
+              </h1>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: aiSource === 'fastapi_rf' ? '#e8f8f0' : '#fef3c7',
+                color: aiSource === 'fastapi_rf' ? '#00a651' : '#b45309',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700
+              }}>
+                <Sparkles size={13} color={aiSource === 'fastapi_rf' ? '#00a651' : '#b45309'} />
+                <span>{isAiLoading ? '⚡ Đang đồng bộ AI...' : aiSource === 'fastapi_rf' ? `🌲 AI Model: RandomForest (R² = ${prediction?.confidenceR2 || '0.967'})` : '⚡ AI Heuristic Engine'}</span>
+              </span>
+            </div>
+            <div className="forecast-subtitle">
+              <span>Đang xem lô: <strong style={{ color: '#0f172a' }}>{currentBatch.cultivarName} ({currentBatch.batchCode})</strong></span>
+              <span>•</span>
+              <span>Bể cấp: <strong style={{ color: '#0f172a' }}>{currentReservoir?.name.split('-')[0].trim() || 'Bể Tuần Hoàn 01'}</strong></span>
+              <span>•</span>
+              <span style={{ color: '#00a651', fontWeight: 700 }}>Ngày {daysPlanted} / {targetDays} (Còn {daysLeft} ngày đến thu hoạch)</span>
+            </div>
           </div>
         </div>
 
         {/* Header Right Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="forecast-header-actions">
+          <span className="forecast-status-pill">
+            <span className="dot" />
+            AI Trợ Lý (R² = {prediction?.confidenceR2 || 0.94})
+          </span>
+
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <Leaf size={14} color="#00a651" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
             <select
@@ -409,12 +409,12 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
               onChange={(e) => setSelectedBatchId(e.target.value)}
               className="farmvista-select-pill"
               style={{
-                height: '38px',
+                height: '34px',
                 paddingLeft: '32px',
                 paddingRight: '32px',
-                fontSize: '0.8125rem',
+                fontSize: '0.78rem',
                 fontWeight: 700,
-                color: 'var(--text-main)'
+                color: '#0f172a'
               }}
             >
               {activeBatches.map(b => (
@@ -428,7 +428,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
           <button
             onClick={() => setIsReportModalOpen(true)}
             className="farmvista-btn-secondary"
-            style={{ height: '38px', padding: '0 16px', fontSize: '0.8125rem' }}
+            style={{ height: '34px', padding: '0 14px', fontSize: '0.78rem' }}
           >
             <Download size={14} color="#00a651" />
             <span>Xuất Báo Cáo</span>
@@ -442,96 +442,105 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
           backgroundColor: '#dcfce7',
           border: '1px solid #86efac',
           borderRadius: '10px',
-          padding: '12px 18px',
+          padding: '10px 16px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           color: '#15803d',
-          fontSize: '0.875rem',
+          fontSize: '0.8125rem',
           fontWeight: 600,
           boxShadow: '0 2px 6px rgba(22, 163, 74, 0.08)'
         }}>
-          <CheckCircle2 size={18} color="#16a34a" />
+          <CheckCircle2 size={16} color="#16a34a" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* ========================================================
-          2. DẢI 4 THẺ CHỈ SỐ DỰ BÁO CỐT LÕI (Không trùng lặp, trực quan 100%)
+          2. KPI CARDS: 4 Standardized Metric Cards
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
-        
-        {/* Thẻ 1: Khối lượng hiện tại */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e8f8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00a651', flexShrink: 0 }}>
-            <Sprout size={24} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Khối lượng cây hôm nay</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              ~{currentPlantWeightG} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>g / cây</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Mẫu đo Ngày {daysPlanted} (Chuẩn {Math.round(standardWeightG * 0.71)}g)
+      <div className="forecast-kpis">
+        {/* Metric 1: Khối lượng hiện tại */}
+        <div className="forecast-kpi-card">
+          <div className="forecast-kpi-top">
+            <span className="forecast-kpi-label">Khối Lượng Cây Hôm Nay</span>
+            <div className="forecast-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Sprout size={17} />
             </div>
           </div>
-        </div>
-
-        {/* Thẻ 2: Khối lượng ngày thu hoạch */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
-            <Scale size={24} />
+          <div className="forecast-kpi-val">
+            ~{currentPlantWeightG} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>g / cây</span>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Dự báo ngày thu hoạch</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#059669', lineHeight: 1.1, marginTop: '2px' }}>
-              {predictedWeightG} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>g / cây</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600, marginTop: '4px' }}>
-              {diffPercent >= 0 ? `↑ +${diffPercent}%` : `↓ ${diffPercent}%`} so với chuẩn giống ({standardWeightG}g)
-            </div>
+          <div className="forecast-kpi-meta">
+            <span>Mẫu đo Ngày {daysPlanted}</span>
+            <span className="forecast-kpi-badge green">
+              Chuẩn {Math.round(standardWeightG * 0.71)}g
+            </span>
           </div>
         </div>
 
-        {/* Thẻ 3: Tổng sản lượng cả lô */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0 }}>
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Tổng sản lượng dự kiến</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {totalBatchYieldKg} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>kg</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600, marginTop: '4px' }}>
-              Ước tính trên {liveData.plants} rọ cây
+        {/* Metric 2: Khối lượng ngày thu hoạch */}
+        <div className="forecast-kpi-card">
+          <div className="forecast-kpi-top">
+            <span className="forecast-kpi-label">Dự Báo Ngày Thu Hoạch</span>
+            <div className="forecast-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#059669' }}>
+              <Scale size={17} />
             </div>
           </div>
-        </div>
-
-        {/* Thẻ 4: Ngày thu hoạch dự kiến */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
-            <Calendar size={24} />
+          <div className="forecast-kpi-val" style={{ color: '#059669' }}>
+            {predictedWeightG} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>g / cây</span>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Ngày thu hoạch dự kiến</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {plannedHarvestDate.toLocaleDateString('vi-VN')}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <ShieldCheck size={13} color="#00a651" />
-              <span>Còn {daysLeft} ngày (Grade A • 82% xuất khẩu)</span>
-            </div>
+          <div className="forecast-kpi-meta">
+            <span>Chuẩn giống: {standardWeightG}g</span>
+            <span className="forecast-kpi-badge green">
+              {diffPercent >= 0 ? `+${diffPercent}%` : `${diffPercent}%`}
+            </span>
           </div>
         </div>
 
+        {/* Metric 3: Tổng sản lượng cả lô */}
+        <div className="forecast-kpi-card">
+          <div className="forecast-kpi-top">
+            <span className="forecast-kpi-label">Tổng Sản Lượng Dự Kiến</span>
+            <div className="forecast-kpi-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+              <TrendingUp size={17} />
+            </div>
+          </div>
+          <div className="forecast-kpi-val" style={{ color: '#0284c7' }}>
+            {totalBatchYieldKg} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>kg</span>
+          </div>
+          <div className="forecast-kpi-meta">
+            <span>Cả lô {liveData.plants} rọ</span>
+            <span className="forecast-kpi-badge blue">
+              Năng suất cao
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 4: Ngày thu hoạch dự kiến */}
+        <div className="forecast-kpi-card">
+          <div className="forecast-kpi-top">
+            <span className="forecast-kpi-label">Ngày Thu Hoạch Dự Kiến</span>
+            <div className="forecast-kpi-icon" style={{ backgroundColor: '#fffbeb', color: '#d97706' }}>
+              <Calendar size={17} />
+            </div>
+          </div>
+          <div className="forecast-kpi-val" style={{ fontSize: '1.4rem' }}>
+            {plannedHarvestDate.toLocaleDateString('vi-VN')}
+          </div>
+          <div className="forecast-kpi-meta">
+            <span>Còn {daysLeft} ngày nữa</span>
+            <span className="forecast-kpi-badge amber">
+              R² = {prediction?.confidenceR2 || 0.94}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================
           3. KHU VỰC TRỌNG TÂM: BIỂU ĐỒ ĐƯỜNG CONG TĂNG TRƯỞNG & DỰ PHÓNG AI (FULL-WIDTH)
           ======================================================== */}
-      <div className="farmvista-card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column' }}>
+      <div className="forecast-card" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -695,10 +704,10 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       {/* ========================================================
           4. HÀNG 2 CỘT: KHUYẾN NGHỊ KỸ THUẬT (Trái) & GIẢ ĐỊNH (Phải)
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+      <div className="forecast-action-grid">
         
         {/* CỘT TRÁI: 3 VIỆC AI KHUYÊN LÀM HÔM NAY (Agronomic Actions) */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="forecast-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -806,7 +815,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
         </div>
 
         {/* CỘT PHẢI: STUDIO THỬ NGHIỆM GIẢ ĐỊNH (WHAT-IF SIMULATION) */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="forecast-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -821,6 +830,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                   onClick={() => {
                     setSimEc(liveData.ec);
                     setSimDaysOffset(0);
+                    setSimPlants(liveData.plants);
                     setIsSimulating(false);
                   }}
                   className="farmvista-btn-secondary"
@@ -833,7 +843,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', margin: '0 0 16px 0' }}>
-              Thử chỉnh nồng độ phân hoặc lùi ngày cắt để xem sản lượng thay đổi ra sao:
+              Thử chỉnh nồng độ phân, thời điểm cắt hoặc quy mô rọ để xem sản lượng thay đổi ra sao:
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -846,8 +856,8 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 </div>
                 <input 
                   type="range" 
-                  min="1.30" 
-                  max="2.20" 
+                  min="0.80" 
+                  max="2.80" 
                   step="0.05"
                   value={simEc} 
                   onChange={e => {
@@ -863,17 +873,39 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '6px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Thời điểm cắt rau:</span>
                   <strong style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
-                    {simDaysOffset === 0 ? 'Đúng hạn (Ngày 35)' : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${simDaysOffset} ngày`}
+                    {simDaysOffset === 0 ? 'Đúng hạn (Ngày 35)' : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${Math.abs(simDaysOffset)} ngày`}
                   </strong>
                 </div>
                 <input 
                   type="range" 
-                  min="-3" 
-                  max="4" 
+                  min="-5" 
+                  max="5" 
                   step="1"
                   value={simDaysOffset} 
                   onChange={e => {
                     setSimDaysOffset(Number(e.target.value));
+                    setIsSimulating(true);
+                  }}
+                  style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Slider 3: Số cây thu hoạch kỳ vọng */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '6px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Số cây thu hoạch kỳ vọng:</span>
+                  <strong style={{ color: '#0284c7', fontSize: '0.875rem' }}>
+                    {simPlants} rọ cây
+                  </strong>
+                </div>
+                <input 
+                  type="range" 
+                  min="100" 
+                  max="1500" 
+                  step="10"
+                  value={simPlants} 
+                  onChange={e => {
+                    setSimPlants(Number(e.target.value));
                     setIsSimulating(true);
                   }}
                   style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}

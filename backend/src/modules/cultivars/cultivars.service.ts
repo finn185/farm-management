@@ -73,4 +73,36 @@ export class CultivarsService {
 
     return updated;
   }
+
+  async deleteCultivar(id: string, userId?: string) {
+    const cultivar = await this.getCultivarById(id);
+
+    // Kiểm tra xem có lô nào đang trồng giống này không
+    const activeBatchesCount = await prisma.cropBatch.count({
+      where: {
+        cultivarId: id,
+        status: 'active'
+      }
+    });
+
+    if (activeBatchesCount > 0) {
+      throw new Error(`Không thể xóa giống '${cultivar.name}' vì đang có ${activeBatchesCount} lô canh tác đang hoạt động sử dụng giống này`);
+    }
+
+    await prisma.cultivar.delete({
+      where: { id }
+    });
+
+    if (userId) {
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'DELETE_CULTIVAR',
+          details: `Xóa danh mục giống cây trồng: ${cultivar.name}`
+        }
+      }).catch(() => {});
+    }
+
+    return { message: `Đã xóa thành công giống cây trồng '${cultivar.name}'` };
+  }
 }

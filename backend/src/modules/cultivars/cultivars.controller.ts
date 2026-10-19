@@ -45,4 +45,14 @@ export class CultivarsController {
       next(error);
     }
   }
+
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.id;
+      const result = await cultivarsService.deleteCultivar(req.params.id, userId);
+      return sendSuccess(res, result, 'Xóa giống cây trồng thành công');
+    } catch (error: any) {
+      return sendError(res, error.message || 'Không thể xóa giống cây trồng', 400);
+    }
+  }
 }
