@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient, Role, GrowthStage, BatchStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -273,7 +274,7 @@ async function main() {
       systemType: 'NFT',
       capacityLiters: 1000.0,
       currentVolumeLiters: 920.0,
-      currentPh: 6.02,
+      currentPh: 6.75,
       currentEc: 1.84,
       currentWaterTemp: 21.8,
       currentDo: 7.2,
@@ -533,7 +534,7 @@ async function main() {
     { id: 'sen-03', code: 'SEN-TEMP-01', name: 'Cảm biến Nhiệt độ nước Bể 01', sensorType: 'water_temp', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 22.4, unit: '°C', batteryLevel: 99.0 },
     { id: 'sen-04', code: 'SEN-DO-01', name: 'Cảm biến Oxy hòa tan DO Bể 01', sensorType: 'do', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 6.8, unit: 'mg/L', batteryLevel: 95.0 },
     { id: 'sen-05', code: 'SEN-LVL-01', name: 'Cảm biến Mực nước Bể 01', sensorType: 'water_level', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 90.0, unit: '%', batteryLevel: 99.0 },
-    { id: 'sen-06', code: 'SEN-PH-02', name: 'Cảm biến pH Bể Tuần Hoàn 02', sensorType: 'ph', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 6.02, unit: 'pH', batteryLevel: 96.0 },
+    { id: 'sen-06', code: 'SEN-PH-02', name: 'Cảm biến pH Bể Tuần Hoàn 02', sensorType: 'ph', status: 'warning', reservoirId: 'res-02', zoneId: null, lastReading: 6.75, unit: 'pH', batteryLevel: 96.0 },
     { id: 'sen-07', code: 'SEN-EC-02', name: 'Cảm biến EC Bể Tuần Hoàn 02', sensorType: 'ec', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 1.84, unit: 'mS/cm', batteryLevel: 95.0 },
     { id: 'sen-08', code: 'SEN-TEMP-02', name: 'Cảm biến Nhiệt độ nước Bể 02', sensorType: 'water_temp', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 21.8, unit: '°C', batteryLevel: 98.0 },
     { id: 'sen-09', code: 'SEN-DO-02', name: 'Cảm biến Oxy hòa tan DO Bể 02', sensorType: 'do', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 7.2, unit: 'mg/L', batteryLevel: 94.0 },
@@ -650,7 +651,8 @@ async function main() {
     { id: 'wlog-03', reservoirId: 'res-01', ph: 5.84, ec: 1.71, waterTemp: 22.5, doLevel: 6.8, waterLevelPercent: 90.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
     { id: 'wlog-04', reservoirId: 'res-02', ph: 6.02, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
     { id: 'wlog-05', reservoirId: 'res-02', ph: 6.10, ec: 1.80, waterTemp: 22.0, doLevel: 7.1, waterLevelPercent: 91.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
-    { id: 'wlog-06', reservoirId: 'res-02', ph: 6.05, ec: 1.82, waterTemp: 21.9, doLevel: 7.1, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' }
+    { id: 'wlog-06', reservoirId: 'res-02', ph: 6.25, ec: 1.82, waterTemp: 21.9, doLevel: 7.1, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
+    { id: 'wlog-07', reservoirId: 'res-02', ph: 6.75, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' }
   ];
 
   for (const wl of waterLogs) {

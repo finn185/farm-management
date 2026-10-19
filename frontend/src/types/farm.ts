@@ -151,9 +151,19 @@ export interface Reservoir {
   currentWaterLevelPercent?: number; // %
   formulaName: string;
   lastTopUpDate: string;
-  lastReplacementDate: string;
+  lastReplacementDate?: string;
   pumpStatus: 'running' | 'idle' | 'warning';
   aerationStatus: 'active' | 'inactive';
+  waterLogs?: Array<{
+    id?: string;
+    ph: number;
+    ec: number;
+    waterTemp: number;
+    doLevel?: number;
+    waterLevelPercent?: number;
+    createdAt?: string;
+    recordedBy?: string;
+  }>;
 }
 
 export interface ChemicalItem {

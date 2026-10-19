@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   Droplets,
@@ -13,8 +13,10 @@ import {
   ArrowUpDown,
   Activity,
   Calendar,
-  Sprout
+  Sprout,
+  Shield
 } from 'lucide-react';
+import { detectReservoirAnomalyRemote, type AnomalyDetectionResult } from '../services/aiPredictor';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -39,17 +41,6 @@ interface ReservoirsViewProps {
   onDrainReservoir: (event: Omit<SolutionDrainEvent, 'id'>) => void;
   onApplyDosing?: (reservoirId: string, targetEc: number, doseMl: number) => void;
 }
-
-// 7-day trend mock data for sensor chart
-const SENSOR_TREND_DATA = [
-  { day: '04/10', ec1: 1.82, ph1: 5.82, ec2: 1.88, ph2: 5.98 },
-  { day: '05/10', ec1: 1.78, ph1: 5.84, ec2: 1.85, ph2: 6.00 },
-  { day: '06/10', ec1: 1.74, ph1: 5.87, ec2: 1.82, ph2: 6.02 },
-  { day: '07/10', ec1: 1.68, ph1: 5.92, ec2: 1.79, ph2: 6.05 },
-  { day: '08/10', ec1: 1.64, ph1: 5.95, ec2: 1.76, ph2: 6.08 },
-  { day: '09/10', ec1: 1.76, ph1: 5.85, ec2: 1.84, ph2: 6.01 },
-  { day: '10/10', ec1: 1.72, ph1: 5.85, ec2: 1.84, ph2: 6.02 }
-];
 
 export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   reservoirs,
@@ -117,6 +108,46 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const runningPumpsCount = reservoirs.filter(r => r.pumpStatus === 'running').length;
   const activeAeratorsCount = reservoirs.filter(r => r.aerationStatus === 'active').length;
   const totalActiveDevices = runningPumpsCount + activeAeratorsCount;
+
+  // Dynamic 7-day trend data from real reservoir logs
+  const trendChartData = useMemo(() => {
+    const res1 = reservoirs.find(r => r.id === 'res-01');
+    const res2 = reservoirs.find(r => r.id === 'res-02');
+
+    const logs1 = (res1?.waterLogs || []).slice(0, 7).reverse();
+    const logs2 = (res2?.waterLogs || []).slice(0, 7).reverse();
+
+    if (logs1.length > 0 || logs2.length > 0) {
+      const maxLen = Math.max(logs1.length, logs2.length);
+      const points = [];
+      for (let i = 0; i < maxLen; i++) {
+        const l1 = logs1[i] || logs1[logs1.length - 1];
+        const l2 = logs2[i] || logs2[logs2.length - 1];
+        const rawDate = l1?.createdAt || l2?.createdAt;
+        let dayLabel = `T-${maxLen - i}`;
+        if (rawDate) {
+          const d = new Date(rawDate);
+          dayLabel = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+        points.push({
+          day: dayLabel,
+          ec1: l1 ? Number(l1.ec.toFixed(2)) : (res1?.currentEc || 1.72),
+          ph1: l1 ? Number(l1.ph.toFixed(2)) : (res1?.currentPh || 5.85),
+          ec2: l2 ? Number(l2.ec.toFixed(2)) : (res2?.currentEc || 1.84),
+          ph2: l2 ? Number(l2.ph.toFixed(2)) : (res2?.currentPh || 6.75)
+        });
+      }
+      return points;
+    }
+
+    return [
+      { day: '06/10', ec1: 1.74, ph1: 5.82, ec2: 1.88, ph2: 6.02 },
+      { day: '07/10', ec1: 1.70, ph1: 5.84, ec2: 1.85, ph2: 6.10 },
+      { day: '08/10', ec1: 1.71, ph1: 5.84, ec2: 1.82, ph2: 6.25 },
+      { day: '09/10', ec1: 1.72, ph1: 5.85, ec2: 1.84, ph2: 6.75 },
+      { day: '10/10', ec1: res1?.currentEc || 1.72, ph1: res1?.currentPh || 5.85, ec2: res2?.currentEc || 1.84, ph2: res2?.currentPh || 6.75 }
+    ];
+  }, [reservoirs]);
   const maxDevices = reservoirs.length * 2;
 
   // Modals actions
@@ -182,9 +213,35 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
     showNotice(`Đã ghi nhận xả bể ${activeModalRes.name.split('-')[0].trim()}`);
   };
 
+  const [anomalyMap, setAnomalyMap] = useState<Record<string, AnomalyDetectionResult>>({});
+  const [isScanningAi, setIsScanningAi] = useState<boolean>(false);
+
   const showNotice = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 4500);
+  };
+
+  const handleScanAiAnomaly = async (res: Reservoir) => {
+    try {
+      const result = await detectReservoirAnomalyRemote({
+        reservoirId: res.id,
+        reservoirName: res.name,
+        avgPh: res.currentPh,
+        avgEc: res.currentEc,
+        avgWaterTemp: res.currentWaterTemp
+      });
+      setAnomalyMap(prev => ({ ...prev, [res.id]: result }));
+      const shortName = res.name.split('-')[0].trim();
+      if (result.isAnomaly) {
+        showNotice(`🚨 AI Phát hiện bất thường tại ${shortName}: ${result.riskFactors.join('. ')}`);
+      } else {
+        showNotice(`✅ AI Giám Sát: Các chỉ số của ${shortName} an toàn (Isolation Forest).`);
+      }
+      return result;
+    } catch (err: any) {
+      showNotice('Không thể quét AI lúc này: ' + err.message);
+      return null;
+    }
   };
 
   const handleApplyDosingForTank = (res: Reservoir, targetEc: number, doseMl: number) => {
@@ -256,6 +313,29 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           >
             <History size={14} color="#64748b" />
             <span>Nhật ký xả ({drainEvents.length})</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              setIsScanningAi(true);
+              for (const r of reservoirs) {
+                await handleScanAiAnomaly(r);
+              }
+              setIsScanningAi(false);
+            }}
+            className="farmvista-btn-secondary"
+            style={{
+              height: '38px',
+              padding: '0 14px',
+              fontSize: '0.8125rem',
+              borderColor: '#38bdf8',
+              backgroundColor: '#f0f9ff',
+              color: '#0284c7',
+              fontWeight: 700
+            }}
+          >
+            <Shield size={15} color="#0284c7" />
+            <span>{isScanningAi ? 'Đang Quét AI...' : 'Quét Bất Thường AI'}</span>
           </button>
 
           <button
@@ -472,6 +552,15 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     Xả bể
                   </button>
                   <button
+                    onClick={() => handleScanAiAnomaly(res)}
+                    className="farmvista-btn-secondary"
+                    style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', borderColor: '#38bdf8', color: '#0284c7', fontWeight: 600 }}
+                    title="Quét bất thường bằng mô hình Isolation Forest"
+                  >
+                    <Shield size={13} color="#0284c7" />
+                    <span>Quét AI</span>
+                  </button>
+                  <button
                     onClick={() => openLogModal(res)}
                     className="res-btn-action farmvista-btn-green"
                   >
@@ -504,6 +593,33 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <span style={{ color: '#94a3b8' }}>Cập nhật: {res.lastTopUpDate || 'Hôm nay'}</span>
                 </div>
               </div>
+
+              {/* AI Isolation Forest Monitor Banner */}
+              {anomalyMap[res.id] && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: anomalyMap[res.id].isAnomaly ? '#fef2f2' : '#f0fdf4',
+                  border: `1px solid ${anomalyMap[res.id].isAnomaly ? '#fecaca' : '#bbf7d0'}`,
+                  fontSize: '0.8rem',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Shield size={15} color={anomalyMap[res.id].isAnomaly ? '#dc2626' : '#16a34a'} />
+                    <span style={{ fontWeight: 700, color: anomalyMap[res.id].isAnomaly ? '#991b1b' : '#166534' }}>
+                      {anomalyMap[res.id].isAnomaly
+                        ? `🚨 Cảnh báo AI: ${anomalyMap[res.id].riskFactors.join('. ')}`
+                        : '✅ AI Giám Sát: Môi trường an toàn (Mô hình Isolation Forest)'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 600 }}>
+                    Score: {anomalyMap[res.id].anomalyScore}
+                  </span>
+                </div>
+              )}
 
               {/* 4 Sensor Metric Tiles */}
               <div className="res-sensors-grid">
@@ -568,7 +684,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       </button>
                       <input
                         type="number"
-                        step="0.05"
+                        step="0.01"
                         min="1.0"
                         max="2.5"
                         value={currentTargetEc}
@@ -742,7 +858,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
 
           <div style={{ width: '100%', height: '200px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SENSOR_TREND_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ecGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00a651" stopOpacity={0.3} />
@@ -869,7 +985,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Độ pH (Chuẩn: 5.6 - 6.2)</label>
                   <input 
                     type="number" 
-                    step="0.05"
+                    step="0.01"
                     min="4.0"
                     max="9.0"
                     className="form-input clean-number" 
@@ -883,7 +999,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Nồng độ EC (mS/cm - Chuẩn: 1.5 - 1.9)</label>
                   <input 
                     type="number" 
-                    step="0.05"
+                    step="0.01"
                     min="0.5"
                     max="3.5"
                     className="form-input clean-number" 

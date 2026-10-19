@@ -21,7 +21,6 @@ import {
   Scale
 } from 'lucide-react';
 import type { CropBatch, Cultivar, Reservoir, GrowthStage, BatchStatus, FarmZone } from '../types/farm';
-import { INITIAL_ZONES } from '../mock/initialData';
 import { batchesApi } from '../services/batchesApi';
 import './BatchesView.css';
 
@@ -29,6 +28,7 @@ interface BatchesViewProps {
   batches: CropBatch[];
   cultivars: Cultivar[];
   reservoirs: Reservoir[];
+  zones?: FarmZone[];
   onAddBatch: (batch: Omit<CropBatch, 'id' | 'status'>) => void;
   onDeleteBatch: (id: string) => void;
   onSelectBatchForAI: (batch: CropBatch) => void;
@@ -408,6 +408,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   batches,
   cultivars,
   reservoirs,
+  zones: propZones = [],
   onAddBatch,
   onDeleteBatch,
   onSelectBatchForAI,
@@ -447,8 +448,15 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   const [notes, setNotes] = useState('');
 
   // Farm Zones State (Sơ đồ thực địa NFT A1, A2, B2, D1, C1, E1)
-  const [zones, setZones] = useState<FarmZone[]>(INITIAL_ZONES);
+  const [zones, setZones] = useState<FarmZone[]>(() => propZones);
   const [selectedZone, setSelectedZone] = useState<FarmZone | null>(null);
+
+  // Sync with propZones whenever updated
+  useEffect(() => {
+    if (propZones && propZones.length > 0) {
+      setZones(propZones);
+    }
+  }, [propZones]);
 
   // Load and sync zones with live batches or backend API
   useEffect(() => {

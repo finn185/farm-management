@@ -12,13 +12,14 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import type { Alert } from '../types/farm';
 import './AlertsView.css';
 
 interface AlertsViewProps {
   alerts: Alert[];
   onAcknowledgeAlert: (id: string, by: string) => void;
-  onResolveAlert: (id: string, by?: string, note?: string) => void;
+  onResolveAlert: (id: string, by?: string, note?: string, metricVal?: number) => void;
 }
 
 export const AlertsView: React.FC<AlertsViewProps> = ({
@@ -26,12 +27,15 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   onAcknowledgeAlert,
   onResolveAlert,
 }) => {
+  const { user } = useAuth();
+  const currentEngineerName = user?.fullName || 'Lê Thị Kỹ Sư Nông Học';
   const [filterStatus, setFilterStatus] = useState<string>('active'); // active, open, acknowledged, resolved, all
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterMetric, setFilterMetric] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resolveNote, setResolveNote] = useState('');
+  const [resolvedMetricVal, setResolvedMetricVal] = useState<string>('');
   const [resolveTarget, setResolveTarget] = useState<string | null>(null);
 
   // Counts
@@ -386,7 +390,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                             {alert.status === 'open' && (
                               <button
-                                onClick={() => onAcknowledgeAlert(alert.id, 'Kỹ sư Nông nghiệp')}
+                                onClick={() => onAcknowledgeAlert(alert.id, currentEngineerName)}
                                 className="alert-btn-action ack"
                                 title="Tiếp nhận sự cố"
                               >
@@ -400,6 +404,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                                 onClick={() => {
                                   setResolveTarget(resolveTarget === alert.id ? null : alert.id);
                                   setResolveNote('');
+                                  setResolvedMetricVal(
+                                    alert.metric === 'pH' ? '5.80' :
+                                    alert.metric === 'EC' ? '1.70' :
+                                    alert.metric === 'Temp' ? '22.0' : ''
+                                  );
                                   setExpandedId(alert.id);
                                 }}
                                 className="alert-btn-action resolve"
@@ -453,39 +462,68 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
                               {/* Form ghi chú xử lý tại chỗ */}
                               {isResolvingThis && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
-                                  <input
-                                    type="text"
-                                    placeholder="Ghi chú xử lý (VD: Đã châm 500ml Stock A & B vào Bể 01)..."
-                                    value={resolveNote}
-                                    onChange={(e) => setResolveNote(e.target.value)}
-                                    style={{
-                                      flex: 1,
-                                      border: '1px solid #cbd5e1',
-                                      borderRadius: '6px',
-                                      padding: '6px 10px',
-                                      fontSize: '0.78rem',
-                                      outline: 'none'
-                                    }}
-                                    autoFocus
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      onResolveAlert(alert.id, 'Kỹ sư Nông nghiệp', resolveNote || 'Đã kiểm tra và điều chỉnh thông số chuẩn.');
-                                      setResolveTarget(null);
-                                    }}
-                                    className="farmvista-btn-green"
-                                    style={{ height: '30px', fontSize: '0.75rem', padding: '0 12px' }}
-                                  >
-                                    Lưu kết quả
-                                  </button>
-                                  <button
-                                    onClick={() => setResolveTarget(null)}
-                                    className="farmvista-btn-secondary"
-                                    style={{ height: '30px', fontSize: '0.75rem', padding: '0 10px' }}
-                                  >
-                                    Hủy
-                                  </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    {alert.reservoirId && (alert.metric === 'pH' || alert.metric === 'EC' || alert.metric === 'Temp' || alert.metric === 'WaterTemp') && (
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
+                                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
+                                          Số đo {alert.metric} mới:
+                                        </span>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={resolvedMetricVal}
+                                          onChange={(e) => setResolvedMetricVal(e.target.value)}
+                                          placeholder={alert.metric === 'pH' ? '5.80' : '1.70'}
+                                          style={{
+                                            width: '65px',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '4px',
+                                            padding: '3px 6px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 800,
+                                            color: '#00a651',
+                                            textAlign: 'center'
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{alert.unit || ''}</span>
+                                      </div>
+                                    )}
+                                    <input
+                                      type="text"
+                                      placeholder="Ghi chú xử lý (VD: Đã châm 150ml axit Phosphoric...)..."
+                                      value={resolveNote}
+                                      onChange={(e) => setResolveNote(e.target.value)}
+                                      style={{
+                                        flex: 1,
+                                        minWidth: '220px',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        padding: '6px 10px',
+                                        fontSize: '0.78rem',
+                                        outline: 'none'
+                                      }}
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const finalMetric = resolvedMetricVal !== '' ? parseFloat(resolvedMetricVal) : undefined;
+                                        onResolveAlert(alert.id, currentEngineerName, resolveNote || 'Đã kiểm tra và điều chỉnh thông số chuẩn.', finalMetric);
+                                        setResolveTarget(null);
+                                      }}
+                                      className="farmvista-btn-green"
+                                      style={{ height: '30px', fontSize: '0.75rem', padding: '0 12px' }}
+                                    >
+                                      Lưu kết quả
+                                    </button>
+                                    <button
+                                      onClick={() => setResolveTarget(null)}
+                                      className="farmvista-btn-secondary"
+                                      style={{ height: '30px', fontSize: '0.75rem', padding: '0 10px' }}
+                                    >
+                                      Hủy
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </div>

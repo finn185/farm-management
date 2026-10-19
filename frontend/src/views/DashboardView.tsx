@@ -24,8 +24,7 @@ import {
   Tooltip, 
   CartesianGrid 
 } from 'recharts';
-import type { CropBatch, Reservoir, Alert, FarmZone } from '../types/farm';
-import { farmStore } from '../mock/store';
+import type { CropBatch, Reservoir, Alert, FarmZone, HarvestRecord } from '../types/farm';
 import { 
   fetchLiveWeather, 
   getCachedWeather,
@@ -38,7 +37,7 @@ import './DashboardView.css';
 interface DashboardViewProps {
   batches: CropBatch[];
   reservoirs: Reservoir[];
-  sensorHistory: any[];
+  sensorHistory?: any[];
   alerts: Alert[];
   harvests?: any[];
   onNavigateTab: (tab: any) => void;
@@ -65,6 +64,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   reservoirs = [],
   alerts = [],
   harvests: propHarvests = [],
+  zones = [],
+  harvests = [],
   onNavigateTab,
   onSelectBatchForAI,
   onSelectBatchForHarvest,
