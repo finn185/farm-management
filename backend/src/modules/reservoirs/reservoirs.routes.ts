@@ -18,5 +18,6 @@ router.post('/:id/dose', controller.dose);
 router.post('/:id/top-up', controller.topUp);
 router.post('/:id/drain', controller.drain);
 router.post('/:id/logs', controller.addLog);
+router.post('/:id/measurements', controller.addLog);
 
 export default router;

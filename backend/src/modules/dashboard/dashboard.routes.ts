@@ -8,6 +8,7 @@ const controller = new DashboardController();
 router.use(optionalAuthToken);
 
 router.get('/stats', controller.getStats);
+router.get('/summary', controller.getStats);
 router.get('/', controller.getStats);
 
 export default router;
