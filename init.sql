@@ -477,7 +477,7 @@ VALUES
 INSERT INTO "reservoirs" ("id", "name", "systemType", "capacityLiters", "currentVolumeLiters", "currentPh", "currentEc", "currentWaterTemp", "currentDo", "formulaName", "lastTopUpDate", "lastReplacementDate", "pumpStatus", "aerationStatus")
 VALUES
   ('res-01', 'Bể Tuần Hoàn 01 - Giàn NFT Tầng 1 (Khu A & E)', 'NFT', 600.0, 540.0, 5.85, 1.72, 22.4, 6.8, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-09', '2026-08-25', 'running', 'active'),
-  ('res-02', 'Bể Tuần Hoàn 02 - Giàn NFT Tầng 2 (Khu B, C, D)', 'NFT', 1000.0, 920.0, 6.02, 1.84, 21.8, 7.2, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-08', '2026-08-20', 'running', 'active');
+  ('res-02', 'Bể Tuần Hoàn 02 - Giàn NFT Tầng 2 (Khu B, C, D)', 'NFT', 1000.0, 920.0, 6.75, 1.84, 21.8, 7.2, 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)', '2026-09-08', '2026-08-20', 'running', 'active');
 
 -- 5. Phân khu thực địa & Giàn canh tác NFT (farm_zones)
 INSERT INTO "farm_zones" ("id", "code", "name", "greenhouse", "areaM2", "slotCapacity", "color", "status", "reservoirId")
@@ -511,7 +511,7 @@ VALUES
   ('sen-03', 'SEN-TEMP-01', 'Cảm biến Nhiệt độ nước Bể 01',            'water_temp',  'online', 'res-01', NULL,      22.4, '°C',      99.0, CURRENT_TIMESTAMP),
   ('sen-04', 'SEN-DO-01',   'Cảm biến Oxy hòa tan DO Bể 01',           'do',          'online', 'res-01', NULL,      6.8,  'mg/L',    95.0, CURRENT_TIMESTAMP),
   ('sen-05', 'SEN-LVL-01',  'Cảm biến Mực nước Bể 01',                 'water_level', 'online', 'res-01', NULL,      90.0, '%',       99.0, CURRENT_TIMESTAMP),
-  ('sen-06', 'SEN-PH-02',   'Cảm biến pH Bể Tuần Hoàn 02',             'ph',          'online', 'res-02', NULL,      6.02, 'pH',      96.0, CURRENT_TIMESTAMP),
+  ('sen-06', 'SEN-PH-02',   'Cảm biến pH Bể Tuần Hoàn 02',             'ph',          'warning', 'res-02', NULL,      6.75, 'pH',      96.0, CURRENT_TIMESTAMP),
   ('sen-07', 'SEN-EC-02',   'Cảm biến EC Bể Tuần Hoàn 02',             'ec',          'online', 'res-02', NULL,      1.84, 'mS/cm',   95.0, CURRENT_TIMESTAMP),
   ('sen-08', 'SEN-TEMP-02', 'Cảm biến Nhiệt độ nước Bể 02',            'water_temp',  'online', 'res-02', NULL,      21.8, '°C',      98.0, CURRENT_TIMESTAMP),
   ('sen-09', 'SEN-DO-02',   'Cảm biến Oxy hòa tan DO Bể 02',           'do',          'online', 'res-02', NULL,      7.2,  'mg/L',    94.0, CURRENT_TIMESTAMP),

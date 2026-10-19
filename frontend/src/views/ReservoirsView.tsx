@@ -655,7 +655,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       </button>
                       <input
                         type="number"
-                        step="0.05"
+                        step="0.01"
                         min="1.0"
                         max="2.5"
                         value={currentTargetEc}
@@ -956,7 +956,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Độ pH (Chuẩn: 5.6 - 6.2)</label>
                   <input 
                     type="number" 
-                    step="0.05"
+                    step="0.01"
                     min="4.0"
                     max="9.0"
                     className="form-input clean-number" 
@@ -970,7 +970,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Nồng độ EC (mS/cm - Chuẩn: 1.5 - 1.9)</label>
                   <input 
                     type="number" 
-                    step="0.05"
+                    step="0.01"
                     min="0.5"
                     max="3.5"
                     className="form-input clean-number" 
