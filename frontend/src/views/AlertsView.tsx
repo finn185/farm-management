@@ -36,7 +36,8 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   // Counts
   const openCount = alerts.filter(a => a.status === 'open').length;
   const ackCount = alerts.filter(a => a.status === 'acknowledged').length;
-  const criticalCount = alerts.filter(a => a.severity === 'critical' && a.status !== 'resolved').length;
+  const emergencyCount = alerts.filter(a => a.severity === 'emergency' && a.status !== 'resolved').length;
+  const criticalCount = alerts.filter(a => (a.severity === 'emergency' || a.severity === 'critical') && a.status !== 'resolved').length;
   const resolvedCount = alerts.filter(a => a.status === 'resolved').length;
 
   // Filtered alert list
@@ -224,11 +225,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>
               Sự cố nghiêm trọng
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: emergencyCount > 0 ? '#b91c1c' : 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
               {criticalCount} sự cố
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              {criticalCount > 0 ? 'Nguy cơ sốc rễ xà lách' : 'Không có rủi ro cao'}
+            <div style={{ fontSize: '0.72rem', color: emergencyCount > 0 ? '#dc2626' : '#00a651', fontWeight: 600, marginTop: '4px' }}>
+              {emergencyCount > 0 ? `${emergencyCount} sự cố khẩn cấp!` : criticalCount > 0 ? 'Nguy cơ sốc rễ xà lách' : 'Không có rủi ro cao'}
             </div>
           </div>
         </div>
@@ -341,6 +342,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
             style={{ borderRadius: '8px', height: '32px', fontSize: '0.75rem' }}
           >
             <option value="all">Mọi mức độ</option>
+            <option value="emergency">Khẩn cấp (Emergency)</option>
             <option value="critical">Nghiêm trọng</option>
             <option value="warning">Cảnh báo</option>
             <option value="info">Thông tin</option>
@@ -363,11 +365,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                 alert.status === 'acknowledged' ? 'Đang xử lý' : 'Đã giải quyết';
               
               const statusBg = 
-                alert.status === 'open' ? '#fef2f2' :
+                alert.status === 'open' ? (alert.severity === 'emergency' ? '#fee2e2' : '#fef2f2') :
                 alert.status === 'acknowledged' ? '#fffbeb' : '#f0fdf4';
               
               const statusColor = 
-                alert.status === 'open' ? '#b91c1c' :
+                alert.status === 'open' ? (alert.severity === 'emergency' ? '#991b1b' : '#b91c1c') :
                 alert.status === 'acknowledged' ? '#b45309' : '#15803d';
 
               return (
@@ -375,7 +377,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                   key={alert.id}
                   style={{
                     borderBottom: isLast && !isExpanded ? 'none' : '1px solid var(--border-subtle)',
-                    backgroundColor: alert.status === 'resolved' ? '#fafafa' : '#ffffff',
+                    backgroundColor: alert.status === 'resolved' ? '#fafafa' : (alert.severity === 'emergency' && alert.status === 'open' ? '#fff5f5' : '#ffffff'),
                     transition: 'background-color 0.12s ease'
                   }}
                 >
@@ -396,7 +398,8 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        backgroundColor: alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#3b82f6',
+                        backgroundColor: alert.severity === 'emergency' ? '#dc2626' : alert.severity === 'critical' ? '#ef4444' : alert.severity === 'warning' ? '#f59e0b' : '#3b82f6',
+                        boxShadow: alert.severity === 'emergency' ? '0 0 6px rgba(220, 38, 38, 0.6)' : 'none',
                         flexShrink: 0
                       }}
                       title={`Mức độ: ${alert.severity}`}
@@ -418,6 +421,20 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {alert.severity === 'emergency' && alert.status !== 'resolved' && (
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            color: '#ffffff',
+                            backgroundColor: '#dc2626',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            letterSpacing: '0.04em'
+                          }}>
+                            KHẨN CẤP
+                          </span>
+                        )}
+
                         <span style={{
                           fontSize: '0.875rem',
                           fontWeight: 700,
@@ -494,6 +511,27 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                       }}>
                         {alert.message}
                       </div>
+
+                      {/* Actual vs Threshold Badge */}
+                      {alert.actualValue !== undefined && alert.thresholdValue !== undefined && (
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.72rem',
+                          color: alert.severity === 'emergency' || alert.severity === 'critical' ? '#991b1b' : '#b45309',
+                          backgroundColor: alert.severity === 'emergency' || alert.severity === 'critical' ? '#fee2e2' : '#fef3c7',
+                          border: `1px solid ${alert.severity === 'emergency' || alert.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          marginTop: '4px',
+                          fontWeight: 600
+                        }}>
+                          <span>Thực tế: <strong>{alert.actualValue} {alert.unit || ''}</strong></span>
+                          <span>•</span>
+                          <span>Ngưỡng chuẩn: <strong>{alert.thresholdValue} {alert.unit || ''}</strong></span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Status Badge */}

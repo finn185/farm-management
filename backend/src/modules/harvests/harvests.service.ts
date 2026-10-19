@@ -100,17 +100,17 @@ export class HarvestsService {
       });
     }
 
-    // 4. Đóng toàn bộ alert liên quan tới lô này
+    // 4. Đóng toàn bộ alert liên quan tới lô này (cả open và acknowledged)
     await prisma.alert.updateMany({
       where: {
         batchId: batch.id,
-        status: 'open'
+        status: { in: ['open', 'acknowledged'] }
       },
       data: {
         status: 'resolved',
-        resolvedBy: data.operatorName || 'Hệ thống',
+        resolvedBy: data.operatorName || 'Hệ thống tự động',
         resolvedAt: new Date(),
-        resolutionNote: 'Lô cây trồng đã hoàn thành thu hoạch.'
+        resolutionNote: `Lô cây trồng ${batch.batchCode} đã hoàn tất thu hoạch đạt ${data.totalWeightKg}kg.`
       }
     });
 

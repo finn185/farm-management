@@ -69,12 +69,29 @@ model Cultivar {
   description         String
   targetCycleDays     Int         @default(35)
   expectedWeightG     Float       @default(200.0)
+  
+  // Dinh dưỡng & Nước (Thủy canh)
   recommendedPhMin    Float       @default(5.5)
   recommendedPhMax    Float       @default(6.5)
   recommendedEcMin    Float       @default(1.4)
   recommendedEcMax    Float       @default(2.0)
   optimalWaterTempMin Float       @default(18.0)
   optimalWaterTempMax Float       @default(24.0)
+  minWaterLevelPercent Float      @default(20.0)
+
+  // Vi khí hậu & Ánh sáng
+  optimalAirTempMin   Float       @default(18.0)
+  optimalAirTempMax   Float       @default(26.0)
+  optimalHumidityMin  Float       @default(60.0)
+  optimalHumidityMax  Float       @default(80.0)
+  optimalLightPpfdMin Float       @default(150.0)
+  optimalLightPpfdMax Float       @default(250.0)
+  optimalLightDliMin  Float       @default(12.0)
+  optimalLightDliMax  Float       @default(17.0)
+
+  // Cấu hình thông số chi tiết theo từng giai đoạn sinh trưởng (JSON)
+  stageConfigs        Json?
+
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -106,26 +123,29 @@ model Reservoir {
   alerts              Alert[]
   waterLogs           WaterQualityLog[]
   drainEvents         SolutionDrainEvent[]
+  sensors             Sensor[]
 
   @@map("reservoirs")
 }
 
 model FarmZone {
-  id           String      @id @default(uuid())
-  code         String      @unique
-  name         String
-  greenhouse   String      @default("Nhà màng 1")
-  areaM2       Float
-  slotCapacity Int         @default(10000)
-  color        String      @default("#16a34a")
-  status       String      @default("growing")
-  reservoirId  String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  greenhouse      String           @default("Nhà màng 1")
+  areaM2          Float
+  slotCapacity    Int              @default(10000)
+  color           String           @default("#16a34a")
+  status          String           @default("growing")
+  reservoirId     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  reservoir    Reservoir?  @relation(fields: [reservoirId], references: [id])
-  batches      CropBatch[]
-  alerts       Alert[]
+  reservoir       Reservoir?       @relation(fields: [reservoirId], references: [id])
+  batches         CropBatch[]
+  alerts          Alert[]
+  sensors         Sensor[]
+  environmentLogs EnvironmentLog[]
 
   @@map("farm_zones")
 }
@@ -177,12 +197,15 @@ model CropObservation {
 
 model Alert {
   id              String      @id @default(uuid())
-  severity        String      @default("warning") // critical, warning, info
+  severity        String      @default("warning") // emergency, critical, warning, info
   status          String      @default("open")    // open, acknowledged, resolved
-  metric          String      // pH, EC, DO, Temp, Nutrient, System
+  metric          String      // pH, EC, DO, Temp, WaterLevel, AirTemp, Humidity, Light, Nutrient, System
   title           String
   message         String
   suggestedAction String?
+  thresholdValue  Float?
+  actualValue     Float?
+  unit            String?
   reservoirId     String?
   batchId         String?
   zoneId          String?
@@ -245,17 +268,18 @@ model NutrientFormula {
 }
 
 model WaterQualityLog {
-  id          String     @id @default(uuid())
-  reservoirId String
-  ph          Float
-  ec          Float
-  waterTemp   Float
-  doLevel     Float?
-  recordedBy  String?
-  source      String     @default("sensor") // sensor, manual
-  createdAt   DateTime   @default(now())
+  id                 String     @id @default(uuid())
+  reservoirId        String
+  ph                 Float
+  ec                 Float
+  waterTemp          Float
+  doLevel            Float?
+  waterLevelPercent  Float?
+  recordedBy         String?
+  source             String     @default("sensor") // sensor, manual
+  createdAt          DateTime   @default(now())
 
-  reservoir   Reservoir  @relation(fields: [reservoirId], references: [id])
+  reservoir          Reservoir  @relation(fields: [reservoirId], references: [id])
 
   @@map("water_quality_logs")
 }
@@ -277,5 +301,44 @@ model SolutionDrainEvent {
   reservoir           Reservoir  @relation(fields: [reservoirId], references: [id])
 
   @@map("solution_drain_events")
+}
+
+model Sensor {
+  id            String      @id @default(uuid())
+  code          String      @unique
+  name          String
+  sensorType    String      // ph, ec, water_temp, do, water_level, air_temp, humidity, light, multi
+  status        String      @default("online") // online, offline, warning, error, calibrating
+  reservoirId   String?
+  zoneId        String?
+  lastReading   Float?
+  unit          String?
+  lastSeenAt    DateTime?   @default(now())
+  batteryLevel  Float?      @default(100.0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  reservoir     Reservoir?  @relation(fields: [reservoirId], references: [id])
+  zone          FarmZone?   @relation(fields: [zoneId], references: [id])
+
+  @@map("sensors")
+}
+
+model EnvironmentLog {
+  id          String    @id @default(uuid())
+  zoneId      String?
+  airTemp     Float
+  humidity    Float
+  co2         Float?
+  ppfd        Float?
+  dli         Float?
+  vpd         Float?
+  recordedBy  String?   @default("sensor")
+  source      String    @default("sensor") // sensor, manual
+  createdAt   DateTime  @default(now())
+
+  zone        FarmZone? @relation(fields: [zoneId], references: [id])
+
+  @@map("environment_logs")
 }
 

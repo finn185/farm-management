@@ -33,7 +33,7 @@ interface ReservoirsViewProps {
   channels: Channel[];
   batches: CropBatch[];
   drainEvents: SolutionDrainEvent[];
-  onAddMeasurement: (data: { reservoirId: string; ph: number; ec: number; waterTemp: number; doLevel?: number }) => void;
+  onAddMeasurement: (data: { reservoirId: string; ph: number; ec: number; waterTemp: number; doLevel?: number; waterLevelPercent?: number }) => void;
   onUpdateVolume: (reservoirId: string, addedLiters: number) => void;
   onDrainReservoir: (event: Omit<SolutionDrainEvent, 'id'>) => void;
   onApplyDosing?: (reservoirId: string, targetEc: number, doseMl: number) => void;
@@ -94,6 +94,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const [formEc, setFormEc] = useState(1.72);
   const [formTemp, setFormTemp] = useState(22.4);
   const [formDo, setFormDo] = useState(6.8);
+  const [formWaterLevel, setFormWaterLevel] = useState(90);
   const [topUpLiters, setTopUpLiters] = useState(50);
   const [drainReason, setDrainReason] = useState<SolutionDrainEvent['reason']>('end_of_batch');
   const [drainOperator, setDrainOperator] = useState('Kỹ thuật viên trang trại');
@@ -124,6 +125,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
     setFormEc(res.currentEc);
     setFormTemp(res.currentWaterTemp);
     setFormDo(res.currentDo ?? 6.8);
+    const lvl = res.currentWaterLevelPercent ?? (res.capacityLiters > 0 ? Math.round((res.currentVolumeLiters / res.capacityLiters) * 100) : 90);
+    setFormWaterLevel(lvl);
     setIsLogModalOpen(true);
   };
 
@@ -146,7 +149,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       ph: parseFloat(String(formPh)),
       ec: parseFloat(String(formEc)),
       waterTemp: parseFloat(String(formTemp)),
-      doLevel: parseFloat(String(formDo))
+      doLevel: parseFloat(String(formDo)),
+      waterLevelPercent: parseFloat(String(formWaterLevel))
     });
     setIsLogModalOpen(false);
     showNotice(`Đã cập nhật số đo mới cho ${activeModalRes?.name.split('-')[0].trim() || 'Bể'}`);
@@ -1196,6 +1200,20 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     className="form-input clean-number" 
                     value={formDo} 
                     onChange={e => setFormDo(parseFloat(e.target.value))} 
+                    required 
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Mực nước (% dung tích bể - Ngưỡng an toàn: &gt;20%)</label>
+                  <input 
+                    type="number" 
+                    step="1"
+                    min="0"
+                    max="100"
+                    className="form-input clean-number" 
+                    value={formWaterLevel} 
+                    onChange={e => setFormWaterLevel(parseFloat(e.target.value))} 
                     required 
                   />
                 </div>

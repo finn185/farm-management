@@ -236,10 +236,10 @@ export const batchesApi = {
 
     const zones = farmStore.getZones();
     const legendCounts: ZoneLegendCounts = {
-      growing: zones.filter(z => z.status === 'growing').length || 2,
-      ready_soon: zones.filter(z => z.status === 'ready_soon').length || 1,
-      completed: 6,
-      needs_attention: zones.filter(z => z.status === 'needs_attention').length || 1
+      growing: zones.filter(z => z.status === 'growing').length,
+      ready_soon: zones.filter(z => z.status === 'ready_soon').length,
+      completed: zones.filter(z => z.status === 'completed').length,
+      needs_attention: zones.filter(z => z.status === 'needs_attention').length
     };
 
     return { zones, legendCounts };

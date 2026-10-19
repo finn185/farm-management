@@ -1346,7 +1346,9 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0ea5e9' }} />
                   <span style={{ color: 'var(--text-muted)' }}>Đã thu</span>
                 </div>
-                <strong style={{ color: 'var(--text-main)' }}>6</strong>
+                <strong style={{ color: 'var(--text-main)' }}>
+                  {zones.filter(z => z.status === 'completed').length}
+                </strong>
               </div>
 
               {/* Cần chú ý */}
@@ -1677,6 +1679,29 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {selectedCultivar && (
+                  <div style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    fontSize: '0.78rem',
+                    color: '#334155'
+                  }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                      Thông số kỹ thuật tiêu chuẩn của giống ({selectedCultivar.name}):
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px' }}>
+                      <div>pH chuẩn: <strong>{selectedCultivar.recommendedPhMin} - {selectedCultivar.recommendedPhMax}</strong></div>
+                      <div>EC chuẩn: <strong>{selectedCultivar.recommendedEcMin} - {selectedCultivar.recommendedEcMax} mS/cm</strong></div>
+                      <div>Nhiệt nước: <strong>{selectedCultivar.optimalWaterTempMin || 18} - {selectedCultivar.optimalWaterTempMax || 24}°C</strong></div>
+                      <div>Nhiệt độ khí: <strong>{selectedCultivar.optimalAirTempMin || 18} - {selectedCultivar.optimalAirTempMax || 25}°C</strong></div>
+                      <div>Độ ẩm: <strong>{selectedCultivar.optimalHumidityMin || 60} - {selectedCultivar.optimalHumidityMax || 75}%</strong></div>
+                      <div>Mực nước tối thiểu: <strong>{selectedCultivar.minWaterLevelPercent || 20}%</strong></div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="form-label">Ghi chú canh tác & vị trí máng</label>

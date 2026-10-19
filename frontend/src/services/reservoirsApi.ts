@@ -170,6 +170,7 @@ export const reservoirsApi = {
     ec: number;
     waterTemp: number;
     doLevel?: number;
+    waterLevelPercent?: number;
     recordedBy?: string;
   }) {
     try {
@@ -186,7 +187,9 @@ export const reservoirsApi = {
             reservoirId: id,
             ph: data.ph,
             ec: data.ec,
-            waterTemp: data.waterTemp
+            waterTemp: data.waterTemp,
+            doLevel: data.doLevel,
+            waterLevelPercent: data.waterLevelPercent
           });
           return json.data;
         }
@@ -199,7 +202,9 @@ export const reservoirsApi = {
       reservoirId: id,
       ph: data.ph,
       ec: data.ec,
-      waterTemp: data.waterTemp
+      waterTemp: data.waterTemp,
+      doLevel: data.doLevel,
+      waterLevelPercent: data.waterLevelPercent
     });
     return null;
   }

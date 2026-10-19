@@ -8,6 +8,8 @@ import alertRoutes from './modules/alerts/alerts.routes';
 import harvestRoutes from './modules/harvests/harvests.routes';
 import cultivarRoutes from './modules/cultivars/cultivars.routes';
 import zoneRoutes from './modules/zones/zones.routes';
+import sensorRoutes from './modules/sensors/sensors.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -60,6 +62,12 @@ app.use('/api/cultivars', cultivarRoutes);
 
 app.use('/api/v1/zones', zoneRoutes);
 app.use('/api/zones', zoneRoutes);
+
+app.use('/api/v1/sensors', sensorRoutes);
+app.use('/api/sensors', sensorRoutes);
+
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 Route Handler
 app.use((_req: Request, res: Response) => {

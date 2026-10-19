@@ -176,8 +176,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }, 0);
   }, [harvestRecords]);
 
-  // Open & critical alerts
-  const openAlerts = useMemo(() => alerts.filter(a => a.status === 'open' || a.status === 'acknowledged'), [alerts]);
+  // Open & critical alerts - prioritized by severity (emergency > critical > warning > info)
+  const openAlerts = useMemo(() => {
+    const list = alerts.filter(a => a.status === 'open' || a.status === 'acknowledged');
+    const severityWeight: Record<string, number> = { emergency: 4, critical: 3, warning: 2, info: 1 };
+    return [...list].sort((a, b) => (severityWeight[b.severity] || 0) - (severityWeight[a.severity] || 0));
+  }, [alerts]);
   const primaryAlert = openAlerts[0];
 
   // Active reservoir data
@@ -227,8 +231,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ======================================================== */}
       {primaryAlert && (
         <div style={{
-          backgroundColor: primaryAlert.severity === 'critical' ? '#fef2f2' : '#fffbeb',
-          border: `1.5px solid ${primaryAlert.severity === 'critical' ? '#fca5a5' : '#fcd34d'}`,
+          backgroundColor: primaryAlert.severity === 'emergency' ? '#fff1f2' : primaryAlert.severity === 'critical' ? '#fef2f2' : '#fffbeb',
+          border: `1.5px solid ${primaryAlert.severity === 'emergency' ? '#fda4af' : primaryAlert.severity === 'critical' ? '#fca5a5' : '#fcd34d'}`,
           borderRadius: '12px',
           padding: '14px 18px',
           display: 'flex',
@@ -242,7 +246,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              backgroundColor: primaryAlert.severity === 'critical' ? '#ef4444' : '#f59e0b',
+              backgroundColor: primaryAlert.severity === 'emergency' ? '#dc2626' : primaryAlert.severity === 'critical' ? '#ef4444' : '#f59e0b',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -262,10 +266,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   fontWeight: 700,
                   padding: '2px 8px',
                   borderRadius: 'var(--radius-full)',
-                  backgroundColor: primaryAlert.severity === 'critical' ? '#fee2e2' : '#fef3c7',
-                  color: primaryAlert.severity === 'critical' ? '#b91c1c' : '#b45309'
+                  backgroundColor: primaryAlert.severity === 'emergency' ? '#fee2e2' : primaryAlert.severity === 'critical' ? '#fee2e2' : '#fef3c7',
+                  color: primaryAlert.severity === 'emergency' ? '#991b1b' : primaryAlert.severity === 'critical' ? '#b91c1c' : '#b45309'
                 }}>
-                  {primaryAlert.metric} Cần Can Thiệp
+                  {primaryAlert.severity === 'emergency' ? 'KHẨN CẤP' : `${primaryAlert.metric} Cần Can Thiệp`}
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

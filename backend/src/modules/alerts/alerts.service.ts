@@ -8,6 +8,7 @@ export class AlertsService {
     metric?: string;
     reservoirId?: string;
     batchId?: string;
+    zoneId?: string;
   }) {
     const where: any = {};
     if (filters?.status && filters.status !== 'all') {
@@ -25,8 +26,11 @@ export class AlertsService {
     if (filters?.batchId) {
       where.batchId = filters.batchId;
     }
+    if (filters?.zoneId) {
+      where.zoneId = filters.zoneId;
+    }
 
-    return prisma.alert.findMany({
+    const alerts = await prisma.alert.findMany({
       where,
       include: {
         reservoir: {
@@ -59,9 +63,32 @@ export class AlertsService {
         }
       },
       orderBy: [
-        { status: 'asc' }, // 'open' first
+        { status: 'asc' }, // 'open', 'acknowledged', 'resolved'
         { createdAt: 'desc' }
       ]
+    });
+
+    // Sắp xếp ưu tiên: khẩn cấp (emergency) > nguy hiểm (critical) > cảnh báo (warning) > thông tin (info)
+    const severityRank: Record<string, number> = {
+      emergency: 4,
+      critical: 3,
+      warning: 2,
+      info: 1
+    };
+
+    return alerts.sort((a, b) => {
+      // 1. Trạng thái: open & acknowledged trước, resolved sau
+      const aClosed = a.status === 'resolved' ? 1 : 0;
+      const bClosed = b.status === 'resolved' ? 1 : 0;
+      if (aClosed !== bClosed) return aClosed - bClosed;
+
+      // 2. Mức độ nghiêm trọng
+      const aSev = severityRank[a.severity] || 0;
+      const bSev = severityRank[b.severity] || 0;
+      if (aSev !== bSev) return bSev - aSev;
+
+      // 3. Thời gian mới nhất
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }
 
@@ -93,6 +120,9 @@ export class AlertsService {
         title: data.title,
         message: data.message,
         suggestedAction: data.suggestedAction,
+        thresholdValue: data.thresholdValue,
+        actualValue: data.actualValue,
+        unit: data.unit,
         reservoirId: data.reservoirId,
         batchId: data.batchId,
         zoneId: data.zoneId
@@ -122,7 +152,7 @@ export class AlertsService {
         status: 'resolved',
         resolvedBy,
         resolvedAt: new Date(),
-        resolutionNote: resolutionNote || 'Đã kiểm tra và xử lý thành công'
+        resolutionNote: resolutionNote || 'Đã kiểm tra và xử lý thành công tại hiện trường'
       }
     });
   }

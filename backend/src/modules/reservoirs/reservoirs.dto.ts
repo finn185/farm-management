@@ -43,6 +43,7 @@ export const logWaterQualitySchema = z.object({
   ec: z.number().nonnegative(),
   waterTemp: z.number(),
   doLevel: z.number().optional(),
+  waterLevelPercent: z.number().min(0).max(100).optional(),
   source: z.enum(['sensor', 'manual']).default('manual'),
   recordedBy: z.string().optional()
 });
