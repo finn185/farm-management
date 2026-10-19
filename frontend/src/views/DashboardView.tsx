@@ -23,8 +23,7 @@ import {
   Tooltip, 
   CartesianGrid 
 } from 'recharts';
-import type { CropBatch, Reservoir, Alert, FarmZone } from '../types/farm';
-import { farmStore } from '../mock/store';
+import type { CropBatch, Reservoir, Alert, FarmZone, HarvestRecord } from '../types/farm';
 import { 
   fetchLiveWeather, 
   getCachedWeather,
@@ -37,8 +36,10 @@ import './DashboardView.css';
 interface DashboardViewProps {
   batches: CropBatch[];
   reservoirs: Reservoir[];
-  sensorHistory: any[];
+  sensorHistory?: any[];
   alerts: Alert[];
+  zones?: FarmZone[];
+  harvests?: HarvestRecord[];
   onNavigateTab: (tab: any) => void;
   onSelectBatchForAI: (batch: CropBatch) => void;
 }
@@ -61,6 +62,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
   reservoirs = [],
   alerts = [],
+  zones = [],
+  harvests = [],
   onNavigateTab,
   onSelectBatchForAI,
 }) => {
@@ -94,9 +97,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     loadWeatherForCity(selectedCityId);
   }, [selectedCityId]);
 
-  // Farm Store data
-  const zones: FarmZone[] = useMemo(() => farmStore.getZones(), []);
-  const harvestRecords = useMemo(() => farmStore.getHarvests(), []);
+  // Real database records from props
+  const harvestRecords = harvests;
 
   // Aggregated KPIs
   const activeBatches = useMemo(() => batches.filter(b => b.status === 'active'), [batches]);

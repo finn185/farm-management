@@ -7,6 +7,8 @@ const controller = new ReservoirsController();
 
 router.use(optionalAuthToken);
 
+router.get('/formulas', controller.getFormulas);
+router.get('/drain-events', controller.getDrainEvents);
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
 router.post('/', controller.create);

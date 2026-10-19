@@ -651,7 +651,8 @@ async function main() {
     { id: 'wlog-03', reservoirId: 'res-01', ph: 5.84, ec: 1.71, waterTemp: 22.5, doLevel: 6.8, waterLevelPercent: 90.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
     { id: 'wlog-04', reservoirId: 'res-02', ph: 6.02, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
     { id: 'wlog-05', reservoirId: 'res-02', ph: 6.10, ec: 1.80, waterTemp: 22.0, doLevel: 7.1, waterLevelPercent: 91.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
-    { id: 'wlog-06', reservoirId: 'res-02', ph: 6.05, ec: 1.82, waterTemp: 21.9, doLevel: 7.1, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' }
+    { id: 'wlog-06', reservoirId: 'res-02', ph: 6.25, ec: 1.82, waterTemp: 21.9, doLevel: 7.1, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
+    { id: 'wlog-07', reservoirId: 'res-02', ph: 6.75, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' }
   ];
 
   for (const wl of waterLogs) {

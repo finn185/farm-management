@@ -561,9 +561,10 @@ VALUES
   ('wlog-01', 'res-01', 5.85, 1.72, 22.4, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
   ('wlog-02', 'res-01', 5.82, 1.70, 22.6, 6.7, 88.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),
   ('wlog-03', 'res-01', 5.84, 1.71, 22.5, 6.8, 90.0, 'IoT-Sensor-01', 'sensor', CURRENT_TIMESTAMP),
-  ('wlog-04', 'res-02', 6.02, 1.84, 21.8, 7.2, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
-  ('wlog-05', 'res-02', 6.10, 1.80, 22.0, 7.1, 91.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),
-  ('wlog-06', 'res-02', 6.05, 1.82, 21.9, 7.1, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP);
+  ('wlog-04', 'res-02', 6.02, 1.84, 21.8, 7.2, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '6 hour'),
+  ('wlog-05', 'res-02', 6.10, 1.80, 22.0, 7.1, 91.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '4 hour'),
+  ('wlog-06', 'res-02', 6.25, 1.82, 21.9, 7.1, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP - INTERVAL '2 hour'),
+  ('wlog-07', 'res-02', 6.75, 1.84, 21.8, 7.2, 92.0, 'IoT-Sensor-02', 'sensor', CURRENT_TIMESTAMP);
 
 -- 12. Nhật ký vi khí hậu môi trường thực tế (environment_logs)
 INSERT INTO "environment_logs" ("id", "zoneId", "airTemp", "humidity", "co2", "ppfd", "dli", "vpd", "recordedBy", "source", "createdAt")

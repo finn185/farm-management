@@ -18,7 +18,20 @@ import { batchesApi } from './services/batchesApi';
 import { reservoirsApi } from './services/reservoirsApi';
 import { alertsApi } from './services/alertsApi';
 import { harvestsApi } from './services/harvestsApi';
-import type { CropBatch, GrowthStage, BatchStatus } from './types/farm';
+import { cultivarsApi } from './services/cultivarsApi';
+import { zonesApi } from './services/zonesApi';
+import type { 
+  CropBatch, 
+  GrowthStage, 
+  BatchStatus, 
+  Cultivar, 
+  Reservoir, 
+  NutrientFormula, 
+  Alert, 
+  HarvestRecord, 
+  FarmZone, 
+  SolutionDrainEvent 
+} from './types/farm';
 import { useToast } from './components/Toast';
 
 export const App: React.FC = () => {
@@ -26,16 +39,17 @@ export const App: React.FC = () => {
   const { showToast } = useToast();
   const { isAuthenticated, user } = useAuth();
 
-  // State from Store
-  const [batches, setBatches] = useState(() => farmStore.getBatches());
-  const [reservoirs, setReservoirs] = useState(() => farmStore.getReservoirs());
-  const [cultivars] = useState(() => farmStore.getCultivars());
-  const [formulas] = useState(() => farmStore.getFormulas());
+  // State populated directly from PostgreSQL via Backend API
+  const [batches, setBatches] = useState<CropBatch[]>([]);
+  const [reservoirs, setReservoirs] = useState<Reservoir[]>([]);
+  const [cultivars, setCultivars] = useState<Cultivar[]>([]);
+  const [formulas, setFormulas] = useState<NutrientFormula[]>([]);
   const [sensorHistory, setSensorHistory] = useState(() => farmStore.getSensorHistory());
-  const [alerts, setAlerts] = useState(() => farmStore.getAlerts());
-  const [harvests, setHarvests] = useState(() => farmStore.getHarvests());
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [harvests, setHarvests] = useState<HarvestRecord[]>([]);
+  const [zones, setZones] = useState<FarmZone[]>([]);
   const [channels, setChannels] = useState(() => farmStore.getChannels());
-  const [drainEvents, setDrainEvents] = useState(() => farmStore.getDrainEvents());
+  const [drainEvents, setDrainEvents] = useState<SolutionDrainEvent[]>([]);
 
   // Batch targeted for AI simulation
   const [selectedBatchForAI, setSelectedBatchForAI] = useState<CropBatch | null>(null);
@@ -43,14 +57,29 @@ export const App: React.FC = () => {
   // Sync state whenever actions happen (fetches from Backend API with automatic local fallback)
   const refreshState = async () => {
     try {
-      const [batchesRes, reservoirsRes, alertsRes, harvestsRes] = await Promise.allSettled([
+      const [
+        batchesRes,
+        reservoirsRes,
+        alertsRes,
+        harvestsRes,
+        cultivarsRes,
+        zonesRes,
+        formulasRes,
+        drainEventsRes
+      ] = await Promise.allSettled([
         batchesApi.getBatches(),
         reservoirsApi.getReservoirs(),
         alertsApi.getAlerts(),
-        harvestsApi.getHarvests()
+        harvestsApi.getHarvests(),
+        cultivarsApi.getCultivars(),
+        zonesApi.getZones(),
+        reservoirsApi.getFormulas(),
+        reservoirsApi.getDrainEvents()
       ]);
 
       if (batchesRes.status === 'fulfilled' && batchesRes.value && batchesRes.value.length > 0) {
+        setBatches(batchesRes.value);
+      } else if (batchesRes.status === 'fulfilled' && batchesRes.value) {
         setBatches(batchesRes.value);
       } else {
         setBatches(farmStore.getBatches());
@@ -73,16 +102,43 @@ export const App: React.FC = () => {
       } else {
         setHarvests(farmStore.getHarvests());
       }
+
+      if (cultivarsRes.status === 'fulfilled' && cultivarsRes.value && cultivarsRes.value.length > 0) {
+        setCultivars(cultivarsRes.value);
+      } else {
+        setCultivars(farmStore.getCultivars());
+      }
+
+      if (zonesRes.status === 'fulfilled' && zonesRes.value && zonesRes.value.length > 0) {
+        setZones(zonesRes.value);
+      } else {
+        setZones(farmStore.getZones());
+      }
+
+      if (formulasRes.status === 'fulfilled' && formulasRes.value && formulasRes.value.length > 0) {
+        setFormulas(formulasRes.value);
+      } else {
+        setFormulas(farmStore.getFormulas());
+      }
+
+      if (drainEventsRes.status === 'fulfilled' && drainEventsRes.value && drainEventsRes.value.length > 0) {
+        setDrainEvents(drainEventsRes.value);
+      } else {
+        setDrainEvents(farmStore.getDrainEvents());
+      }
     } catch {
       setBatches(farmStore.getBatches());
       setReservoirs(farmStore.getReservoirs());
       setAlerts(farmStore.getAlerts());
       setHarvests(farmStore.getHarvests());
+      setCultivars(farmStore.getCultivars());
+      setZones(farmStore.getZones());
+      setFormulas(farmStore.getFormulas());
+      setDrainEvents(farmStore.getDrainEvents());
     }
 
     setSensorHistory(farmStore.getSensorHistory());
     setChannels(farmStore.getChannels());
-    setDrainEvents(farmStore.getDrainEvents());
   };
 
   // Sync with backend on initial load
@@ -298,6 +354,8 @@ export const App: React.FC = () => {
                           reservoirs={reservoirs}
                           sensorHistory={sensorHistory}
                           alerts={alerts}
+                          zones={zones}
+                          harvests={harvests}
                           onNavigateTab={handleNavigateTab}
                           onSelectBatchForAI={handleSelectBatchForAI}
                         />
@@ -310,6 +368,7 @@ export const App: React.FC = () => {
                           batches={batches}
                           cultivars={cultivars}
                           reservoirs={reservoirs}
+                          zones={zones}
                           onAddBatch={handleAddBatch}
                           onDeleteBatch={handleDeleteBatch}
                           onSelectBatchForAI={handleSelectBatchForAI}
