@@ -22,6 +22,7 @@ import {
 import type { CropBatch, Cultivar, Reservoir, GrowthStage, BatchStatus, FarmZone } from '../types/farm';
 import { INITIAL_ZONES } from '../mock/initialData';
 import { batchesApi } from '../services/batchesApi';
+import './BatchesView.css';
 
 interface BatchesViewProps {
   batches: CropBatch[];
@@ -580,114 +581,118 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div className="batches-container">
       
       {/* ========================================================
-          PAGE HEADER
+          PAGE HEADER (Synchronized with Dashboard, Reservoirs & Alerts)
           ======================================================== */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', width: '100%' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.4rem' }}>🥬</span>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
-              Quản Lý Lô Canh Tác Xà Lách NFT (Batches)
+      <div className="batches-header">
+        <div className="batches-header-left">
+          <div>
+            <h1 className="batches-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sprout size={22} color="#00a651" />
+              Lô Canh Tác & Giàn Máng NFT
             </h1>
+            <div className="batches-subtitle">
+              Giám sát bồn cấp dinh dưỡng, mật độ rọ, ngày chuyển máng NFT và lịch trình thu hoạch
+            </div>
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-subtle)', margin: '5px 0 0 0' }}>
-            Giám sát bồn cấp dinh dưỡng, mật độ rọ, ngày chuyển máng NFT, sinh trắc học và lịch trình thu hoạch.
-          </p>
         </div>
 
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          style={{
-            backgroundColor: '#00a651',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 18px',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0, 166, 81, 0.25)',
-            transition: 'all 0.15s ease'
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#008f45')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#00a651')}
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          <span>Thêm Lô Trồng Mới</span>
-        </button>
+        <div className="batches-header-actions">
+          <span className="batches-status-pill active">
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
+            {activeBatchesCount} lô đang canh tác
+          </span>
+
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="farmvista-btn-green"
+            style={{ height: '34px', fontSize: '0.78rem', padding: '0 14px' }}
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Thêm Lô Mới</span>
+          </button>
+        </div>
       </div>
 
       {/* ========================================================
-          KPI CARDS (Dynamic Calculation - Zero Overflow)
+          KPI CARDS (Synchronized with Dashboard, Reservoirs & Alerts)
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', width: '100%' }}>
+      <div className="batches-kpis">
         {/* Metric 1: Total Batches */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e8f8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00a651', flexShrink: 0 }}>
-            <Layers size={24} />
+        <div className="batches-kpi-card">
+          <div className="batches-kpi-top">
+            <span className="batches-kpi-label">Tổng Lô Canh Tác</span>
+            <div className="batches-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Layers size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Tổng số lô canh tác</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {totalBatchesCount} lô
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Bao gồm cả lô đang trồng & đã hoàn tất
-            </div>
+          <div className="batches-kpi-val">
+            {totalBatchesCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>lô</span>
+          </div>
+          <div className="batches-kpi-meta">
+            <span>Toàn trang trại</span>
+            <span className="batches-kpi-badge green">
+              {activeBatchesCount} đang trồng
+            </span>
           </div>
         </div>
 
         {/* Metric 2: Active Batches */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e8f8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00a651', flexShrink: 0 }}>
-            <Sprout size={24} />
+        <div className="batches-kpi-card">
+          <div className="batches-kpi-top">
+            <span className="batches-kpi-label">Đang Lưu Chuyển</span>
+            <div className="batches-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Sprout size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Lô đang canh tác NFT</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#00a651', lineHeight: 1.1, marginTop: '2px' }}>
-              {activeBatchesCount} lô
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 500, marginTop: '4px' }}>
-              Đang lưu chuyển dinh dưỡng tuần hoàn
-            </div>
+          <div className="batches-kpi-val" style={{ color: '#00a651' }}>
+            {activeBatchesCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>lô</span>
+          </div>
+          <div className="batches-kpi-meta">
+            <span>Bơm dinh dưỡng</span>
+            <span className="batches-kpi-badge green">
+              2 Bể cấp
+            </span>
           </div>
         </div>
 
         {/* Metric 3: Total Active Plants */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0 }}>
-            <Leaf size={24} />
+        <div className="batches-kpi-card">
+          <div className="batches-kpi-top">
+            <span className="batches-kpi-label">Tổng Số Rọ Cây</span>
+            <div className="batches-kpi-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+              <Leaf size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Tổng số cây trên máng</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {totalPlantsActive.toLocaleString()} rọ
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600, marginTop: '4px' }}>
-              Mật độ trung bình 24 - 26 rọ/m²
-            </div>
+          <div className="batches-kpi-val">
+            {totalPlantsActive.toLocaleString('vi-VN')} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>rọ</span>
+          </div>
+          <div className="batches-kpi-meta">
+            <span>Mật độ giàn</span>
+            <span className="batches-kpi-badge blue">
+              NFT chuẩn
+            </span>
           </div>
         </div>
 
         {/* Metric 4: Ready for Harvest */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
-            <ShoppingBag size={24} />
+        <div className="batches-kpi-card">
+          <div className="batches-kpi-top">
+            <span className="batches-kpi-label">Sắp Thu Hoạch</span>
+            <div className="batches-kpi-icon" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
+              <ShoppingBag size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Sắp đến kỳ thu hoạch</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#d97706', lineHeight: 1.1, marginTop: '2px' }}>
-              {readyToHarvestCount} lô
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 500, marginTop: '4px' }}>
-              Giai đoạn Cuộn búp / Thu hoạch
-            </div>
+          <div className="batches-kpi-val" style={{ color: readyToHarvestCount > 0 ? '#d97706' : '#0f172a' }}>
+            {readyToHarvestCount} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>lô</span>
+          </div>
+          <div className="batches-kpi-meta">
+            <span>Cuộn búp</span>
+            <span className="batches-kpi-badge amber">
+              {readyToHarvestCount > 0 ? 'Sẵn sàng thu' : 'Chưa đến kỳ'}
+            </span>
           </div>
         </div>
       </div>

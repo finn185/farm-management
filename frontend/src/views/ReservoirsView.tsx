@@ -26,6 +26,7 @@ import {
   Legend
 } from 'recharts';
 import type { Reservoir, NutrientFormula, Channel, SolutionDrainEvent, CropBatch } from '../types/farm';
+import './ReservoirsView.css';
 
 interface ReservoirsViewProps {
   reservoirs: Reservoir[];
@@ -41,13 +42,13 @@ interface ReservoirsViewProps {
 
 // 7-day trend mock data for sensor chart
 const SENSOR_TREND_DATA = [
-  { day: '04/09', ec1: 1.82, ph1: 5.82, ec2: 1.88, ph2: 5.98 },
-  { day: '05/09', ec1: 1.78, ph1: 5.84, ec2: 1.85, ph2: 6.00 },
-  { day: '06/09', ec1: 1.74, ph1: 5.87, ec2: 1.82, ph2: 6.02 },
-  { day: '07/09', ec1: 1.68, ph1: 5.92, ec2: 1.79, ph2: 6.05 },
-  { day: '08/09', ec1: 1.64, ph1: 5.95, ec2: 1.76, ph2: 6.08 },
-  { day: '09/09', ec1: 1.76, ph1: 5.85, ec2: 1.84, ph2: 6.01 }, // After dosing
-  { day: '10/09', ec1: 1.72, ph1: 5.85, ec2: 1.84, ph2: 6.02 }
+  { day: '04/10', ec1: 1.82, ph1: 5.82, ec2: 1.88, ph2: 5.98 },
+  { day: '05/10', ec1: 1.78, ph1: 5.84, ec2: 1.85, ph2: 6.00 },
+  { day: '06/10', ec1: 1.74, ph1: 5.87, ec2: 1.82, ph2: 6.02 },
+  { day: '07/10', ec1: 1.68, ph1: 5.92, ec2: 1.79, ph2: 6.05 },
+  { day: '08/10', ec1: 1.64, ph1: 5.95, ec2: 1.76, ph2: 6.08 },
+  { day: '09/10', ec1: 1.76, ph1: 5.85, ec2: 1.84, ph2: 6.01 },
+  { day: '10/10', ec1: 1.72, ph1: 5.85, ec2: 1.84, ph2: 6.02 }
 ];
 
 export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
@@ -65,7 +66,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'res-01' | 'res-02' | 'needs-dosing' | 'optimal'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('default');
-  const [selectedChartTank, setSelectedChartTank] = useState<'all' | 'res-01' | 'res-02'>('res-01');
+  const [selectedChartTank, setSelectedChartTank] = useState<'res-01' | 'res-02'>('res-01');
 
   // Modal states
   const [activeModalResId, setActiveModalResId] = useState<string>(reservoirs[0]?.id || 'res-01');
@@ -220,47 +221,50 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+    <div className="res-container">
       
       {/* ========================================================
           1. PAGE HEADER: Title, Subtitle & Action Buttons
           ======================================================== */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em', margin: 0 }}>
-            Quản Lý Bể & Dinh Dưỡng Thủy Canh
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 0 0' }}>
-            Giám sát nồng độ pH, EC, nhiệt độ nước tuần hoàn, mực nước và tự động tính toán bù dinh dưỡng Can A & B.
-          </p>
+      <div className="res-header">
+        <div className="res-header-left">
+          <div>
+            <h1 className="res-title">
+              <Droplets size={22} color="#00a651" />
+              Bể Dinh Dưỡng & Tuần Hoàn NFT
+            </h1>
+            <div className="res-subtitle">
+              Giám sát pH, EC, nhiệt độ & mực nước 2 trạm bồn tuần hoàn
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="res-header-actions">
           <button
             onClick={() => setIsFormulaModalOpen(true)}
             className="farmvista-btn-secondary"
-            style={{ height: '38px', padding: '0 14px', fontSize: '0.8125rem' }}
+            style={{ height: '34px', fontSize: '0.78rem', padding: '0 12px' }}
           >
-            <FlaskConical size={15} color="#00a651" />
-            <span>Công thức pha kho</span>
+            <FlaskConical size={14} color="#00a651" />
+            <span>Công thức kho</span>
           </button>
 
           <button
             onClick={() => setIsDrainHistoryModalOpen(true)}
             className="farmvista-btn-secondary"
-            style={{ height: '38px', padding: '0 14px', fontSize: '0.8125rem' }}
+            style={{ height: '34px', fontSize: '0.78rem', padding: '0 12px' }}
           >
-            <History size={15} color="var(--text-subtle)" />
-            <span>Nhật ký xả nước ({drainEvents.length})</span>
+            <History size={14} color="#64748b" />
+            <span>Nhật ký xả ({drainEvents.length})</span>
           </button>
 
           <button
             onClick={() => openLogModal(reservoirs[0] || activeModalRes)}
             className="farmvista-btn-green"
-            style={{ height: '38px', padding: '0 16px', fontSize: '0.8125rem' }}
+            style={{ height: '34px', fontSize: '0.78rem', padding: '0 14px' }}
           >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Ghi Số Đo Mới</span>
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Ghi Số Đo</span>
           </button>
         </div>
       </div>
@@ -268,89 +272,99 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Success Notification Banner */}
       {successMsg && (
         <div style={{
-          backgroundColor: '#dcfce7',
-          border: '1px solid #86efac',
+          backgroundColor: '#ecfdf5',
+          border: '1px solid #a7f3d0',
           borderRadius: '10px',
-          padding: '12px 18px',
+          padding: '10px 16px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          color: '#15803d',
-          fontSize: '0.875rem',
-          fontWeight: 600,
-          boxShadow: '0 2px 6px rgba(22, 163, 74, 0.08)'
+          gap: '8px',
+          color: '#065f46',
+          fontSize: '0.8125rem',
+          fontWeight: 600
         }}>
-          <CheckCircle2 size={18} color="#16a34a" />
+          <CheckCircle2 size={16} color="#059669" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* ========================================================
-          2. TOP KPI CARDS (4 Cards in a Row - FarmVista Style)
+          2. TOP KPI CARDS (4 Sleek Metric Cards)
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
-        
+      <div className="res-kpis">
         {/* Metric 1: Total Water Volume */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0 }}>
-            <Droplets size={24} />
+        <div className="res-kpi-card">
+          <div className="res-kpi-top">
+            <span className="res-kpi-label">Tổng Thể Tích Nước</span>
+            <div className="res-kpi-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+              <Droplets size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Tổng Dung Tích Nước</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {totalCurrentVolume} <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>/ {totalCapacity}L</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600, marginTop: '4px' }}>
-              ↑ {volumePercent}% dung tích tuần hoàn
-            </div>
+          <div className="res-kpi-val">
+            {totalCurrentVolume} <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#64748b' }}>/ {totalCapacity}L</span>
+          </div>
+          <div className="res-kpi-meta">
+            <span>Tuần hoàn giàn NFT</span>
+            <span className="res-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+              {volumePercent}% dung tích
+            </span>
           </div>
         </div>
 
         {/* Metric 2: Average EC */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e8f8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00a651', flexShrink: 0 }}>
-            <Zap size={24} />
+        <div className="res-kpi-card">
+          <div className="res-kpi-top">
+            <span className="res-kpi-label">EC Trung Bình</span>
+            <div className="res-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Zap size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Nồng Độ EC Trung Bình</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {avgEc} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)' }}>mS/cm</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Tối ưu cho xà lách (1.5 - 1.9)
-            </div>
+          <div className="res-kpi-val">
+            {avgEc} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>mS/cm</span>
+          </div>
+          <div className="res-kpi-meta">
+            <span>Chuẩn: 1.5 - 1.9</span>
+            <span className="res-kpi-badge" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+              Ổn định
+            </span>
           </div>
         </div>
 
         {/* Metric 3: Average pH */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
-            <FlaskConical size={24} />
+        <div className="res-kpi-card">
+          <div className="res-kpi-top">
+            <span className="res-kpi-label">pH Trung Bình</span>
+            <div className="res-kpi-icon" style={{ backgroundColor: '#fffbeb', color: '#d97706' }}>
+              <FlaskConical size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Độ pH Trung Bình</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {avgPh} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)' }}>pH</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              Hấp thụ tối đa (5.6 - 6.2)
-            </div>
+          <div className="res-kpi-val">
+            {avgPh} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>pH</span>
+          </div>
+          <div className="res-kpi-meta">
+            <span>Chuẩn: 5.6 - 6.2</span>
+            <span className="res-kpi-badge" style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
+              Hấp thụ tối đa
+            </span>
           </div>
         </div>
 
         {/* Metric 4: Devices Status */}
-        <div className="farmvista-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6', flexShrink: 0 }}>
-            <Activity size={24} />
+        <div className="res-kpi-card">
+          <div className="res-kpi-top">
+            <span className="res-kpi-label">Bơm & Sục Khí</span>
+            <div className="res-kpi-icon" style={{ backgroundColor: '#f5f3ff', color: '#8b5cf6' }}>
+              <Activity size={17} />
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Thiết Bị Vận Hành</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1, marginTop: '2px' }}>
-              {totalActiveDevices} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)' }}>/ {maxDevices} ON</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#00a651', fontWeight: 600, marginTop: '4px' }}>
-              100% Bơm & Sục khí hoạt động
-            </div>
+          <div className="res-kpi-val">
+            {totalActiveDevices}/{maxDevices} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>ON</span>
+          </div>
+          <div className="res-kpi-meta">
+            <span>2 Bơm • 2 Sục oxy</span>
+            <span className="res-kpi-badge" style={{ backgroundColor: '#ede9fe', color: '#6d28d9' }}>
+              100% Online
+            </span>
           </div>
         </div>
       </div>
@@ -358,88 +372,61 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* ========================================================
           3. FILTER TABS & SEARCH TOOLBAR
           ======================================================== */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-        {/* Left Filter Pill Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      <div className="res-toolbar">
+        <div className="res-filters">
           {[
-            { id: 'all', label: `Tất cả bồn (${reservoirs.length})` },
-            { id: 'res-01', label: 'Bể Tuần Hoàn 01' },
-            { id: 'res-02', label: 'Bể Tuần Hoàn 02' },
+            { id: 'all', label: `Tất cả (${reservoirs.length})` },
+            { id: 'res-01', label: 'Bể 01 (Tầng 1)' },
+            { id: 'res-02', label: 'Bể 02 (Tầng 2)' },
             { id: 'needs-dosing', label: 'Cần bù dinh dưỡng' },
-            { id: 'optimal', label: 'Đạt chuẩn tối ưu' }
+            { id: 'optimal', label: 'Đạt chuẩn' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              style={{
-                padding: '7px 16px',
-                borderRadius: 'var(--radius-full)',
-                border: activeTab === tab.id ? 'none' : '1px solid var(--border-medium)',
-                backgroundColor: activeTab === tab.id ? '#00a651' : '#ffffff',
-                color: activeTab === tab.id ? '#ffffff' : 'var(--text-muted)',
-                fontSize: '0.8125rem',
-                fontWeight: activeTab === tab.id ? 600 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0, 166, 81, 0.25)' : 'none'
-              }}
+              className={`res-filter-btn ${activeTab === tab.id ? 'active' : ''}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Right Search and Dropdown Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--border-medium)',
-            borderRadius: 'var(--radius-full)',
-            padding: '6px 14px',
-            width: '230px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
-            <Search size={15} color="var(--text-disabled)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="res-search-box">
+            <Search size={14} color="#94a3b8" />
             <input
               type="text"
-              placeholder="Tìm bồn, công thức..."
+              placeholder="Tìm kiếm bồn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ border: 'none', outline: 'none', fontSize: '0.8125rem', color: 'var(--text-main)', width: '100%', background: 'transparent' }}
+              className="res-search-input"
             />
           </div>
 
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <ArrowUpDown size={13} color="var(--text-subtle)" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
+            <ArrowUpDown size={12} color="#64748b" style={{ position: 'absolute', left: '10px', pointerEvents: 'none' }} />
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
               className="farmvista-select-pill"
-              style={{ height: '36px', paddingLeft: '32px' }}
+              style={{ height: '34px', paddingLeft: '28px', fontSize: '0.75rem' }}
             >
-              <option value="default">Sắp xếp theo</option>
-              <option value="volume">Mực nước cao nhất</option>
-              <option value="ec">Nồng độ EC cao nhất</option>
-              <option value="ph">Độ pH cao nhất</option>
+              <option value="default">Sắp xếp</option>
+              <option value="volume">Mực nước</option>
+              <option value="ec">Nồng độ EC</option>
+              <option value="ph">Độ pH</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* ========================================================
-          4. MAIN SECTION: SIDE-BY-SIDE RESERVOIR CARDS
+          4. MAIN SECTION: RESERVOIR HARDWARE CARDS
           ======================================================== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
-        gap: '20px'
-      }}>
+      <div className="res-grid">
         {filteredReservoirs.map((res) => {
           const shortName = res.name.split('-')[0].trim();
-          const subTitle = res.name.split('-')[1]?.trim() || 'Hệ thống giàn NFT';
+          const subTitle = res.name.split('-')[1]?.trim() || 'Giàn NFT';
           const fillPercent = Math.round((res.currentVolumeLiters / res.capacityLiters) * 100);
 
           // Target EC & Deficit calculation
@@ -447,283 +434,135 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           const ecDeficit = Math.max(0, parseFloat((currentTargetEc - res.currentEc).toFixed(2)));
           const doseMl = Math.round((ecDeficit / 0.10) * 10 * (res.currentVolumeLiters / 100));
 
-          // Channels connected to this reservoir
+          // Channels & batches connected
           const resChans = channels.filter(c => c.reservoirId === res.id);
           const totalActivePlants = resChans.reduce((sum, c) => sum + c.activePlants, 0);
           const resBatches = batches.filter(b => b.reservoirId === res.id && b.status === 'active');
 
-          // Evaluation status
+          // Status checks
           const isPhOk = res.currentPh >= 5.6 && res.currentPh <= 6.2;
           const isEcOk = res.currentEc >= 1.5 && res.currentEc <= 1.85;
           const isTempOk = res.currentWaterTemp >= 19 && res.currentWaterTemp <= 24;
 
           return (
-            <div 
-              key={res.id} 
-              className="farmvista-card"
-              style={{
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '18px',
-                position: 'relative'
-              }}
-            >
-              {/* Card Header: Tank Title, Status Dot & Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+            <div key={res.id} className="res-card">
+              {/* Header */}
+              <div className="res-card-top">
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ 
-                      width: '10px', 
-                      height: '10px', 
-                      borderRadius: '50%', 
-                      backgroundColor: '#16a34a',
-                      boxShadow: '0 0 0 4px #dcfce7'
-                    }} />
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                      {shortName}
-                    </h3>
+                  <div className="res-card-title-group">
+                    <span className="res-card-dot" />
+                    <h3 className="res-card-title">{shortName}</h3>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', marginTop: '4px', marginLeft: '20px' }}>
-                    {subTitle} • Cấp {resChans.length} máng ({totalActivePlants} rọ NFT)
+                  <div className="res-card-sub">
+                    {subTitle} • {resChans.length} máng ({totalActivePlants} rọ NFT)
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="res-card-actions">
                   <button
                     onClick={() => openTopUpModal(res)}
-                    className="farmvista-btn-secondary"
-                    style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem' }}
+                    className="res-btn-action farmvista-btn-secondary"
                   >
                     + Bù nước
                   </button>
                   <button
                     onClick={() => openDrainModal(res)}
-                    className="farmvista-btn-danger"
-                    style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem' }}
+                    className="res-btn-action farmvista-btn-danger"
                   >
                     Xả bể
                   </button>
                   <button
                     onClick={() => openLogModal(res)}
-                    className="farmvista-btn-green"
-                    style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem' }}
+                    className="res-btn-action farmvista-btn-green"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                     <span>Ghi số đo</span>
                   </button>
                 </div>
               </div>
 
-              {/* Water Volume Progress Bar & Equipment Status */}
-              <div style={{
-                backgroundColor: '#f8fafc',
-                border: '1px solid #f1f5f9',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Droplets size={16} color="#0284c7" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Mực nước: {res.currentVolumeLiters} / {res.capacityLiters} Lít
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284c7' }}>
-                    {fillPercent}% Dung tích
-                  </span>
+              {/* Tank Water Level & Equipment */}
+              <div className="res-tank-block">
+                <div className="res-tank-head">
+                  <span>Dung tích nước: <strong>{res.currentVolumeLiters}L / {res.capacityLiters}L</strong></span>
+                  <span style={{ fontWeight: 700, color: '#0284c7' }}>{fillPercent}%</span>
                 </div>
 
-                {/* Smooth Gradient Water Level Bar */}
-                <div style={{ height: '8px', backgroundColor: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${fillPercent}%`,
-                    background: fillPercent > 50 ? 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)' : '#f59e0b',
-                    borderRadius: '999px',
-                    transition: 'width 0.4s ease'
-                  }} />
+                <div className="res-tank-bar">
+                  <div
+                    className="res-tank-fill"
+                    style={{
+                      width: `${fillPercent}%`,
+                      background: fillPercent > 50 ? 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)' : '#f59e0b'
+                    }}
+                  />
                 </div>
 
-                {/* Pumps & Aerators status indicators */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span>
-                      Bơm tuần hoàn:{' '}
-                      <strong style={{ color: res.pumpStatus === 'running' ? '#16a34a' : 'var(--text-muted)' }}>
-                        {res.pumpStatus === 'running' ? '● Đang chạy' : '○ Dừng'}
-                      </strong>
-                    </span>
-                    <span>
-                      Sục khí oxy:{' '}
-                      <strong style={{ color: res.aerationStatus === 'active' ? '#16a34a' : 'var(--text-muted)' }}>
-                        {res.aerationStatus === 'active' ? '● Đang bật' : '○ Tắt'}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                    Cập nhật: {res.lastTopUpDate || 'Hôm nay'}
-                  </span>
+                <div className="res-tank-status">
+                  <span>Bơm: <strong style={{ color: res.pumpStatus === 'running' ? '#16a34a' : '#64748b' }}>{res.pumpStatus === 'running' ? '● Chạy' : '○ Dừng'}</strong></span>
+                  <span>Sục khí: <strong style={{ color: res.aerationStatus === 'active' ? '#16a34a' : '#64748b' }}>{res.aerationStatus === 'active' ? '● Bật' : '○ Tắt'}</strong></span>
+                  <span style={{ color: '#94a3b8' }}>Cập nhật: {res.lastTopUpDate || 'Hôm nay'}</span>
                 </div>
               </div>
 
-              {/* 4 Sensor Metric Tiles (pH, EC, Nhiệt độ, Oxy DO) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                {/* pH */}
-                <div style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '12px 10px',
-                  backgroundColor: '#f8fafc',
-                  textAlign: 'center',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Độ pH</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '3px 0' }}>
+              {/* 4 Sensor Metric Tiles */}
+              <div className="res-sensors-grid">
+                <div className="res-sensor-tile">
+                  <div className="res-sensor-label">pH</div>
+                  <div className="res-sensor-val" style={{ color: isPhOk ? '#16a34a' : '#d97706' }}>
                     {res.currentPh.toFixed(2)}
                   </div>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    backgroundColor: isPhOk ? '#dcfce7' : '#fef3c7',
-                    color: isPhOk ? '#15803d' : '#b45309'
-                  }}>
+                  <span className="res-sensor-pill" style={{ backgroundColor: isPhOk ? '#dcfce7' : '#fef3c7', color: isPhOk ? '#15803d' : '#b45309' }}>
                     {isPhOk ? 'Tối ưu' : 'Cần chỉnh'}
                   </span>
                 </div>
 
-                {/* EC */}
-                <div style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '12px 10px',
-                  backgroundColor: '#f8fafc',
-                  textAlign: 'center',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Nồng độ EC</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#00a651', margin: '3px 0' }}>
+                <div className="res-sensor-tile">
+                  <div className="res-sensor-label">EC (mS)</div>
+                  <div className="res-sensor-val" style={{ color: '#00a651' }}>
                     {res.currentEc.toFixed(2)}
                   </div>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    backgroundColor: isEcOk ? '#dcfce7' : '#fee2e2',
-                    color: isEcOk ? '#15803d' : '#b91c1c'
-                  }}>
+                  <span className="res-sensor-pill" style={{ backgroundColor: isEcOk ? '#dcfce7' : '#fee2e2', color: isEcOk ? '#15803d' : '#b91c1c' }}>
                     {isEcOk ? 'Chuẩn' : res.currentEc < 1.5 ? 'Thiếu phân' : 'Đậm phân'}
                   </span>
                 </div>
 
-                {/* Water Temp */}
-                <div style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '12px 10px',
-                  backgroundColor: '#f8fafc',
-                  textAlign: 'center',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Nhiệt độ nước</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '3px 0' }}>
-                    {res.currentWaterTemp.toFixed(1)}°C
+                <div className="res-sensor-tile">
+                  <div className="res-sensor-label">Nhiệt nước</div>
+                  <div className="res-sensor-val" style={{ color: isTempOk ? '#0284c7' : '#dc2626' }}>
+                    {res.currentWaterTemp.toFixed(1)}°
                   </div>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    backgroundColor: isTempOk ? '#dcfce7' : '#fef3c7',
-                    color: isTempOk ? '#15803d' : '#b45309'
-                  }}>
-                    {isTempOk ? 'Mát' : 'Hơi ấm'}
+                  <span className="res-sensor-pill" style={{ backgroundColor: isTempOk ? '#e0f2fe' : '#fee2e2', color: isTempOk ? '#0369a1' : '#b91c1c' }}>
+                    {isTempOk ? 'Mát rễ' : 'Ấm'}
                   </span>
                 </div>
 
-                {/* Dissolved Oxygen DO */}
-                <div style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '12px 10px',
-                  backgroundColor: '#f8fafc',
-                  textAlign: 'center',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-subtle)' }}>Oxy DO</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '3px 0' }}>
+                <div className="res-sensor-tile">
+                  <div className="res-sensor-label">Oxy DO</div>
+                  <div className="res-sensor-val" style={{ color: '#059669' }}>
                     {(res.currentDo ?? 6.8).toFixed(1)}
                   </div>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    backgroundColor: '#e0f2fe',
-                    color: '#0369a1'
-                  }}>
-                    mg/L (Tốt)
+                  <span className="res-sensor-pill" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+                    Bão hòa
                   </span>
                 </div>
               </div>
 
-              {/* Smart Dosing Calculator Box */}
-              <div style={{
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '16px',
-                backgroundColor: '#f8fafc',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Zap size={16} color="#00a651" />
-                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Bù Dinh Dưỡng Tuần Hoàn (Dosing)
-                    </span>
+              {/* Dosing Calculator */}
+              <div className="res-dosing-box">
+                <div className="res-dosing-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a' }}>
+                    <Zap size={15} color="#00a651" />
+                    <span>Bù Dinh Dưỡng Tuần Hoàn</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-subtle)', fontWeight: 600 }}>Mục tiêu EC:</span>
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid var(--border-medium)',
-                      borderRadius: '8px',
-                      padding: '2px 4px',
-                      gap: '4px'
-                    }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Mục tiêu:</span>
+                    <div className="res-target-control">
                       <button
                         type="button"
                         onClick={() => setTargetEcs(prev => ({ ...prev, [res.id]: Math.max(1.0, parseFloat((currentTargetEc - 0.05).toFixed(2))) }))}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '4px',
-                          border: 'none',
-                          backgroundColor: '#f1f5f9',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          color: 'var(--text-main)',
-                          fontSize: '0.85rem'
-                        }}
+                        className="res-target-btn"
                       >
                         -
                       </button>
@@ -739,88 +578,49 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                         }}
                         className="clean-number"
                         style={{
-                          width: '44px',
-                          height: '24px',
-                          fontSize: '0.875rem',
+                          width: '42px',
+                          fontSize: '0.8125rem',
                           fontWeight: 800,
                           textAlign: 'center',
                           color: '#00a651',
                           border: 'none',
                           outline: 'none',
-                          backgroundColor: 'transparent'
+                          background: 'transparent'
                         }}
                       />
                       <button
                         type="button"
                         onClick={() => setTargetEcs(prev => ({ ...prev, [res.id]: Math.min(2.5, parseFloat((currentTargetEc + 0.05).toFixed(2))) }))}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '4px',
-                          border: 'none',
-                          backgroundColor: '#f1f5f9',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          color: 'var(--text-main)',
-                          fontSize: '0.85rem'
-                        }}
+                        className="res-target-btn"
                       >
                         +
                       </button>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 600 }}>mS/cm</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>mS</span>
                   </div>
                 </div>
 
-                {/* Result Bottles (Can A & Can B) */}
                 {ecDeficit > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      {/* Can A */}
-                      <div style={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #fef3c7',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-                      }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="res-dosing-bottles">
+                      <div className="res-bottle-card" style={{ border: '1px solid #fef3c7' }}>
                         <div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 600 }}>Can A (Canxi/Sắt)</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b45309' }}>
-                            {doseMl} <span style={{ fontSize: '0.85rem' }}>ml</span>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Can A (Canxi/Sắt)</div>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#b45309' }}>
+                            {doseMl} <span style={{ fontSize: '0.75rem' }}>ml</span>
                           </div>
                         </div>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b45309' }}>
-                          <FlaskConical size={18} />
-                        </div>
+                        <FlaskConical size={16} color="#b45309" />
                       </div>
 
-                      {/* Can B */}
-                      <div style={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e0f2fe',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-                      }}>
+                      <div className="res-bottle-card" style={{ border: '1px solid #e0f2fe' }}>
                         <div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 600 }}>Can B (Lân/Khoáng)</div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0369a1' }}>
-                            {doseMl} <span style={{ fontSize: '0.85rem' }}>ml</span>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Can B (Lân/Khoáng)</div>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0369a1' }}>
+                            {doseMl} <span style={{ fontSize: '0.75rem' }}>ml</span>
                           </div>
                         </div>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0369a1' }}>
-                          <FlaskConical size={18} />
-                        </div>
+                        <FlaskConical size={16} color="#0369a1" />
                       </div>
                     </div>
 
@@ -828,78 +628,50 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       type="button"
                       onClick={() => handleApplyDosingForTank(res, currentTargetEc, doseMl)}
                       className="farmvista-btn-green"
-                      style={{ width: '100%', height: '38px', justifyContent: 'center', fontSize: '0.875rem' }}
+                      style={{ width: '100%', height: '34px', justifyContent: 'center', fontSize: '0.8125rem' }}
                     >
-                      <CheckCircle2 size={16} />
-                      <span>Xác nhận đã châm {doseMl}ml Can A & B</span>
+                      <CheckCircle2 size={15} />
+                      <span>Châm {doseMl}ml Can A & B</span>
                     </button>
                   </div>
                 ) : (
                   <div style={{
-                    fontSize: '0.82rem',
+                    fontSize: '0.75rem',
                     color: '#15803d',
                     backgroundColor: '#dcfce7',
-                    padding: '10px 14px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                     fontWeight: 600
                   }}>
-                    <CheckCircle2 size={16} color="#16a34a" />
-                    <span>Dinh dưỡng đang ở mức tối ưu ({res.currentEc} mS/cm). Chưa cần châm thêm.</span>
+                    <CheckCircle2 size={14} color="#16a34a" />
+                    <span>Nồng độ EC đạt chuẩn ({res.currentEc} mS/cm). Chưa cần châm thêm.</span>
                   </div>
                 )}
               </div>
 
-              {/* Connected Batches & Cultivar Agronomic Standards */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1.5px solid #d1fae5',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
+              {/* Connected Batches */}
+              <div className="res-batches-block">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#16a34a' }}>
-                    <Sprout size={15} />
-                    <span>Giống Cây & Lô Canh Tác Đang Cấp Dinh Dưỡng ({resBatches.length} lô)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#15803d' }}>
+                    <Sprout size={14} />
+                    <span>Lô Canh Tác Cấp Dinh Dưỡng ({resBatches.length})</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    Tiêu chuẩn nông học NFT
-                  </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {resBatches.length > 0 ? (
                     resBatches.map(b => (
-                      <div
-                        key={b.id}
-                        style={{
-                          padding: '8px 10px',
-                          backgroundColor: '#f8fafc',
-                          borderRadius: '6px',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '0.75rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '6px'
-                        }}
-                      >
+                      <div key={b.id} className="res-batch-row">
                         <div>
                           <strong style={{ color: '#0f172a' }}>{b.cultivarName}</strong>
-                          <span style={{ color: '#64748b', marginLeft: '6px' }}>({b.batchCode} — Giàn {b.zoneCode || 'NFT'})</span>
+                          <span style={{ color: '#64748b', marginLeft: '6px' }}>({b.batchCode})</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ color: '#475569' }}>
-                            pH: <strong>{b.cultivarName.includes('Oak') ? '5.6 - 6.2' : b.cultivarName.includes('Romaine') ? '5.5 - 6.0' : '5.8 - 6.3'}</strong>
-                          </span>
-                          <span style={{ color: '#475569' }}>
-                            EC: <strong>{b.cultivarName.includes('Oak') ? '1.4 - 1.9' : b.cultivarName.includes('Romaine') ? '1.6 - 2.1' : '1.5 - 2.0'}</strong> mS/cm
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: '#00a651', fontWeight: 600 }}>
+                            EC: {b.cultivarName.includes('Oak') ? '1.4 - 1.9' : '1.5 - 2.0'}
                           </span>
                           <button
                             type="button"
@@ -908,8 +680,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                               setTargetEcs(prev => ({ ...prev, [res.id]: target }));
                             }}
                             style={{
-                              padding: '2px 8px',
-                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              fontSize: '0.68rem',
                               fontWeight: 700,
                               borderRadius: '4px',
                               border: '1px solid #86efac',
@@ -917,7 +689,6 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                               color: '#16a34a',
                               cursor: 'pointer'
                             }}
-                            title="Đặt mục tiêu EC theo chuẩn giống này"
                           >
                             Áp chuẩn
                           </button>
@@ -925,62 +696,21 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       </div>
                     ))
                   ) : (
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic', padding: '4px 0' }}>
-                      Chưa có lô cây trồng liên kết trực tiếp
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                      Chưa có lô cây trồng liên kết
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Connected NFT Gullies / Channels */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    <Layers size={14} color="var(--text-subtle)" />
-                    <span>Máng NFT đang cấp nước ({resChans.length} máng)</span>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 600 }}>
-                    {totalActivePlants} rọ cây
-                  </span>
+              {/* Channels List */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', paddingTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={13} color="#94a3b8" />
+                  <span>{resChans.map(c => c.name).join(', ')}</span>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {resChans.map(ch => {
-                    const batch = batches.find(b => b.id === ch.batchId);
-                    return (
-                      <div
-                        key={ch.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          backgroundColor: '#f8fafc',
-                          borderRadius: '8px',
-                          border: '1px solid #f1f5f9',
-                          fontSize: '0.78rem'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <strong style={{ color: 'var(--text-main)' }}>{ch.name}</strong>
-                          {batch ? (
-                            <span style={{ color: 'var(--text-muted)' }}>
-                              🥬 {batch.cultivarName} ({batch.batchCode})
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-disabled)' }}>Máng trống</span>
-                          )}
-                        </div>
-
-                        <span style={{ fontWeight: 700, color: ch.activePlants > 0 ? '#00a651' : 'var(--text-muted)' }}>
-                          {ch.activePlants} / {ch.slotCount} rọ
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <strong style={{ color: '#00a651' }}>{totalActivePlants} rọ</strong>
               </div>
-
             </div>
           );
         })}
@@ -989,37 +719,30 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* ========================================================
           5. BOTTOM GRID: 7-Day Trend Chart + Standard Formulation
           ======================================================== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        
-        {/* Card Left: 7-Day EC & pH Trend Chart */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+      <div className="res-bottom-grid">
+        {/* Left: Trend Chart */}
+        <div className="farmvista-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 Biến Thiên EC & pH 7 Ngày Gần Nhất
               </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', marginTop: '2px', margin: '2px 0 0 0' }}>
-                Theo dõi xu hướng tiêu thụ dinh dưỡng và ổn định môi trường rễ xà lách.
-              </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <select
-                value={selectedChartTank}
-                onChange={e => setSelectedChartTank(e.target.value as any)}
-                className="farmvista-select-pill"
-                style={{ borderRadius: '8px', height: '32px', fontSize: '0.8rem' }}
-              >
-                <option value="res-01">Bể Tuần Hoàn 01</option>
-                <option value="res-02">Bể Tuần Hoàn 02</option>
-              </select>
-            </div>
+            <select
+              value={selectedChartTank}
+              onChange={e => setSelectedChartTank(e.target.value as any)}
+              className="farmvista-select-pill"
+              style={{ borderRadius: '8px', height: '30px', fontSize: '0.75rem' }}
+            >
+              <option value="res-01">Bể 01 (Tầng 1)</option>
+              <option value="res-02">Bể 02 (Tầng 2)</option>
+            </select>
           </div>
 
-          {/* Recharts Area / Line Chart */}
-          <div style={{ width: '100%', height: '220px' }}>
+          <div style={{ width: '100%', height: '200px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SENSOR_TREND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={SENSOR_TREND_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ecGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00a651" stopOpacity={0.3} />
@@ -1031,20 +754,20 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" domain={[1.4, 2.2]} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" orientation="right" domain={[5.0, 7.0]} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" domain={[1.4, 2.2]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" domain={[5.0, 7.0]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', fontSize: '12px' }} 
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', fontSize: '11px' }} 
                 />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
                 <Area 
                   yAxisId="left"
                   type="monotone" 
                   dataKey={selectedChartTank === 'res-02' ? 'ec2' : 'ec1'} 
-                  name="Nồng độ EC (mS/cm)" 
+                  name="EC (mS/cm)" 
                   stroke="#00a651" 
-                  strokeWidth={2.5} 
+                  strokeWidth={2} 
                   fillOpacity={1} 
                   fill="url(#ecGrad)" 
                 />
@@ -1052,7 +775,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   yAxisId="right"
                   type="monotone" 
                   dataKey={selectedChartTank === 'res-02' ? 'ph2' : 'ph1'} 
-                  name="Độ pH" 
+                  name="pH" 
                   stroke="#0284c7" 
                   strokeWidth={2} 
                   fillOpacity={1} 
@@ -1063,40 +786,36 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           </div>
         </div>
 
-        {/* Card Right: Standard Nutrient Formulation & Salt Composition */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {/* Right: Salt composition */}
+        <div className="farmvista-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 Công Thức Hoagland & Resh Chuẩn
               </h3>
-              <span style={{ fontSize: '0.72rem', backgroundColor: '#e8f8f0', color: '#00a651', padding: '3px 8px', borderRadius: '999px', fontWeight: 700 }}>
-                Tỷ lệ 1:100
+              <span style={{ fontSize: '0.7rem', backgroundColor: '#e8f8f0', color: '#00a651', padding: '2px 8px', borderRadius: '999px', fontWeight: 700 }}>
+                1:100 Stock
               </span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', margin: '0 0 14px 0' }}>
-              {defaultFormula?.scientificStandard || 'Chuẩn dinh dưỡng Cornell cho xà lách thủy canh NFT'}
-            </p>
 
-            {/* Salt ingredients mini preview */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#fef3c7', borderRadius: '6px', fontSize: '0.78rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#fef3c7', borderRadius: '6px', fontSize: '0.75rem' }}>
                 <span style={{ fontWeight: 600, color: '#92400e' }}>Can A • Canxi Nitrat</span>
                 <strong style={{ color: '#b45309' }}>1,000g / 10L</strong>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#e0f2fe', borderRadius: '6px', fontSize: '0.78rem' }}>
-                <span style={{ fontWeight: 600, color: '#075985' }}>Can B • Magie Sulfat (Muối Epsom)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#e0f2fe', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <span style={{ fontWeight: 600, color: '#075985' }}>Can B • Magie Sulfat</span>
                 <strong style={{ color: '#0284c7' }}>550g / 10L</strong>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '0.78rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Can B • Monopotassium Phosphate (MKP)</span>
-                <strong style={{ color: 'var(--text-main)' }}>250g / 10L</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <span style={{ fontWeight: 600, color: '#334155' }}>Can B • Monopotassium Phosphate (MKP)</span>
+                <strong>250g / 10L</strong>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '0.78rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Can A • Sắt Chelate Fe-EDDHA (6%)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <span style={{ fontWeight: 600, color: '#334155' }}>Can A • Sắt Chelate Fe-EDDHA (6%)</span>
                 <strong style={{ color: '#00a651' }}>40g / 10L</strong>
               </div>
             </div>
@@ -1105,13 +824,12 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           <button
             onClick={() => setIsFormulaModalOpen(true)}
             className="farmvista-btn-secondary"
-            style={{ width: '100%', height: '36px', justifyContent: 'center', marginTop: '14px', fontSize: '0.8125rem' }}
+            style={{ width: '100%', height: '32px', justifyContent: 'center', marginTop: '12px', fontSize: '0.78rem' }}
           >
-            <FlaskConical size={14} color="#00a651" />
+            <FlaskConical size={13} color="#00a651" />
             <span>Xem Chi Tiết Định Lượng Muối Khoáng</span>
           </button>
         </div>
-
       </div>
 
       {/* ========================================================
@@ -1121,9 +839,9 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Modal 1: Ghi nhận số đo mới */}
       {isLogModalOpen && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '440px' }}>
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Ghi Số Đo Mới: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
               <button 
@@ -1132,24 +850,23 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   background: '#f1f5f9', 
                   border: 'none', 
                   borderRadius: '50%', 
-                  width: '30px', 
-                  height: '30px', 
+                  width: '28px', 
+                  height: '28px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
                   cursor: 'pointer', 
-                  color: 'var(--text-muted)',
-                  transition: 'background-color 0.15s ease'
+                  color: 'var(--text-muted)'
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
             <form onSubmit={handleLogSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Độ pH (Chuẩn: 5.6 - 6.2)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Độ pH (Chuẩn: 5.6 - 6.2)</label>
                   <input 
                     type="number" 
                     step="0.05"
@@ -1163,7 +880,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Nồng độ EC (mS/cm - Chuẩn: 1.5 - 1.9)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Nồng độ EC (mS/cm - Chuẩn: 1.5 - 1.9)</label>
                   <input 
                     type="number" 
                     step="0.05"
@@ -1177,7 +894,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Nhiệt độ nước (°C - Chuẩn: 20 - 24°C)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Nhiệt độ nước (°C - Chuẩn: 20 - 24°C)</label>
                   <input 
                     type="number" 
                     step="0.1"
@@ -1191,7 +908,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Oxy hòa tan DO (mg/L - Chuẩn: 6.0 - 8.0)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Oxy hòa tan DO (mg/L - Chuẩn: 6.0 - 8.0)</label>
                   <input 
                     type="number" 
                     step="0.1"
@@ -1205,7 +922,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Mực nước (% dung tích bể - Ngưỡng an toàn: &gt;20%)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Mực nước (% dung tích bể)</label>
                   <input 
                     type="number" 
                     step="1"
@@ -1220,10 +937,10 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsLogModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '36px', padding: '0 16px' }}>
+                <button type="button" onClick={() => setIsLogModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '34px', padding: '0 14px' }}>
                   Hủy
                 </button>
-                <button type="submit" className="farmvista-btn-green" style={{ height: '36px', padding: '0 18px' }}>
+                <button type="submit" className="farmvista-btn-green" style={{ height: '34px', padding: '0 16px' }}>
                   Lưu số đo
                 </button>
               </div>
@@ -1235,9 +952,9 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Modal 2: Bù nước sạch */}
       {isTopUpModalOpen && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '420px' }}>
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Bù Nước Sạch: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
               <button 
@@ -1246,8 +963,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   background: '#f1f5f9', 
                   border: 'none', 
                   borderRadius: '50%', 
-                  width: '30px', 
-                  height: '30px', 
+                  width: '28px', 
+                  height: '28px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
@@ -1255,14 +972,14 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   color: 'var(--text-muted)' 
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
             <form onSubmit={handleTopUpSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Số lít nước châm thêm (Lít)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Số lít nước châm thêm (Lít)</label>
                   <input 
                     type="number" 
                     min="10"
@@ -1282,28 +999,27 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       onClick={() => setTopUpLiters(amt)}
                       style={{
                         flex: 1,
-                        height: '34px',
-                        borderRadius: '8px',
-                        fontSize: '0.8125rem',
+                        height: '32px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
                         fontWeight: 600,
                         border: topUpLiters === amt ? '1px solid #00a651' : '1px solid var(--border-medium)',
                         backgroundColor: topUpLiters === amt ? '#e8f8f0' : '#ffffff',
                         color: topUpLiters === amt ? '#00a651' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
+                        cursor: 'pointer'
                       }}
                     >
-                      +{amt} Lít
+                      +{amt}L
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsTopUpModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '36px', padding: '0 16px' }}>
+                <button type="button" onClick={() => setIsTopUpModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '34px', padding: '0 14px' }}>
                   Hủy
                 </button>
-                <button type="submit" className="farmvista-btn-green" style={{ height: '36px', padding: '0 18px' }}>
+                <button type="submit" className="farmvista-btn-green" style={{ height: '34px', padding: '0 16px' }}>
                   Xác nhận bù nước
                 </button>
               </div>
@@ -1315,9 +1031,9 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Modal 3: Xả bể */}
       {isDrainModalOpen && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '440px' }}>
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#dc2626' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#dc2626' }}>
                 Xác Nhận Xả Bể: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
               <button 
@@ -1326,8 +1042,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   background: '#f1f5f9', 
                   border: 'none', 
                   borderRadius: '50%', 
-                  width: '30px', 
-                  height: '30px', 
+                  width: '28px', 
+                  height: '28px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
@@ -1335,19 +1051,19 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   color: 'var(--text-muted)' 
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
             <form onSubmit={handleDrainSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '12px 14px', borderRadius: '10px', color: '#b91c1c', fontSize: '0.8rem', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <AlertCircle size={20} color="#dc2626" style={{ flexShrink: 0 }} />
-                  <span>Thao tác này sẽ ghi nhận xả toàn bộ <strong>{activeModalRes?.currentVolumeLiters}L</strong> nước dinh dưỡng hiện tại.</span>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '10px 12px', borderRadius: '8px', color: '#b91c1c', fontSize: '0.78rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <AlertCircle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <span>Xả toàn bộ <strong>{activeModalRes?.currentVolumeLiters}L</strong> nước dinh dưỡng hiện tại.</span>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Lý do xả nước</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Lý do xả</label>
                   <select 
                     className="form-select" 
                     value={drainReason} 
@@ -1361,7 +1077,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Người thực hiện</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Người thực hiện</label>
                   <input 
                     type="text" 
                     className="form-input" 
@@ -1372,22 +1088,22 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Ghi chú kỹ thuật</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Ghi chú kỹ thuật</label>
                   <input 
-                    type="text"
+                    type="text" 
                     className="form-input" 
                     value={drainNotes} 
                     onChange={e => setDrainNotes(e.target.value)} 
-                    placeholder="Ví dụ: Vệ sinh bồn trước khi pha dung dịch mới."
+                    placeholder="Vệ sinh bồn trước khi pha dung dịch mới."
                   />
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsDrainModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '36px', padding: '0 16px' }}>
+                <button type="button" onClick={() => setIsDrainModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '34px', padding: '0 14px' }}>
                   Hủy
                 </button>
-                <button type="submit" className="farmvista-btn-danger" style={{ height: '36px', padding: '0 18px' }}>
+                <button type="submit" className="farmvista-btn-danger" style={{ height: '34px', padding: '0 16px' }}>
                   Xác nhận xả bể
                 </button>
               </div>
@@ -1399,10 +1115,10 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Modal 4: Lịch sử xả nước */}
       {isDrainHistoryModalOpen && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '540px' }}>
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <History size={18} color="#00a651" />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={16} color="#00a651" />
                 <span>Nhật Ký Xả & Thay Nước</span>
               </h3>
               <button 
@@ -1411,8 +1127,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   background: '#f1f5f9', 
                   border: 'none', 
                   borderRadius: '50%', 
-                  width: '30px', 
-                  height: '30px', 
+                  width: '28px', 
+                  height: '28px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
@@ -1420,34 +1136,34 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   color: 'var(--text-muted)' 
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
-            <div className="modal-body" style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="modal-body" style={{ maxHeight: '380px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {drainEvents.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-subtle)', fontSize: '0.85rem' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '0.8125rem' }}>
                   Chưa có lần xả nước nào được ghi nhận.
                 </div>
               ) : (
                 drainEvents.map(ev => {
                   const res = reservoirs.find(r => r.id === ev.reservoirId);
                   return (
-                    <div key={ev.id} style={{ border: '1px solid #e2e8f0', backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', fontSize: '0.8125rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <strong style={{ color: 'var(--text-main)' }}>{res?.name.split('-')[0].trim() || 'Bể'} • Xả {ev.volumeDrainedLiters} Lít</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Calendar size={12} />
+                    <div key={ev.id} style={{ border: '1px solid #e2e8f0', backgroundColor: '#ffffff', borderRadius: '8px', padding: '12px', fontSize: '0.78rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <strong style={{ color: '#0f172a' }}>{res?.name.split('-')[0].trim() || 'Bể'} • Xả {ev.volumeDrainedLiters}L</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={11} />
                           {ev.drainDate}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', gap: '14px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        <span>pH: <strong style={{ color: 'var(--text-main)' }}>{ev.finalPh}</strong></span>
-                        <span>EC: <strong style={{ color: '#00a651' }}>{ev.finalEc} mS/cm</strong></span>
-                        <span>Kỹ thuật viên: <strong style={{ color: 'var(--text-main)' }}>{ev.operator}</strong></span>
+                      <div style={{ display: 'flex', gap: '12px', color: '#475569', fontSize: '0.75rem' }}>
+                        <span>pH: <strong>{ev.finalPh}</strong></span>
+                        <span>EC: <strong style={{ color: '#00a651' }}>{ev.finalEc} mS</strong></span>
+                        <span>KTV: <strong>{ev.operator}</strong></span>
                       </div>
                       {ev.notes && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '6px', fontStyle: 'italic' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
                           Ghi chú: {ev.notes}
                         </div>
                       )}
@@ -1458,7 +1174,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
             </div>
 
             <div className="modal-footer">
-              <button type="button" onClick={() => setIsDrainHistoryModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '36px', padding: '0 18px' }}>
+              <button type="button" onClick={() => setIsDrainHistoryModalOpen(false)} className="farmvista-btn-secondary" style={{ height: '34px', padding: '0 16px' }}>
                 Đóng
               </button>
             </div>
@@ -1469,11 +1185,11 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       {/* Modal 5: Công thức pha can 10L tại kho */}
       {isFormulaModalOpen && defaultFormula && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+          <div className="modal-content" style={{ maxWidth: '560px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FlaskConical size={18} color="#00a651" />
-                <span>Công Thức Pha Can 10L Tại Kho (Stock Solution)</span>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FlaskConical size={16} color="#00a651" />
+                <span>Công Thức Pha Can 10L Tại Kho (Stock)</span>
               </h3>
               <button 
                 onClick={() => setIsFormulaModalOpen(false)} 
@@ -1481,8 +1197,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   background: '#f1f5f9', 
                   border: 'none', 
                   borderRadius: '50%', 
-                  width: '30px', 
-                  height: '30px', 
+                  width: '28px', 
+                  height: '28px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
@@ -1490,25 +1206,25 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   color: 'var(--text-muted)' 
                 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.8125rem' }}>
-              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: '8px', color: '#166534', fontSize: '0.78rem' }}>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.78rem' }}>
+              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: '6px', color: '#166534' }}>
                 {defaultFormula.scientificStandard} • Tỷ lệ pha 1:100 (10ml Can A + 10ml Can B trên 1L nước sạch).
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {/* Can A */}
-                <div style={{ border: '1px solid #fef3c7', borderRadius: '10px', padding: '14px', backgroundColor: '#fffbeb' }}>
-                  <strong style={{ color: '#b45309', display: 'block', marginBottom: '10px', fontSize: '0.85rem' }}>
+                <div style={{ border: '1px solid #fef3c7', borderRadius: '8px', padding: '12px', backgroundColor: '#fffbeb' }}>
+                  <strong style={{ color: '#b45309', display: 'block', marginBottom: '8px', fontSize: '0.8125rem' }}>
                     Can A (10 Lít mẹ)
                   </strong>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {defaultFormula.stockAItems?.map((it, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                        <span style={{ color: 'var(--text-main)' }}>{it.name}</span>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.name}</span>
                         <strong style={{ color: '#b45309' }}>{it.gramsPer10LStock}g</strong>
                       </div>
                     ))}
@@ -1516,14 +1232,14 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 {/* Can B */}
-                <div style={{ border: '1px solid #e0f2fe', borderRadius: '10px', padding: '14px', backgroundColor: '#f0f9ff' }}>
-                  <strong style={{ color: '#0369a1', display: 'block', marginBottom: '10px', fontSize: '0.85rem' }}>
+                <div style={{ border: '1px solid #e0f2fe', borderRadius: '8px', padding: '12px', backgroundColor: '#f0f9ff' }}>
+                  <strong style={{ color: '#0369a1', display: 'block', marginBottom: '8px', fontSize: '0.8125rem' }}>
                     Can B (10 Lít mẹ)
                   </strong>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {defaultFormula.stockBItems?.map((it, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                        <span style={{ color: 'var(--text-main)' }}>{it.name}</span>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.name}</span>
                         <strong style={{ color: '#0369a1' }}>{it.gramsPer10LStock}g</strong>
                       </div>
                     ))}
@@ -1531,13 +1247,13 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#dc2626', backgroundColor: '#fef2f2', padding: '12px 14px', borderRadius: '10px', border: '1px solid #fecaca' }}>
-                <strong>Lưu ý quan trọng:</strong> {defaultFormula.chemicalIncompatibilityReason}
+              <div style={{ fontSize: '0.72rem', color: '#dc2626', backgroundColor: '#fef2f2', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                <strong>Lưu ý:</strong> {defaultFormula.chemicalIncompatibilityReason}
               </div>
             </div>
 
             <div className="modal-footer">
-              <button type="button" onClick={() => setIsFormulaModalOpen(false)} className="farmvista-btn-green" style={{ height: '36px', padding: '0 20px' }}>
+              <button type="button" onClick={() => setIsFormulaModalOpen(false)} className="farmvista-btn-green" style={{ height: '34px', padding: '0 18px' }}>
                 Đã Hiểu
               </button>
             </div>

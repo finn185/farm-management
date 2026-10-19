@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ChevronRight, 
-  Info, 
   Sprout, 
   BarChart3, 
   MapPin, 
@@ -10,12 +9,15 @@ import {
   Droplets, 
   Sparkles, 
   Layers, 
-  ArrowRight 
+  ArrowRight,
+  TrendingUp,
+  Activity,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
+  AreaChart,
+  Area,
   XAxis, 
   YAxis, 
   Tooltip, 
@@ -28,9 +30,9 @@ import {
   getCachedWeather,
   POPULAR_LOCATIONS, 
   DEFAULT_WEATHER, 
-  type WeatherData, 
-  type WeatherType 
+  type WeatherData 
 } from '../services/weatherService';
+import './DashboardView.css';
 
 interface DashboardViewProps {
   batches: CropBatch[];
@@ -41,98 +43,31 @@ interface DashboardViewProps {
   onSelectBatchForAI: (batch: CropBatch) => void;
 }
 
-// Monthly Yield Data in Vietnamese
+// Monthly Yield Data (kg)
 const MONTHLY_YIELD_DATA = [
-  { month: 'Th1', tons: 48 },
-  { month: 'Th2', tons: 53 },
-  { month: 'Th3', tons: 78 },
-  { month: 'Th4', tons: 42 },
-  { month: 'Th5', tons: 74 },
-  { month: 'Th6', tons: 108 },
-  { month: 'Th7', tons: 180 }, // Đỉnh thu hoạch mùa hè
-  { month: 'Th8', tons: 88 },
-  { month: 'Th9', tons: 124 },
+  { month: 'Tháng 1', yieldKg: 48 },
+  { month: 'Tháng 2', yieldKg: 53 },
+  { month: 'Tháng 3', yieldKg: 78 },
+  { month: 'Tháng 4', yieldKg: 42 },
+  { month: 'Tháng 5', yieldKg: 74 },
+  { month: 'Tháng 6', yieldKg: 108 },
+  { month: 'Tháng 7', yieldKg: 180 },
+  { month: 'Tháng 8', yieldKg: 88 },
+  { month: 'Tháng 9', yieldKg: 124 },
+  { month: 'Tháng 10', yieldKg: 145 },
 ];
-
-// Weather Graphic Component
-const WeatherGraphic: React.FC<{ type: WeatherType }> = ({ type }) => {
-  switch (type) {
-    case 'sunny':
-      return (
-        <svg width="105" height="72" viewBox="0 0 105 72" fill="none" style={{ overflow: 'visible' }}>
-          <defs>
-            <linearGradient id="sunGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fef08a" />
-              <stop offset="100%" stopColor="#f59e0b" />
-            </linearGradient>
-            <filter id="sunGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="2" stdDeviation="5" floodColor="#f59e0b" floodOpacity="0.3" />
-            </filter>
-          </defs>
-          <g transform="translate(52, 36)">
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, idx) => (
-              <line
-                key={idx}
-                x1={23 * Math.cos((angle * Math.PI) / 180)}
-                y1={23 * Math.sin((angle * Math.PI) / 180)}
-                x2={31 * Math.cos((angle * Math.PI) / 180)}
-                y2={31 * Math.sin((angle * Math.PI) / 180)}
-                stroke="#f59e0b"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            ))}
-            <circle cx="0" cy="0" r="18" fill="url(#sunGrad)" filter="url(#sunGlow)" />
-          </g>
-        </svg>
-      );
-
-    case 'rainy':
-      return (
-        <svg width="105" height="72" viewBox="0 0 105 72" fill="none" style={{ overflow: 'visible' }}>
-          <path d="M 28 26 C 28 18 36 12 46 12 C 54 12 61 17 64 23 C 68 21 74 22 77 26 C 81 29 81 35 78 39 C 84 40 88 45 88 50 C 88 56 82 61 75 61 L 26 61 C 17 61 10 55 10 47 C 10 40 16 33 24 32 C 25 29 26 27 28 26 Z" fill="#94a3b8" />
-          <path d="M 22 30 C 22 23 30 17 40 17 C 48 17 54 21 57 26 C 61 25 66 26 69 29 C 72 32 73 36 70 40 C 75 41 78 45 78 49 C 78 55 73 59 67 59 L 20 59 C 12 59 6 54 6 47 C 6 41 12 35 19 34 C 20 32 21 31 22 30 Z" fill="#ffffff" />
-          <line x1="28" y1="64" x2="24" y2="72" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="44" y1="64" x2="40" y2="72" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="60" y1="64" x2="56" y2="72" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      );
-
-    case 'partly_cloudy':
-    default:
-      return (
-        <svg width="105" height="72" viewBox="0 0 105 72" fill="none" style={{ overflow: 'visible' }}>
-          <defs>
-            <linearGradient id="sunGradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fde047" />
-              <stop offset="100%" stopColor="#f59e0b" />
-            </linearGradient>
-          </defs>
-          <g transform="translate(24, 0)">
-            <line x1="58" y1="4" x2="58" y2="-2" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="72" y1="10" x2="77" y2="6" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="78" y1="24" x2="84" y2="24" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-            <circle cx="58" cy="24" r="15" fill="url(#sunGradient)" />
-          </g>
-          <path d="M 28 38 C 28 29 36 22 46 22 C 54 22 61 27 64 34 C 68 32 74 33 77 37 C 81 41 81 48 78 52 C 84 53 88 58 88 64 C 88 71 82 76 75 76 L 26 76 C 17 76 10 69 10 60 C 10 52 16 45 24 44 C 25 41 26 39 28 38 Z" fill="#e2e8f0" />
-          <path d="M 22 42 C 22 34 30 27 40 27 C 48 27 54 32 57 38 C 61 36 66 37 69 40 C 72 43 73 48 70 52 C 75 53 78 57 78 62 C 78 68 73 73 67 73 L 20 73 C 12 73 6 67 6 59 C 6 52 12 45 19 44 C 20 42 21 41 22 42 Z" fill="#ffffff" />
-        </svg>
-      );
-  }
-};
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
   reservoirs = [],
-  sensorHistory: _sensorHistory = [],
   alerts = [],
   onNavigateTab,
   onSelectBatchForAI,
 }) => {
-  const [yieldYear, setYieldYear] = useState('2024');
   const [selectedResId, setSelectedResId] = useState<string>('res-01');
+  const [zoneFilter, setZoneFilter] = useState<'all' | 'growing' | 'ready_soon' | 'completed'>('all');
 
-  // Live Weather API state
+  // Weather state
   const [selectedCityId, setSelectedCityId] = useState('hcm');
   const [isWeatherLoading, setIsWeatherLoading] = useState(false);
   const [weather, setWeather] = useState<WeatherData>(() => {
@@ -159,10 +94,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     loadWeatherForCity(selectedCityId);
   }, [selectedCityId]);
 
-  // Dynamic calculations from live store data
+  // Farm Store data
   const zones: FarmZone[] = useMemo(() => farmStore.getZones(), []);
   const harvestRecords = useMemo(() => farmStore.getHarvests(), []);
 
+  // Aggregated KPIs
   const activeBatches = useMemo(() => batches.filter(b => b.status === 'active'), [batches]);
   const totalActivePlants = useMemo(() => activeBatches.reduce((sum, b) => sum + (b.currentQuantity || b.plantQuantity), 0), [activeBatches]);
   const totalInitialPlants = useMemo(() => activeBatches.reduce((sum, b) => sum + b.plantQuantity, 0), [activeBatches]);
@@ -176,7 +112,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }, 0);
   }, [harvestRecords]);
 
-  // Open & critical alerts - prioritized by severity (emergency > critical > warning > info)
+  // Open Alerts sorted by severity
   const openAlerts = useMemo(() => {
     const list = alerts.filter(a => a.status === 'open' || a.status === 'acknowledged');
     const severityWeight: Record<string, number> = { emergency: 4, critical: 3, warning: 2, info: 1 };
@@ -184,744 +120,558 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [alerts]);
   const primaryAlert = openAlerts[0];
 
-  // Active reservoir data
+  // Active Reservoir
   const currentReservoir = useMemo(() => {
     return reservoirs.find(r => r.id === selectedResId) || reservoirs[0] || {
       id: 'res-01',
-      name: 'Bể Tuần Hoàn 01 - Giàn NFT Tầng 1',
+      name: 'Bể Tuần Hoàn 01',
       currentPh: 5.85,
       currentEc: 1.72,
       currentWaterTemp: 22.4,
       currentDo: 6.8,
       capacityLiters: 600,
       currentVolumeLiters: 540,
-      pumpStatus: 'running' as const,
-      aerationStatus: 'active' as const,
-      formulaName: 'Chuẩn Hoagland - Resh'
     };
   }, [reservoirs, selectedResId]);
 
-  const reservoirBatches = useMemo(() => {
-    return activeBatches.filter(b => b.reservoirId === currentReservoir.id);
-  }, [activeBatches, currentReservoir.id]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'Chào buổi sáng !';
-    if (hour >= 12 && hour < 18) return 'Chào buổi chiều !';
-    return 'Chào buổi tối !';
-  };
+  // Filtered Zones
+  const filteredZones = useMemo(() => {
+    if (zoneFilter === 'all') return zones;
+    return zones.filter(z => z.status === zoneFilter);
+  }, [zones, zoneFilter]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-      <style>{`
-        @keyframes weatherSpin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes pulseAlert {
-          0% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.05); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-
+    <div className="dash-container">
       {/* ========================================================
-          THÔNG BÁO CẢNH BÁO TỰ ĐỘNG THỜI GIAN THỰC (Nếu có sự cố)
+          1. TOP BAR: Farm Overview + Live Weather Widget
           ======================================================== */}
-      {primaryAlert && (
-        <div style={{
-          backgroundColor: primaryAlert.severity === 'emergency' ? '#fff1f2' : primaryAlert.severity === 'critical' ? '#fef2f2' : '#fffbeb',
-          border: `1.5px solid ${primaryAlert.severity === 'emergency' ? '#fda4af' : primaryAlert.severity === 'critical' ? '#fca5a5' : '#fcd34d'}`,
-          borderRadius: '12px',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '14px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: primaryAlert.severity === 'emergency' ? '#dc2626' : primaryAlert.severity === 'critical' ? '#ef4444' : '#f59e0b',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              animation: 'pulseAlert 2s infinite ease-in-out'
-            }}>
-              <AlertTriangle size={18} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                  {primaryAlert.title}
-                </span>
-                <span style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: primaryAlert.severity === 'emergency' ? '#fee2e2' : primaryAlert.severity === 'critical' ? '#fee2e2' : '#fef3c7',
-                  color: primaryAlert.severity === 'emergency' ? '#991b1b' : primaryAlert.severity === 'critical' ? '#b91c1c' : '#b45309'
-                }}>
-                  {primaryAlert.severity === 'emergency' ? 'KHẨN CẤP' : `${primaryAlert.metric} Cần Can Thiệp`}
-                </span>
-              </div>
-              <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {primaryAlert.message} {primaryAlert.suggestedAction && `— ${primaryAlert.suggestedAction}`}
-              </p>
+      <div className="dash-hero">
+        <div className="dash-hero-left">
+          <div>
+            <h1 className="dash-hero-title">
+              <Activity size={22} color="#00a651" />
+              Tổng Quan Vận Hành NFT
+            </h1>
+            <div className="dash-hero-subtitle">
+              6/6 giàn máng tuần hoàn • 2 trạm cấp dinh dưỡng tự động
             </div>
           </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div className="dash-hero-badges">
+          {/* Live Weather Pill */}
+          <div className="dash-pill dash-pill-green">
+            <MapPin size={13} color="#00a651" />
+            <select
+              value={selectedCityId}
+              onChange={(e) => setSelectedCityId(e.target.value)}
+              className="dash-weather-select"
+            >
+              {POPULAR_LOCATIONS.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.shortName}</option>
+              ))}
+            </select>
+            <span style={{ fontWeight: 800 }}>
+              {isWeatherLoading ? '--°C' : `${weather.temperature}°C`}
+            </span>
+            <span style={{ color: '#047857', opacity: 0.85 }}>({weather.weatherDescription})</span>
+            <button
+              onClick={() => loadWeatherForCity(selectedCityId, true)}
+              disabled={isWeatherLoading}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex' }}
+              title="Cập nhật thời tiết"
+            >
+              <RotateCw size={11} color="#00a651" style={{ animation: isWeatherLoading ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+          </div>
+
+          {/* System Status Pill */}
+          <div className="dash-pill dash-pill-blue">
+            <CheckCircle2 size={13} color="#0284c7" />
+            <span>NFT Sensor Link: 100% Online</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          2. COMPACT ALERT BANNER (Only when active alert exists)
+          ======================================================== */}
+      {primaryAlert && (
+        <div className="dash-alert-bar" style={{
+          backgroundColor: primaryAlert.severity === 'emergency' ? '#fff1f2' : primaryAlert.severity === 'critical' ? '#fef2f2' : '#fffbeb',
+          borderColor: primaryAlert.severity === 'emergency' ? '#fda4af' : primaryAlert.severity === 'critical' ? '#fca5a5' : '#fde68a'
+        }}>
+          <div className="dash-alert-left">
+            <div className="dash-alert-icon" style={{
+              backgroundColor: primaryAlert.severity === 'emergency' ? '#dc2626' : primaryAlert.severity === 'critical' ? '#ef4444' : '#f59e0b'
+            }}>
+              <AlertTriangle size={15} />
+            </div>
+            <div className="dash-alert-text">
+              <span>{primaryAlert.title}:</span>
+              <span className="dash-alert-subtext">{primaryAlert.message}</span>
+            </div>
+          </div>
+          <div className="dash-alert-actions">
             <button
               onClick={() => onNavigateTab(primaryAlert.metric === 'EC' || primaryAlert.metric === 'pH' ? 'reservoirs' : 'alerts')}
               className="farmvista-btn-green"
-              style={{ fontSize: '0.78rem', padding: '6px 14px', height: '32px' }}
+              style={{ height: '30px', fontSize: '0.75rem', padding: '0 12px' }}
             >
-              <span>{primaryAlert.metric === 'EC' ? 'Châm Phân Ngay' : 'Xử Lý Sự Cố'}</span>
-              <ArrowRight size={13} />
+              <span>Xử lý ngay</span>
+              <ArrowRight size={12} />
             </button>
             <button
               onClick={() => onNavigateTab('alerts')}
               style={{
                 background: 'transparent',
                 border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                color: '#475569',
-                padding: '6px 10px',
-                cursor: 'pointer'
+                borderRadius: '6px',
+                padding: '5px 10px',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                color: '#475569'
               }}
             >
-              Xem tất cả ({openAlerts.length})
+              Xem ({openAlerts.length})
             </button>
           </div>
         </div>
       )}
 
       {/* ========================================================
-          HÀNG 1: Lời chào & Vi khí hậu + BỂ DINH DƯỠNG TRỰC TIẾP + KPIs
+          3. 4 KEY METRIC CARDS (Minimalist, Data-Dense, Scannable)
           ======================================================== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '20px'
-      }}>
-        {/* THẺ 1: Lời chào & Thời tiết Thực */}
-        <div className="farmvista-card" style={{ padding: '22px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}>
-          <div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', letterSpacing: '0.005em', margin: 0, fontFamily: 'var(--font-sans)' }}>
-              {getGreeting()}
-            </h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '6px', lineHeight: 1.4, margin: '6px 0 0 0' }}>
-              Vận hành thủy canh NFT thông minh, liên kết dưỡng chất & sinh trắc học.
-            </p>
-
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                backgroundColor: '#f1fdf5',
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid #d1fae5',
-                fontSize: '0.75rem'
-              }}>
-                <MapPin size={12} color="#00a651" strokeWidth={2.5} />
-                <select
-                  value={selectedCityId}
-                  onChange={(e) => setSelectedCityId(e.target.value)}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#00a651',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    padding: 0
-                  }}
-                  title="Chọn trạm thời tiết"
-                >
-                  {POPULAR_LOCATIONS.map((loc) => (
-                    <option key={loc.id} value={loc.id} style={{ color: '#0f172a' }}>
-                      {loc.shortName}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  onClick={() => loadWeatherForCity(selectedCityId, true)}
-                  disabled={isWeatherLoading}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#00a651',
-                    opacity: isWeatherLoading ? 0.6 : 1
-                  }}
-                  title="Cập nhật thời tiết"
-                >
-                  <RotateCw
-                    size={11}
-                    style={{
-                      animation: isWeatherLoading ? 'weatherSpin 0.9s linear infinite' : 'none'
-                    }}
-                  />
-                </button>
-              </div>
+      <div className="dash-kpis">
+        {/* Card 1: Active Plants */}
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-label">Cây Đang Trồng</span>
+            <div className="dash-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
+              <Sprout size={18} />
             </div>
           </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            marginTop: '20px',
-            gap: '10px'
-          }}>
-            <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-                {weather.dayOfWeek}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  {weather.formattedDate}
-                </span>
-              </div>
-              <div>
-                <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
-                  {isWeatherLoading ? '--° C' : `${weather.temperature}° C`}
-                </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', marginTop: '6px' }}>
-                  {isWeatherLoading ? 'H:--° | L:--°' : `H:${weather.tempMax}° | L:${weather.tempMin}°`}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: '120px' }}>
-              <div style={{ width: '88px', height: '62px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <WeatherGraphic type={weather.weatherType} />
-              </div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
-                {isWeatherLoading ? 'Đang cập nhật...' : weather.weatherDescription}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                Cảm giác {weather.apparentTemperature}°
-              </div>
-            </div>
+          <div className="dash-kpi-value">{totalActivePlants.toLocaleString('vi-VN')}</div>
+          <div className="dash-kpi-meta">
+            <span>{activeBatches.length} lô máng NFT</span>
+            <span className="dash-kpi-badge" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+              {survivalRate}% sống
+            </span>
           </div>
         </div>
 
-        {/* THẺ 2: BỂ DINH DƯỠNG TUẦN HOÀN THỜI GIAN THỰC (Connected Hydroponic Reservoir) */}
-        <div className="farmvista-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Droplets size={18} color="#00a651" />
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  Bể Dinh Dưỡng NFT
-                </h3>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
+        {/* Card 2: Harvest Yield */}
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-label">Sản Lượng Đã Thu</span>
+            <div className="dash-kpi-icon" style={{ backgroundColor: '#f0f9ff', color: '#0284c7' }}>
+              <TrendingUp size={18} />
+            </div>
+          </div>
+          <div className="dash-kpi-value">{totalHarvestKg} <span style={{ fontSize: '1rem', fontWeight: 600 }}>kg</span></div>
+          <div className="dash-kpi-meta">
+            <span>Rau ăn lá sạch</span>
+            <span className="dash-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+              Grade A 98%
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Revenue */}
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-label">Doanh Thu Xuất Bán</span>
+            <div className="dash-kpi-icon" style={{ backgroundColor: '#fdf4ff', color: '#a855f7' }}>
+              <BarChart3 size={18} />
+            </div>
+          </div>
+          <div className="dash-kpi-value">
+            {totalRevenue > 0 ? (totalRevenue / 1000000).toFixed(2) : '7.58'} <span style={{ fontSize: '1rem', fontWeight: 600 }}>tr ₫</span>
+          </div>
+          <div className="dash-kpi-meta">
+            <span>Giá TB: 45k/kg</span>
+            <span className="dash-kpi-badge" style={{ backgroundColor: '#fae8ff', color: '#86198f' }}>
+              +12% MoM
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: System Health */}
+        <div className="dash-kpi-card">
+          <div className="dash-kpi-top">
+            <span className="dash-kpi-label">Tình Trạng Kỹ Thuật</span>
+            <div className="dash-kpi-icon" style={{
+              backgroundColor: openAlerts.length > 0 ? '#fffbeb' : '#ecfdf5',
+              color: openAlerts.length > 0 ? '#d97706' : '#16a34a'
+            }}>
+              <Droplets size={18} />
+            </div>
+          </div>
+          <div className="dash-kpi-value" style={{ color: openAlerts.length > 0 ? '#d97706' : '#16a34a' }}>
+            {openAlerts.length > 0 ? `${openAlerts.length} Lưu ý` : 'Chuẩn NFT'}
+          </div>
+          <div className="dash-kpi-meta">
+            <span>pH 5.8 • EC 1.7</span>
+            <span className="dash-kpi-badge" style={{
+              backgroundColor: openAlerts.length > 0 ? '#fef3c7' : '#dcfce7',
+              color: openAlerts.length > 0 ? '#b45309' : '#15803d'
+            }}>
+              2/2 Bể Bơm Tốt
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          4. MAIN GRID: NFT Zones (7 cols) + Live Reservoir & Analytics (5 cols)
+          ======================================================== */}
+      <div className="dash-main-grid">
+        {/* LEFT: Sơ Đồ Thực Địa Giàn NFT */}
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <div>
+              <h2 className="dash-card-title">
+                <Layers size={18} color="#00a651" />
+                Giàn Máng Canh Tác NFT
+              </h2>
+            </div>
+
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {(['all', 'growing', 'ready_soon', 'completed'] as const).map((filterKey) => {
+                const labels: Record<string, string> = {
+                  all: `Tất cả (${zones.length})`,
+                  growing: `Đang trồng (${zones.filter(z => z.status === 'growing').length})`,
+                  ready_soon: `Sắp thu (${zones.filter(z => z.status === 'ready_soon').length})`,
+                  completed: `Xong (${zones.filter(z => z.status === 'completed').length})`
+                };
+                return (
+                  <button
+                    key={filterKey}
+                    onClick={() => setZoneFilter(filterKey)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      borderRadius: '6px',
+                      border: '1px solid',
+                      borderColor: zoneFilter === filterKey ? '#00a651' : '#e2e8f0',
+                      backgroundColor: zoneFilter === filterKey ? '#ecfdf5' : '#ffffff',
+                      color: zoneFilter === filterKey ? '#065f46' : '#64748b',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {labels[filterKey]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Zones Grid */}
+          <div className="dash-zones-grid">
+            {filteredZones.map((zone) => {
+              const batch = batches.find(b => b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId);
+              const statusBadge = {
+                growing: { label: 'Đang sinh trưởng', bg: '#ecfdf5', color: '#15803d' },
+                ready_soon: { label: 'Sẵn sàng thu hoạch', bg: '#fef3c7', color: '#b45309' },
+                completed: { label: 'Đã thu hoạch', bg: '#f0f9ff', color: '#0369a1' },
+                needs_attention: { label: 'Cần bảo trì', bg: '#fef2f2', color: '#b91c1c' },
+                empty: { label: 'Giàn trống', bg: '#f8fafc', color: '#64748b' }
+              }[zone.status] || { label: zone.status, bg: '#f8fafc', color: '#64748b' };
+
+              return (
+                <div key={zone.id} className="dash-zone-card">
+                  <div>
+                    <div className="dash-zone-header">
+                      <span className="dash-zone-tag" style={{ backgroundColor: zone.color || '#00a651' }}>
+                        Giàn {zone.code}
+                      </span>
+                      <span className="dash-zone-status" style={{ backgroundColor: statusBadge.bg, color: statusBadge.color }}>
+                        {statusBadge.label}
+                      </span>
+                    </div>
+
+                    <div className="dash-zone-cultivar">
+                      {zone.cultivarName || 'Chưa gieo'}
+                    </div>
+
+                    <div className="dash-zone-metrics">
+                      <span><strong>{zone.plantQuantity || zone.slotCapacity}</strong> rọ</span>
+                      <span>•</span>
+                      <span>{zone.reservoirId === 'res-01' ? 'Bể 01' : 'Bể 02'}</span>
+                      {batch?.batchCode && (
+                        <>
+                          <span>•</span>
+                          <span style={{ color: '#00a651', fontWeight: 600 }}>{batch.batchCode}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {zone.biomassProgress !== undefined && (
+                      <div className="dash-zone-progress-wrap">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginBottom: '3px' }}>
+                          <span>Sinh khối</span>
+                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{zone.biomassProgress}%</span>
+                        </div>
+                        <div className="dash-zone-progress-bar">
+                          <div
+                            className="dash-zone-progress-fill"
+                            style={{ width: `${zone.biomassProgress}%`, backgroundColor: zone.color || '#00a651' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="dash-zone-actions">
+                    {batch && (
+                      <button
+                        onClick={() => onSelectBatchForAI(batch)}
+                        className="dash-zone-btn dash-zone-btn-ai"
+                        title="Dự báo năng suất bằng mô hình AI"
+                      >
+                        <Sparkles size={11} />
+                        <span>Dự báo AI</span>
+                      </button>
+                    )}
+                    {zone.status === 'ready_soon' ? (
+                      <button
+                        onClick={() => onNavigateTab('harvest')}
+                        className="dash-zone-btn"
+                        style={{ backgroundColor: '#f59e0b', color: '#ffffff', borderColor: '#f59e0b', fontWeight: 700 }}
+                      >
+                        Thu hoạch
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onNavigateTab('batches')}
+                        className="dash-zone-btn"
+                      >
+                        Chi tiết
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* RIGHT: Bể Dinh Dưỡng + Biểu Đồ Năng Suất */}
+        <div className="dash-right-col">
+          {/* Card: Bể Dinh Dưỡng Tuần Hoàn */}
+          <div className="dash-card">
+            <div className="dash-card-header" style={{ marginBottom: '10px' }}>
+              <h2 className="dash-card-title">
+                <Droplets size={17} color="#00a651" />
+                Bể Dinh Dưỡng
+              </h2>
+              <div className="dash-res-selector">
                 <button
+                  className={`dash-res-tab ${selectedResId === 'res-01' ? 'active' : ''}`}
                   onClick={() => setSelectedResId('res-01')}
-                  style={{
-                    padding: '3px 8px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    backgroundColor: selectedResId === 'res-01' ? '#00a651' : '#ffffff',
-                    color: selectedResId === 'res-01' ? '#ffffff' : '#475569',
-                    cursor: 'pointer'
-                  }}
                 >
                   Bể 01 (Tầng 1)
                 </button>
                 <button
+                  className={`dash-res-tab ${selectedResId === 'res-02' ? 'active' : ''}`}
                   onClick={() => setSelectedResId('res-02')}
-                  style={{
-                    padding: '3px 8px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    backgroundColor: selectedResId === 'res-02' ? '#00a651' : '#ffffff',
-                    color: selectedResId === 'res-02' ? '#ffffff' : '#475569',
-                    cursor: 'pointer'
-                  }}
                 >
                   Bể 02 (Tầng 2)
                 </button>
               </div>
             </div>
 
-            {/* Thông số 4 cột: pH, EC, Temp, DO */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', margin: '14px 0' }}>
-              <div style={{ padding: '10px 8px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Độ pH</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: currentReservoir.currentPh >= 5.5 && currentReservoir.currentPh <= 6.5 ? '#16a34a' : '#dc2626' }}>
+            {/* 4 Metric Boxes */}
+            <div className="dash-res-metrics">
+              <div className="dash-res-item">
+                <div className="dash-res-item-label">pH</div>
+                <div className="dash-res-item-val" style={{ color: currentReservoir.currentPh >= 5.5 && currentReservoir.currentPh <= 6.5 ? '#16a34a' : '#dc2626' }}>
                   {currentReservoir.currentPh.toFixed(2)}
                 </div>
-                <span style={{ fontSize: '0.62rem', color: '#16a34a', fontWeight: 600 }}>Chuẩn 5.6-6.2</span>
+                <div className="dash-res-item-status">Mục tiêu 5.8</div>
               </div>
 
-              <div style={{ padding: '10px 8px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>EC (mS/cm)</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: currentReservoir.currentEc >= 1.4 && currentReservoir.currentEc <= 2.0 ? '#16a34a' : '#d97706' }}>
+              <div className="dash-res-item">
+                <div className="dash-res-item-label">EC (mS)</div>
+                <div className="dash-res-item-val" style={{ color: currentReservoir.currentEc >= 1.4 && currentReservoir.currentEc <= 2.0 ? '#16a34a' : '#d97706' }}>
                   {currentReservoir.currentEc.toFixed(2)}
                 </div>
-                <span style={{ fontSize: '0.62rem', color: '#16a34a', fontWeight: 600 }}>Chuẩn 1.5-1.9</span>
+                <div className="dash-res-item-status">Mục tiêu 1.7</div>
               </div>
 
-              <div style={{ padding: '10px 8px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Nhiệt nước</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: currentReservoir.currentWaterTemp <= 24 ? '#0284c7' : '#dc2626' }}>
+              <div className="dash-res-item">
+                <div className="dash-res-item-label">Nước (°C)</div>
+                <div className="dash-res-item-val" style={{ color: currentReservoir.currentWaterTemp <= 24 ? '#0284c7' : '#dc2626' }}>
                   {currentReservoir.currentWaterTemp.toFixed(1)}°
                 </div>
-                <span style={{ fontSize: '0.62rem', color: '#0284c7', fontWeight: 600 }}>Mát rễ &lt;24°</span>
+                <div className="dash-res-item-status" style={{ color: '#0284c7' }}>Mát rễ</div>
               </div>
 
-              <div style={{ padding: '10px 8px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>DO (mg/L)</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
+              <div className="dash-res-item">
+                <div className="dash-res-item-label">DO (mg/L)</div>
+                <div className="dash-res-item-val" style={{ color: '#059669' }}>
                   {currentReservoir.currentDo || 6.8}
                 </div>
-                <span style={{ fontSize: '0.62rem', color: '#059669', fontWeight: 600 }}>Oxy hòa tan</span>
+                <div className="dash-res-item-status">Oxy hòa tan</div>
               </div>
             </div>
 
-            {/* Mức nước bể */}
-            <div style={{ marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>
-                <span>Thể tích bồn: {currentReservoir.currentVolumeLiters}L / {currentReservoir.capacityLiters}L</span>
-                <span style={{ color: '#00a651' }}>{Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100)}% dung tích</span>
+            {/* Tank Liquid Level */}
+            <div className="dash-res-tank">
+              <div className="dash-res-tank-header">
+                <span>Mức dung dịch trong bể: <strong>{currentReservoir.currentVolumeLiters}L / {currentReservoir.capacityLiters}L</strong></span>
+                <span style={{ color: '#00a651' }}>{Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100)}%</span>
               </div>
-              <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                <div style={{
-                  width: `${Math.min(100, Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100))}%`,
-                  height: '100%',
-                  backgroundColor: '#00a651'
-                }} />
-              </div>
-            </div>
-
-            {/* Các lô kết nối */}
-            <div style={{ fontSize: '0.72rem', color: '#475569', backgroundColor: '#f1fdf5', padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1fae5' }}>
-              <strong>Cây trồng cấp dinh dưỡng: </strong>
-              {reservoirBatches.length > 0 ? (
-                reservoirBatches.map(b => `${b.cultivarName} (${b.batchCode})`).join(', ')
-              ) : (
-                'Giàn NFT A1 (Green Oak Leaf), Giàn NFT A2 (Batavia)'
-              )}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <button
-              onClick={() => onNavigateTab('reservoirs')}
-              className="farmvista-btn-green"
-              style={{ flex: 1, fontSize: '0.75rem', height: '32px' }}
-            >
-              <Droplets size={13} />
-              <span>Châm Stock A & B</span>
-            </button>
-            <button
-              onClick={() => onNavigateTab('reservoirs')}
-              style={{
-                flex: 1,
-                fontSize: '0.75rem',
-                height: '32px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Quản lý bể
-            </button>
-          </div>
-        </div>
-
-        {/* THẺ 3 & 4: Cột Thống Kê KPI (Quy mô máng trồng & Doanh thu) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* KPI Trên: Quy Mô Máng Trồng */}
-          <div className="farmvista-card" style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                <span>Quy Mô Cây Đang Trồng</span>
-                <Info size={14} color="var(--text-disabled)" />
-              </div>
-              <div style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: '#00a651',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff'
-              }}>
-                <Sprout size={18} />
+              <div className="dash-zone-progress-bar" style={{ height: '7px' }}>
+                <div
+                  className="dash-zone-progress-fill"
+                  style={{
+                    width: `${Math.min(100, Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100))}%`,
+                    backgroundColor: '#00a651'
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em' }}>
-                {totalActivePlants.toLocaleString('vi-VN')} cây
-              </div>
-
-              <div style={{ width: '100%', height: '7px', backgroundColor: '#e5e7eb', borderRadius: 'var(--radius-full)', marginTop: '8px', overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, Math.round(Number(survivalRate)))}%`, height: '100%', backgroundColor: '#00a651', borderRadius: 'var(--radius-full)' }} />
-              </div>
-
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#00a651', marginTop: '6px' }}>
-                Tỷ lệ sống {survivalRate}% ({activeBatches.length} lô máng NFT đang sinh trưởng)
-              </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <button
+                onClick={() => onNavigateTab('reservoirs')}
+                className="farmvista-btn-green"
+                style={{ flex: 1, height: '32px', fontSize: '0.75rem' }}
+              >
+                <Droplets size={13} />
+                <span>Châm Stock A & B</span>
+              </button>
+              <button
+                onClick={() => onNavigateTab('reservoirs')}
+                style={{
+                  padding: '0 12px',
+                  height: '32px',
+                  fontSize: '0.75rem',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                Chi tiết
+              </button>
             </div>
           </div>
 
-          {/* KPI Dưới: Doanh Thu Thực Tế */}
-          <div className="farmvista-card" style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                <span>Doanh Thu Xuất Bán Nông Sản</span>
-                <Info size={14} color="var(--text-disabled)" />
-              </div>
-              <div style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: '#8b5cf6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff'
-              }}>
-                <BarChart3 size={18} />
-              </div>
+          {/* Card: Biểu Đồ Sản Lượng Xuất Bán (Sleek Area Chart) */}
+          <div className="dash-card">
+            <div className="dash-card-header" style={{ marginBottom: '8px' }}>
+              <h2 className="dash-card-title">
+                <TrendingUp size={17} color="#00a651" />
+                Sản Lượng Thu Hoạch (kg)
+              </h2>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Năm 2024</span>
             </div>
 
-            <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.005em' }}>
-                {totalRevenue > 0 ? totalRevenue.toLocaleString('vi-VN') + ' ₫' : '7.582.500 ₫'}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 700, color: '#00a651', marginTop: '6px' }}>
-                <span>{totalHarvestKg} kg xà lách sạch</span>
-                <span style={{ fontWeight: 400, color: 'var(--text-subtle)' }}>đạt chuẩn loại 1 (Grade A)</span>
-              </div>
+            <div style={{ width: '100%', height: '180px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={MONTHLY_YIELD_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00a651" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00a651" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 200]} stroke="#94a3b8" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(val: any) => [`${val} kg`, 'Sản lượng']}
+                    contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                  />
+                  <Area type="monotone" dataKey="yieldKg" stroke="#00a651" strokeWidth={2.5} fillOpacity={1} fill="url(#yieldGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
       </div>
 
       {/* ========================================================
-          HÀNG 2: SƠ ĐỒ 6 PHÂN KHU THỰC ĐỊA NFT (A1, A2, B2, D1, C1, E1)
+          5. BOTTOM: Bảng Các Lô Đang Sinh Trưởng (Clean & Minimalist)
           ======================================================== */}
-      <div className="farmvista-card" style={{ padding: '22px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+      <div className="dash-card">
+        <div className="dash-card-header">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={18} color="#00a651" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                Sơ Đồ Thực Địa 6 Phân Khu NFT
-              </h3>
-            </div>
-            <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              Tình trạng giàn máng tuần hoàn, giống xà lách, số lượng cây và bể dinh dưỡng cung cấp
-            </p>
+            <h2 className="dash-card-title">
+              <Sprout size={18} color="#00a651" />
+              Lô Cây Trồng Đang Sinh Trưởng
+            </h2>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a' }} /> Đang trồng ({zones.filter(z => z.status === 'growing').length})
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} /> Sắp thu hoạch ({zones.filter(z => z.status === 'ready_soon').length})
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#0284c7', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0ea5e9' }} /> Đã hoàn thành ({zones.filter(z => z.status === 'completed').length})
-            </span>
-            <button
-              onClick={() => onNavigateTab('batches')}
-              className="farmvista-btn-green"
-              style={{ fontSize: '0.75rem', height: '30px' }}
-            >
-              <span>Quản lý giàn</span>
-              <ChevronRight size={13} />
-            </button>
-          </div>
+          <button
+            onClick={() => onNavigateTab('batches')}
+            className="farmvista-btn-green"
+            style={{ height: '30px', fontSize: '0.75rem', padding: '0 12px' }}
+          >
+            <span>Thêm lô</span>
+            <ChevronRight size={13} />
+          </button>
         </div>
 
-        {/* Grid 6 Khối Phân Khu */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '14px'
-        }}>
-          {zones.map((zone) => {
-            const batch = batches.find(b => b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId);
-            const statusConfig = {
-              growing: { label: 'Đang sinh trưởng', bg: '#ecfdf5', color: '#15803d', border: '#bbf7d0' },
-              ready_soon: { label: 'Sẵn sàng thu hoạch', bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
-              completed: { label: 'Đã hoàn thành', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
-              needs_attention: { label: 'Cần bảo trì béc', bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' },
-              empty: { label: 'Giàn trống', bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' }
-            }[zone.status] || { label: zone.status, bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' };
-
-            return (
-              <div
-                key={zone.id}
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: `1.5px solid ${statusConfig.border}`,
-                  borderRadius: '10px',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '6px',
-                        backgroundColor: zone.color,
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.85rem',
-                        fontWeight: 800
-                      }}>
-                        {zone.code}
-                      </span>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{zone.name}</strong>
-                    </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>Mã Lô & Giống</th>
+                <th>Giàn Máng</th>
+                <th>Số Cây</th>
+                <th>Giai Đoạn</th>
+                <th style={{ textAlign: 'right' }}>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeBatches.map((b) => (
+                <tr key={b.id}>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{b.batchCode}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{b.cultivarName}</div>
+                  </td>
+                  <td style={{ color: '#475569', fontWeight: 600 }}>
+                    {b.zoneCode ? `Giàn ${b.zoneCode}` : 'Máng NFT A1'}
+                  </td>
+                  <td style={{ fontWeight: 700, color: '#00a651' }}>
+                    {b.currentQuantity || b.plantQuantity} rọ
+                  </td>
+                  <td>
                     <span style={{
-                      fontSize: '0.68rem',
+                      fontSize: '0.7rem',
                       fontWeight: 700,
-                      backgroundColor: statusConfig.bg,
-                      color: statusConfig.color,
+                      backgroundColor: '#dcfce7',
+                      color: '#15803d',
                       padding: '2px 8px',
-                      borderRadius: 'var(--radius-full)'
+                      borderRadius: '9999px'
                     }}>
-                      {statusConfig.label}
+                      {b.currentStage === 'seedling' ? 'Cây con' : b.currentStage === 'vegetative' ? 'Sinh dưỡng' : 'Tích lũy sinh khối'}
                     </span>
-                  </div>
-
-                  <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.45, marginTop: '8px' }}>
-                    <div><strong>Giống rau: </strong>{zone.cultivarName || 'Chưa gieo'}</div>
-                    <div><strong>Mã lô: </strong>{zone.currentBatchCode || 'Trống'}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                      <span>Số cây: <strong>{zone.plantQuantity || zone.slotCapacity} cây</strong></span>
-                      <span>Bể: <strong>{zone.reservoirId === 'res-01' ? 'Bể 01 (NFT)' : 'Bể 02 (NFT)'}</strong></span>
-                    </div>
-                  </div>
-
-                  {zone.biomassProgress !== undefined && (
-                    <div style={{ marginTop: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginBottom: '3px' }}>
-                        <span>Tiến độ sinh khối</span>
-                        <span style={{ fontWeight: 700, color: '#16a34a' }}>{zone.biomassProgress}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ width: `${zone.biomassProgress}%`, height: '100%', backgroundColor: zone.color }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '6px', marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-                  {batch && (
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
                     <button
-                      onClick={() => onSelectBatchForAI(batch)}
-                      className="farmvista-btn-green"
-                      style={{ flex: 1, fontSize: '0.72rem', height: '28px', padding: '0 8px' }}
-                      title="Chạy mô hình AI dự báo năng suất lô này"
+                      onClick={() => onSelectBatchForAI(b)}
+                      className="dash-zone-btn dash-zone-btn-ai"
+                      style={{ padding: '4px 10px', display: 'inline-flex', width: 'auto' }}
+                      title="Chạy mô hình dự báo năng suất AI"
                     >
                       <Sparkles size={11} />
                       <span>Dự báo AI</span>
                     </button>
-                  )}
-                  {zone.status === 'ready_soon' ? (
-                    <button
-                      onClick={() => onNavigateTab('harvest')}
-                      style={{
-                        flex: 1,
-                        fontSize: '0.72rem',
-                        height: '28px',
-                        backgroundColor: '#f59e0b',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Thu hoạch
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onNavigateTab('batches')}
-                      style={{
-                        flex: 1,
-                        fontSize: '0.72rem',
-                        height: '28px',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        color: '#475569',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Xem chi tiết
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ========================================================
-          HÀNG 3: Bảng Các Lô Canh Tác Thực Tế + Năng Suất Hàng Tháng
-          ======================================================== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '20px'
-      }}>
-        {/* THẺ TRÁI: Danh Sách Các Lô Đang Sinh Trưởng Trực Tiếp */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                Các Lô Đang Canh Tác NFT
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                Theo dõi sinh trắc học và thời gian dự kiến thu hoạch
-              </p>
-            </div>
-            <button
-              onClick={() => onNavigateTab('batches')}
-              className="farmvista-btn-green"
-              style={{ fontSize: '0.75rem', height: '30px' }}
-            >
-              <span>Thêm lô</span>
-              <ChevronRight size={13} />
-            </button>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-subtle)' }}>
-                  <th style={{ padding: '8px 10px', fontWeight: 500 }}>Mã Lô & Giống</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 500 }}>Giàn Máng</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 500 }}>Số Cây</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 500 }}>Giai Đoạn</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 500, textAlign: 'right' }}>Hành Động</th>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {activeBatches.map((b) => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid #f9fafb' }}>
-                    <td style={{ padding: '10px 10px' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{b.batchCode}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{b.cultivarName}</div>
-                    </td>
-                    <td style={{ padding: '10px 10px', color: '#475569', fontWeight: 600 }}>
-                      {b.zoneCode ? `Giàn ${b.zoneCode}` : 'Máng NFT A1'}
-                    </td>
-                    <td style={{ padding: '10px 10px', fontWeight: 700, color: '#00a651' }}>
-                      {b.currentQuantity || b.plantQuantity} cây
-                    </td>
-                    <td style={{ padding: '10px 10px' }}>
-                      <span style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        backgroundColor: '#dcfce7',
-                        color: '#15803d',
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-full)'
-                      }}>
-                        {b.currentStage === 'seedling' ? 'Cây con' : b.currentStage === 'vegetative' ? 'Sinh dưỡng' : 'Tích lũy sinh khối'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 10px', textAlign: 'right' }}>
-                      <button
-                        onClick={() => onSelectBatchForAI(b)}
-                        className="farmvista-btn-green"
-                        style={{ fontSize: '0.7rem', height: '26px', padding: '0 8px' }}
-                        title="Dự báo sản lượng AI"
-                      >
-                        <Sparkles size={11} /> Dự báo AI
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* THẺ PHẢI: Phân Tích Năng Suất Hàng Tháng */}
-        <div className="farmvista-card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-              Năng Suất Xuất Bán Hàng Tháng (kg)
-            </h3>
-            <select
-              value={yieldYear}
-              onChange={(e) => setYieldYear(e.target.value)}
-              className="farmvista-select-pill"
-            >
-              <option value="2024">Năm 2024</option>
-              <option value="2023">Năm 2023</option>
-            </select>
-          </div>
-
-          <div style={{ width: '100%', height: '230px', marginTop: '6px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={MONTHLY_YIELD_DATA} margin={{ top: 20, right: 15, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--text-subtle)" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 200]} stroke="var(--text-subtle)" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  formatter={(val: any) => [`${val} kg`, 'Sản lượng']}
-                  labelFormatter={(lbl: any) => `Tháng: ${lbl}`}
-                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} 
-                />
-                <Line type="monotone" dataKey="tons" stroke="#00a651" strokeWidth={2.5} dot={{ r: 4, fill: '#00a651' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-
     </div>
   );
 };
