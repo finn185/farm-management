@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Activity,
   CheckCircle2,
-  Scale
+  Scale,
+  Clock
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -58,6 +59,40 @@ const MONTHLY_YIELD_DATA = [
   { month: 'Tháng 9', yieldKg: 124 },
   { month: 'Tháng 10', yieldKg: 145 },
 ];
+
+// Helper to calculate days remaining until harvest
+function getDaysRemaining(targetDateStr?: string): { days: number; text: string; isPast: boolean } {
+  if (!targetDateStr) return { days: 0, text: '--', isPast: false };
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(targetDateStr);
+    target.setHours(0, 0, 0, 0);
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return { days: 0, text: 'Hôm nay', isPast: false };
+    if (diffDays > 0) return { days: diffDays, text: `Còn ${diffDays} ngày`, isPast: false };
+    return { days: Math.abs(diffDays), text: 'Đến hạn thu', isPast: true };
+  } catch {
+    return { days: 0, text: targetDateStr, isPast: false };
+  }
+}
+
+// Helper to calculate plant age in days
+function getPlantAge(seedDateStr?: string): number {
+  if (!seedDateStr) return 25;
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const seed = new Date(seedDateStr);
+    seed.setHours(0, 0, 0, 0);
+    const diffTime = today.getTime() - seed.getTime();
+    return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+  } catch {
+    return 25;
+  }
+}
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
@@ -633,72 +668,107 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <thead>
               <tr>
                 <th>Mã Lô & Giống</th>
-                <th>Giàn Máng</th>
+                <th>Vị Trí & Bồn Cấp</th>
                 <th>Số Cây</th>
-                <th>Giai Đoạn</th>
+                <th>Tuổi Cây & Giai Đoạn</th>
+                <th>Hạn Thu Hoạch</th>
                 <th style={{ textAlign: 'right' }}>Hành Động</th>
               </tr>
             </thead>
             <tbody>
-              {activeBatches.map((b) => (
-                <tr key={b.id}>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{b.batchCode}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{b.cultivarName}</div>
-                  </td>
-                  <td style={{ color: '#475569', fontWeight: 600 }}>
-                    {b.zoneCode ? `Giàn ${b.zoneCode}` : 'Máng NFT A1'}
-                  </td>
-                  <td style={{ fontWeight: 700, color: '#00a651' }}>
-                    {b.currentQuantity || b.plantQuantity} rọ
-                  </td>
-                  <td>
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: '#dcfce7',
-                      color: '#15803d',
-                      padding: '2px 8px',
-                      borderRadius: '9999px'
-                    }}>
-                      {b.currentStage === 'seedling' ? 'Cây con' : b.currentStage === 'vegetative' ? 'Sinh dưỡng' : 'Tích lũy sinh khối'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => onSelectBatchForAI(b)}
-                        className="dash-zone-btn dash-zone-btn-ai"
-                        style={{ padding: '4px 8px', display: 'inline-flex', width: 'auto', fontSize: '0.72rem' }}
-                        title="Chạy mô hình dự báo năng suất AI"
-                      >
-                        <Sparkles size={11} />
-                        <span>Dự báo AI</span>
-                      </button>
-                      <button
-                        onClick={() => onSelectBatchForHarvest ? onSelectBatchForHarvest(b) : onNavigateTab('harvest')}
-                        className="dash-zone-btn"
-                        style={{
-                          padding: '4px 8px',
-                          display: 'inline-flex',
-                          width: 'auto',
-                          fontSize: '0.72rem',
-                          backgroundColor: '#f0fdf4',
-                          color: '#15803d',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: 600
-                        }}
-                        title="Ghi nhận thu hoạch cho lô này"
-                      >
-                        <Scale size={11} />
-                        <span>Thu hoạch</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {activeBatches.map((b) => {
+                const daysRem = getDaysRemaining(b.expectedHarvestDate);
+                const ageDays = getPlantAge(b.seedDate);
+                const reservoirName = b.reservoirName || reservoirs.find(r => r.id === b.reservoirId)?.name || 'Bể Tuần Hoàn 01';
+
+                return (
+                  <tr key={b.id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{b.batchCode}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{b.cultivarName}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#334155' }}>
+                        {b.zoneCode ? `Giàn ${b.zoneCode}` : 'Máng NFT A1'}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', fontWeight: 600 }}>
+                        <Droplets size={11} color="#0284c7" />
+                        <span>{reservoirName}</span>
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 700, color: '#00a651' }}>
+                      {b.currentQuantity || b.plantQuantity} rọ
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', marginBottom: '3px' }}>
+                        {ageDays} ngày tuổi
+                      </div>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        backgroundColor: '#dcfce7',
+                        color: '#15803d',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        display: 'inline-block'
+                      }}>
+                        {b.currentStage === 'seedling' ? 'Cây con' : b.currentStage === 'vegetative' ? 'Sinh dưỡng' : 'Tích lũy sinh khối'}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 9px',
+                        borderRadius: '9999px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        backgroundColor: daysRem.isPast ? '#fee2e2' : daysRem.days <= 3 ? '#fffbeb' : '#ecfdf5',
+                        color: daysRem.isPast ? '#b91c1c' : daysRem.days <= 3 ? '#b45309' : '#16a34a',
+                        border: `1px solid ${daysRem.isPast ? '#fecaca' : daysRem.days <= 3 ? '#fef3c7' : '#bbf7d0'}`,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        <Clock size={11} />
+                        {daysRem.text}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => onSelectBatchForAI(b)}
+                          className="dash-zone-btn dash-zone-btn-ai"
+                          style={{ padding: '4px 8px', display: 'inline-flex', width: 'auto', fontSize: '0.72rem' }}
+                          title="Chạy mô hình dự báo năng suất AI"
+                        >
+                          <Sparkles size={11} />
+                          <span>Dự báo AI</span>
+                        </button>
+                        <button
+                          onClick={() => onSelectBatchForHarvest ? onSelectBatchForHarvest(b) : onNavigateTab('harvest')}
+                          className="dash-zone-btn"
+                          style={{
+                            padding: '4px 8px',
+                            display: 'inline-flex',
+                            width: 'auto',
+                            fontSize: '0.72rem',
+                            backgroundColor: '#f0fdf4',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                          title="Ghi nhận thu hoạch cho lô này"
+                        >
+                          <Scale size={11} />
+                          <span>Thu hoạch</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
