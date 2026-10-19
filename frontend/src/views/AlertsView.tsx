@@ -28,6 +28,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 }) => {
   const [filterStatus, setFilterStatus] = useState<string>('active'); // active, open, acknowledged, resolved, all
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [filterMetric, setFilterMetric] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resolveNote, setResolveNote] = useState('');
@@ -55,6 +56,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
         return false;
       }
 
+      // Metric
+      if (filterMetric !== 'all' && a.metric !== filterMetric) {
+        return false;
+      }
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -67,7 +73,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
       return true;
     });
-  }, [alerts, filterStatus, filterSeverity, searchQuery]);
+  }, [alerts, filterStatus, filterSeverity, filterMetric, searchQuery]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -346,6 +352,22 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
             <option value="critical">Nghiêm trọng</option>
             <option value="warning">Cảnh báo</option>
             <option value="info">Thông tin</option>
+          </select>
+
+          <select
+            value={filterMetric}
+            onChange={(e) => setFilterMetric(e.target.value)}
+            className="farmvista-select-pill"
+            style={{ borderRadius: '8px', height: '32px', fontSize: '0.75rem' }}
+          >
+            <option value="all">Mọi chỉ số</option>
+            <option value="pH">pH</option>
+            <option value="EC">EC</option>
+            <option value="Temp">Nhiệt độ nước</option>
+            <option value="DO">Oxy hòa tan (DO)</option>
+            <option value="WaterLevel">Mực nước</option>
+            <option value="Nutrient">Dinh dưỡng</option>
+            <option value="System">Hệ thống</option>
           </select>
         </div>
       </div>

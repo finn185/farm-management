@@ -132,6 +132,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [simEc, setSimEc] = useState<number>(1.72);
   const [simDaysOffset, setSimDaysOffset] = useState<number>(0);
+  const [simPlants, setSimPlants] = useState<number>(500);
 
   // Modal & Toast States
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -174,6 +175,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   useEffect(() => {
     setSimEc(liveData.ec);
     setSimDaysOffset(0);
+    setSimPlants(liveData.plants);
     setIsSimulating(false);
   }, [selectedBatchId, liveData]);
 
@@ -215,12 +217,13 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       avgEc: effectiveEc,
       avgPh: liveData.ph,
       avgWaterTemp: liveData.temp,
-      expectedPlants: liveData.plants
+      expectedPlants: isSimulating ? simPlants : liveData.plants
     });
-  }, [currentBatch, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, liveData]);
+  }, [currentBatch, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, simPlants, liveData]);
 
   const predictedWeightG = prediction?.predictedFreshWeightG || standardWeightG;
-  const totalBatchYieldKg = prediction?.totalBatchYieldKg || Math.round((predictedWeightG * liveData.plants) / 1000);
+  const currentPlantsCount = isSimulating ? simPlants : liveData.plants;
+  const totalBatchYieldKg = prediction?.totalBatchYieldKg || Math.round((predictedWeightG * currentPlantsCount) / 1000);
   const diffPercent = Math.round(((predictedWeightG - standardWeightG) / standardWeightG) * 100);
 
   // Baseline Live Yield for comparison
@@ -472,7 +475,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
             </div>
             <div style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <ShieldCheck size={13} color="#00a651" />
-              <span>Còn {daysLeft} ngày (Grade A • 82% xuất khẩu)</span>
+              <span>Độ tin cậy R²: <strong>{prediction?.confidenceR2 || 0.94}</strong> • Rủi ro: <strong>{prediction?.riskScore === 'high' ? 'Cao' : prediction?.riskScore === 'moderate' ? 'Trung bình' : 'Thấp (An toàn)'}</strong></span>
             </div>
           </div>
         </div>
@@ -772,6 +775,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                   onClick={() => {
                     setSimEc(liveData.ec);
                     setSimDaysOffset(0);
+                    setSimPlants(liveData.plants);
                     setIsSimulating(false);
                   }}
                   className="farmvista-btn-secondary"
@@ -784,7 +788,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', margin: '0 0 16px 0' }}>
-              Thử chỉnh nồng độ phân hoặc lùi ngày cắt để xem sản lượng thay đổi ra sao:
+              Thử chỉnh nồng độ phân, thời điểm cắt hoặc quy mô rọ để xem sản lượng thay đổi ra sao:
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -797,8 +801,8 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 </div>
                 <input 
                   type="range" 
-                  min="1.30" 
-                  max="2.20" 
+                  min="0.80" 
+                  max="2.80" 
                   step="0.05"
                   value={simEc} 
                   onChange={e => {
@@ -814,17 +818,39 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '6px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Thời điểm cắt rau:</span>
                   <strong style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
-                    {simDaysOffset === 0 ? 'Đúng hạn (Ngày 35)' : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${simDaysOffset} ngày`}
+                    {simDaysOffset === 0 ? 'Đúng hạn (Ngày 35)' : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${Math.abs(simDaysOffset)} ngày`}
                   </strong>
                 </div>
                 <input 
                   type="range" 
-                  min="-3" 
-                  max="4" 
+                  min="-5" 
+                  max="5" 
                   step="1"
                   value={simDaysOffset} 
                   onChange={e => {
                     setSimDaysOffset(Number(e.target.value));
+                    setIsSimulating(true);
+                  }}
+                  style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Slider 3: Số cây thu hoạch kỳ vọng */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '6px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Số cây thu hoạch kỳ vọng:</span>
+                  <strong style={{ color: '#0284c7', fontSize: '0.875rem' }}>
+                    {simPlants} rọ cây
+                  </strong>
+                </div>
+                <input 
+                  type="range" 
+                  min="100" 
+                  max="1500" 
+                  step="10"
+                  value={simPlants} 
+                  onChange={e => {
+                    setSimPlants(Number(e.target.value));
                     setIsSimulating(true);
                   }}
                   style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}

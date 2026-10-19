@@ -649,13 +649,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a' }} /> Đang trồng (2)
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a' }} /> Đang trồng ({zones.filter(z => z.status === 'growing').length})
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} /> Sắp thu hoạch (1)
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} /> Sắp thu hoạch ({zones.filter(z => z.status === 'ready_soon').length})
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#0284c7', fontWeight: 600 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0ea5e9' }} /> Đã thu hoạch (2)
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0ea5e9' }} /> Đã hoàn thành ({zones.filter(z => z.status === 'completed').length})
             </span>
             <button
               onClick={() => onNavigateTab('batches')}
