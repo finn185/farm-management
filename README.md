@@ -1,6 +1,6 @@
 # AI Module - Smart Hydroponic Farm
 
-Tài liệu này hướng dẫn nhóm sử dụng các tệp của module AI: chuẩn bị dữ liệu, chạy notebook, xem kết quả và hiểu giới hạn hiện tại.
+Tài liệu hướng dẫn sử dụng các tệp của module AI: chuẩn bị dữ liệu, chạy notebook, xem kết quả và hiểu giới hạn hiện tại.
 
 ## Tệp trong nhánh này
 
@@ -8,20 +8,9 @@ Tài liệu này hướng dẫn nhóm sử dụng các tệp của module AI: ch
 - [`Cleaned_Data_Batches_Final.csv`](./Cleaned_Data_Batches_Final.csv): dữ liệu đầu vào của notebook.
 - [`report_AI.md`](./report_AI.md): báo cáo kỹ thuật, kết quả đánh giá và thông tin tích hợp dành cho nhóm.
 
-## Mở tệp từ GitHub
+## Mở notebook
 
-Chọn nhánh **AI** trong danh sách nhánh của repository, sau đó mở hoặc tải xuống notebook và CSV. Khi dùng Git, có thể lấy riêng nhánh này bằng lệnh:
-
-```bash
-git clone --single-branch --branch AI https://github.com/finn185/farm-management.git
-```
-
-Nếu đã clone repository, chuyển sang nhánh AI bằng:
-
-```bash
-git switch AI
-git pull
-```
+Trên GitHub, chọn nhánh **AI**, sau đó mở `AI.ipynb` bằng Google Colab và tải CSV trong phần Files theo hướng dẫn bên dưới.
 
 ## Chạy notebook trên Google Colab
 
@@ -31,21 +20,6 @@ git pull
 4. Chọn **Runtime → Run all** và chờ các ô chạy hoàn tất. Ô đầu tiên cài các thư viện cần thiết.
 5. Xem kết quả dự báo, chỉ số đánh giá, biểu đồ độ quan trọng đặc trưng, thống kê bất thường và các kịch bản kiểm chứng ở những ô phía dưới.
 
-## Chạy notebook trên máy tính
-
-Đặt `AI.ipynb` và `Cleaned_Data_Batches_Final.csv` trong cùng thư mục. Cài Python và Jupyter Notebook, rồi cài các thư viện được notebook sử dụng:
-
-```bash
-python -m pip install pandas numpy matplotlib seaborn scikit-learn jupyter
-```
-
-Mở notebook:
-
-```bash
-jupyter notebook AI.ipynb
-```
-
-Trong giao diện Jupyter, chọn **Run → Run All Cells**. Notebook cần truy cập được CSV ở cùng thư mục làm việc.
 
 ## Notebook xử lý những gì?
 
@@ -60,7 +34,7 @@ Trong giao diện Jupyter, chọn **Run → Run All Cells**. Notebook cần truy
 
 - `1`: mô hình xem mẫu là bình thường.
 - `-1`: mô hình xem mẫu là bất thường.
-- Notebook đặt `contamination=0.05`, tức giả định khoảng 5% dữ liệu huấn luyện là bất thường. Đây là tham số cần được đánh giá và điều chỉnh theo dữ liệu thực tế của hệ thống.
+- Notebook đặt `contamination=0.05`, tức mô hình giả định khoảng 5% dữ liệu đầu vào là bất thường. Đây là tham số cần được đánh giá và điều chỉnh theo dữ liệu thực tế của hệ thống.
 
 ## Dùng kết quả để tích hợp với các phần khác
 

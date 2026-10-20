@@ -1,12 +1,5 @@
 # BÁO CÁO KỸ THUẬT MODULE AI & HƯỚNG DẪN TÍCH HỢP HỆ THỐNG
 
-**Đề tài:** Smart Hydroponic Farm - Hệ thống Quản lý Trang trại Thủy canh Thông minh
-**Học phần / Module:** Trí tuệ Nhân tạo & Xử lý Dữ liệu (AI & Data Science Module)
-**Người thực hiện:** Kỹ sư Module AI
-**Ngày cập nhật:** Tháng 10/2026
-
----
-
 ## MỤC LỤC
 1. [TỔNG QUAN VỀ NHỮNG CÔNG VIỆC ĐÃ HOÀN THÀNH](#1-tổng-quan-về-những-công-việc-đã-hoàn-thành)
 2. [CHI TIẾT MÃ NGUỒN GOOGLE COLAB (BẢN CHUẨN HOÀN CHỈNH)](#2-chi-tiết-mã-nguồn-google-colab-bản-chuẩn-hoàn-chỉnh)
@@ -81,8 +74,8 @@ display(df[['Batch_ID', 'Date', 'Plant_Age_Days', 'Target_Shoot_Weight_g']].head
 print("=== HUẤN LUYỆN AI 1: YIELD PREDICTION ===")
 
 features = [
-    'Plant_Age_Days', 'Avg_pH', 'Avg_EC', 'Avg_Water_Temp', 
-    'Avg_Air_Temp', 'Avg_Humidity', 'Cumulative_Nutrient_AB_ml', 
+    'Plant_Age_Days', 'Avg_pH', 'Avg_EC', 'Avg_Water_Temp',
+    'Avg_Air_Temp', 'Avg_Humidity', 'Cumulative_Nutrient_AB_ml',
     'Cumulative_Acid_ml', 'Days_Since_Last_Dosing'
 ]
 target = 'Target_Shoot_Weight_g'
@@ -201,10 +194,10 @@ print("\nKết quả quét trạng thái của AI 2 trên các kịch bản gi�
 for i, pred in enumerate(anomaly_preds):
     status = "BÌNH THƯỜNG (An toàn)" if pred == 1 else "BẤT THƯỜNG (Phát hiện nguy cơ rủi ro!)"
     scenario_desc = [
-        "Chuẩn tối ưu", 
-        "pH quá chua (Nguy hiểm)", 
-        "pH quá kiềm (Nguy hiểm)", 
-        "EC quá cao gây cháy rễ", 
+        "Chuẩn tối ưu",
+        "pH quá chua (Nguy hiểm)",
+        "pH quá kiềm (Nguy hiểm)",
+        "EC quá cao gây cháy rễ",
         "Nhiệt độ nước quá cao gây thối rễ"
     ][i]
     print(f"   - Kịch bản {i+1} [{scenario_desc}] | Thông số: {anomaly_test_cases.iloc[i].to_dict()} -> {status}")
@@ -267,5 +260,5 @@ Các thành viên khác trong nhóm có thể đưa báo cáo này cho Trợ lý
   * **Hệ thống cảnh báo (Anomaly Alert Badge):** Nếu AI 2 trả về nhãn `-1` (`BẤT THƯỜNG`), hiển thị Badge cảnh báo màu đỏ chớp nháy kèm theo gợi ý chỉ số lệch (pH, EC hoặc Nhiệt độ nước).
 
 ### 4.3. Kiểm thử viên (Tester / QA) & DevOps
-- **Mục đích:** Chạy Integration Test và triển khai Pipeline CI/CD.
-- **Tệp thử nghiệm:** Sử dụng trực tiếp danh sách 5 Kịch bản tại **CELL 5** của báo cáo này để làm tập Test Cases tự động kiểm thử API tích hợp.
+* **Mục đích:** Chạy Integration Test và triển khai Pipeline CI/CD.
+* **Tệp thử nghiệm:** Sử dụng trực tiếp danh sách 5 Kịch bản tại **CELL 5** của báo cáo này để làm tập Test Cases tự động kiểm thử API tích hợp.
