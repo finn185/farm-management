@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Scale } from 'lucide-react';
 import type { CropBatch, Reservoir, HarvestRecord } from '../types/farm';
+import { useAuth } from '../context/AuthContext';
 import { predictLettuceYield } from '../services/aiPredictor';
 import '../views/HarvestView.css';
 
@@ -21,6 +22,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
   reservoirs = [],
   onSubmit
 }) => {
+  const { user } = useAuth();
   const activeBatches = batches.filter(b => b.status === 'active');
   const readyBatches = activeBatches.length > 0 ? activeBatches : batches;
 
@@ -120,7 +122,8 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
       grade,
       unitPriceVnd: price,
       totalRevenueVnd,
-      notes
+      notes,
+      operatorName: user?.fullName || 'Lê Thị Kỹ Sư Nông Học'
     });
   };
 

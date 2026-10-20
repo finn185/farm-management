@@ -213,10 +213,10 @@ async function main() {
       systemType: 'NFT',
       capacityLiters: 600.0,
       currentVolumeLiters: 540.0,
-      currentPh: 5.95,
-      currentEc: 1.72,
-      currentWaterTemp: 21.8,
-      currentDo: 7.5,
+      currentPh: 5.85,
+      currentEc: 1.42,
+      currentWaterTemp: 22.4,
+      currentDo: 6.8,
       formulaName: 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)',
       lastTopUpDate: dateFromToday(-2),
       lastReplacementDate: dateFromToday(-16),
@@ -502,10 +502,10 @@ async function main() {
 
   // 7. IoT Sensors (Đầy đủ 5 cảm biến cho mỗi bể + 2 trạm vi khí hậu nhà màng, khớp 100% với Simulator)
   const sensors = [
-    { id: 'sen-01', code: 'SEN-PH-01', name: 'Cảm biến pH Bể Tuần Hoàn 01', sensorType: 'ph', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 5.95, unit: 'pH', batteryLevel: 98.0 },
-    { id: 'sen-02', code: 'SEN-EC-01', name: 'Cảm biến Độ dẫn điện EC Bể 01', sensorType: 'ec', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 1.72, unit: 'mS/cm', batteryLevel: 97.0 },
-    { id: 'sen-03', code: 'SEN-TEMP-01', name: 'Cảm biến Nhiệt độ nước Bể 01', sensorType: 'water_temp', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 21.8, unit: '°C', batteryLevel: 99.0 },
-    { id: 'sen-04', code: 'SEN-DO-01', name: 'Cảm biến Oxy hòa tan DO Bể 01', sensorType: 'do', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 7.5, unit: 'mg/L', batteryLevel: 95.0 },
+    { id: 'sen-01', code: 'SEN-PH-01', name: 'Cảm biến pH Bể Tuần Hoàn 01', sensorType: 'ph', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 5.85, unit: 'pH', batteryLevel: 98.0 },
+    { id: 'sen-02', code: 'SEN-EC-01', name: 'Cảm biến Độ dẫn điện EC Bể 01', sensorType: 'ec', status: 'warning', reservoirId: 'res-01', zoneId: null, lastReading: 1.42, unit: 'mS/cm', batteryLevel: 97.0 },
+    { id: 'sen-03', code: 'SEN-TEMP-01', name: 'Cảm biến Nhiệt độ nước Bể 01', sensorType: 'water_temp', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 22.4, unit: '°C', batteryLevel: 99.0 },
+    { id: 'sen-04', code: 'SEN-DO-01', name: 'Cảm biến Oxy hòa tan DO Bể 01', sensorType: 'do', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 6.8, unit: 'mg/L', batteryLevel: 95.0 },
     { id: 'sen-05', code: 'SEN-LVL-01', name: 'Cảm biến Mực nước Bể 01', sensorType: 'water_level', status: 'online', reservoirId: 'res-01', zoneId: null, lastReading: 90.0, unit: '%', batteryLevel: 99.0 },
     { id: 'sen-06', code: 'SEN-PH-02', name: 'Cảm biến pH Bể Tuần Hoàn 02', sensorType: 'ph', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 5.82, unit: 'pH', batteryLevel: 96.0 },
     { id: 'sen-07', code: 'SEN-EC-02', name: 'Cảm biến EC Bể Tuần Hoàn 02', sensorType: 'ec', status: 'online', reservoirId: 'res-02', zoneId: null, lastReading: 1.75, unit: 'mS/cm', batteryLevel: 95.0 },
@@ -558,10 +558,16 @@ async function main() {
   }
   console.log(`Đã tạo ${harvestRecords.length} nhật ký thu hoạch đối chiếu AI`);
 
-  // 9. Water Quality Logs (1 bản ghi khởi tạo cho mỗi bể, các nhịp tiếp theo do Simulator ghi tự động)
+  // 9. Water Quality Logs
   const waterLogs = [
-    { id: 'wlog-01', reservoirId: 'res-01', ph: 5.95, ec: 1.72, waterTemp: 21.8, doLevel: 7.5, waterLevelPercent: 90.0, recordedBy: 'SEN-PH-01', source: 'sensor' },
-    { id: 'wlog-02', reservoirId: 'res-02', ph: 5.82, ec: 1.75, waterTemp: 21.4, doLevel: 7.6, waterLevelPercent: 90.0, recordedBy: 'SEN-PH-02', source: 'sensor' }
+    { id: 'wlog-01', reservoirId: 'res-01', ph: 5.85, ec: 1.72, waterTemp: 22.4, doLevel: 6.8, waterLevelPercent: 90.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
+    { id: 'wlog-02', reservoirId: 'res-01', ph: 5.82, ec: 1.65, waterTemp: 22.6, doLevel: 6.7, waterLevelPercent: 88.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
+    { id: 'wlog-03', reservoirId: 'res-01', ph: 5.84, ec: 1.55, waterTemp: 22.5, doLevel: 6.8, waterLevelPercent: 90.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
+    { id: 'wlog-08', reservoirId: 'res-01', ph: 5.85, ec: 1.42, waterTemp: 22.4, doLevel: 6.8, waterLevelPercent: 90.0, recordedBy: 'IoT-Sensor-01', source: 'sensor' },
+    { id: 'wlog-04', reservoirId: 'res-02', ph: 6.02, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
+    { id: 'wlog-05', reservoirId: 'res-02', ph: 6.10, ec: 1.80, waterTemp: 22.0, doLevel: 7.1, waterLevelPercent: 91.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
+    { id: 'wlog-06', reservoirId: 'res-02', ph: 6.25, ec: 1.82, waterTemp: 21.9, doLevel: 7.1, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' },
+    { id: 'wlog-07', reservoirId: 'res-02', ph: 6.75, ec: 1.84, waterTemp: 21.8, doLevel: 7.2, waterLevelPercent: 92.0, recordedBy: 'IoT-Sensor-02', source: 'sensor' }
   ];
 
   for (const wl of waterLogs) {

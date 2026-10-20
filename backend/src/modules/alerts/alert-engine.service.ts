@@ -50,7 +50,8 @@ export class AlertEngineService {
         min: 5.5,
         max: 6.5,
         unit: 'pH',
-        contextName: reservoir.name
+        contextName: reservoir.name,
+        recordedBy: data.recordedBy
       });
 
       await this.evaluateSingleMetric({
@@ -62,7 +63,8 @@ export class AlertEngineService {
         min: 1.4,
         max: 2.0,
         unit: 'mS/cm',
-        contextName: reservoir.name
+        contextName: reservoir.name,
+        recordedBy: data.recordedBy
       });
       return generatedAlerts;
     }
@@ -130,7 +132,8 @@ export class AlertEngineService {
         lowEmergencyThreshold: 0.8,
         highEmergencyThreshold: 3.0,
         actionHigh: `Bù thêm nước sạch để pha loãng dung dịch, hạ EC về khoảng ${targetEcMax} mS/cm tránh cháy đầu lá.`,
-        actionLow: `Châm thêm dung dịch mẹ Stock A & Stock B theo tỷ lệ 1:1 để tăng nồng độ ion dinh dưỡng.`
+        actionLow: `Châm thêm dung dịch mẹ Stock A & Stock B theo tỷ lệ 1:1 để tăng nồng độ ion dinh dưỡng.`,
+        recordedBy: data.recordedBy
       });
       if (ecAlert) generatedAlerts.push(ecAlert);
 
@@ -149,7 +152,8 @@ export class AlertEngineService {
         criticalDelta: 2.0,
         highEmergencyThreshold: 29.0,
         actionHigh: `Bật máy làm mát nước (Chiller), che lưới giảm bức xạ nhiệt để ngăn ngừa nấm bệnh Pythium thối rễ.`,
-        actionLow: `Kiểm tra hệ thống sưởi hoặc tăng lưu lượng tuần hoàn máng NFT.`
+        actionLow: `Kiểm tra hệ thống sưởi hoặc tăng lưu lượng tuần hoàn máng NFT.`,
+        recordedBy: data.recordedBy
       });
       if (tempAlert) generatedAlerts.push(tempAlert);
 
@@ -168,7 +172,8 @@ export class AlertEngineService {
           lowEmergencyThreshold: 3.5,
           criticalDelta: 1.5,
           emergencyDelta: 2.5,
-          actionLow: `Bật sục khí Venturi tăng cường hoặc kiểm tra máy sục khí đáy bể, bổ sung oxy cho rễ cây con.`
+          actionLow: `Bật sục khí Venturi tăng cường hoặc kiểm tra máy sục khí đáy bể, bổ sung oxy cho rễ cây con.`,
+          recordedBy: data.recordedBy
         });
         if (doAlert) generatedAlerts.push(doAlert);
       }
@@ -188,7 +193,8 @@ export class AlertEngineService {
           lowEmergencyThreshold: 10.0,
           criticalDelta: 10.0,
           emergencyDelta: 15.0,
-          actionLow: `Mở van cấp nước sạch tự động bù nước vào bồn tuần hoàn tránh cháy bơm chìm.`
+          actionLow: `Mở van cấp nước sạch tự động bù nước vào bồn tuần hoàn tránh cháy bơm chìm.`,
+          recordedBy: data.recordedBy
         });
         if (waterAlert) generatedAlerts.push(waterAlert);
       }
@@ -242,7 +248,8 @@ export class AlertEngineService {
       criticalDelta: 3.0,
       highEmergencyThreshold: 34.0,
       actionHigh: `Kích hoạt quạt hút đối lưu và hệ thống lưới cắt nắng hạ nhiệt nhà màng.`,
-      actionLow: `Đóng bớt rèm chắn gió và duy trì vi khí hậu ổn định.`
+      actionLow: `Đóng bớt rèm chắn gió và duy trì vi khí hậu ổn định.`,
+      recordedBy: data.recordedBy
     });
     if (airAlert) generatedAlerts.push(airAlert);
 
@@ -261,7 +268,8 @@ export class AlertEngineService {
       criticalDelta: 10.0,
       highEmergencyThreshold: 92.0,
       actionHigh: `Bật quạt thông gió giảm ẩm để phòng ngừa bào tử nấm mốc và đốm lá xà lách.`,
-      actionLow: `Phun sương hạt mịn bổ sung độ ẩm trong không khí.`
+      actionLow: `Phun sương hạt mịn bổ sung độ ẩm trong không khí.`,
+      recordedBy: data.recordedBy
     });
     if (humAlert) generatedAlerts.push(humAlert);
 

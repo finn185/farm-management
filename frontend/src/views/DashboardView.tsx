@@ -99,8 +99,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
   reservoirs = [],
   alerts = [],
-  zones = [],
-  harvests = [],
+  harvests: propHarvests = [],
+  zones: propZones = [],
   onNavigateTab,
   onSelectBatchForAI,
   onSelectBatchForHarvest,
@@ -135,8 +135,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     loadWeatherForCity(selectedCityId);
   }, [selectedCityId]);
 
-  // Real database records from props
-  const harvestRecords = harvests;
+  // Database data from props
+  const zones: FarmZone[] = useMemo(() => {
+    return propZones || [];
+  }, [propZones]);
+
+  const harvestRecords: HarvestRecord[] = useMemo(() => {
+    return propHarvests || [];
+  }, [propHarvests]);
 
   // Aggregated KPIs
   const activeBatches = useMemo(() => batches.filter(b => b.status === 'active'), [batches]);
@@ -144,15 +150,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalInitialPlants = useMemo(() => activeBatches.reduce((sum, b) => sum + b.plantQuantity, 0), [activeBatches]);
   const survivalRate = totalInitialPlants > 0 ? ((totalActivePlants / totalInitialPlants) * 100).toFixed(1) : '98.5';
 
-  const totalHarvestKg = useMemo(() => harvestRecords.reduce((acc, h) => acc + h.totalWeightKg, 0).toFixed(1), [harvestRecords]);
+  const totalHarvestKg = useMemo(() => harvestRecords.reduce((acc: number, h: HarvestRecord) => acc + h.totalWeightKg, 0).toFixed(1), [harvestRecords]);
   const cleanHarvestRate = useMemo(() => {
-    const goodKg = harvestRecords.reduce((acc, h) => acc + h.totalWeightKg, 0);
-    const rejectedKg = harvestRecords.reduce((acc, h) => acc + (h.rejectedWeightKg || 0), 0);
+    const goodKg = harvestRecords.reduce((acc: number, h: HarvestRecord) => acc + h.totalWeightKg, 0);
+    const rejectedKg = harvestRecords.reduce((acc: number, h: HarvestRecord) => acc + (h.rejectedWeightKg || 0), 0);
     if (goodKg + rejectedKg <= 0) return '98.0';
     return ((goodKg / (goodKg + rejectedKg)) * 100).toFixed(1);
   }, [harvestRecords]);
+
   const totalRevenue = useMemo(() => {
-    return harvestRecords.reduce((sum, h) => {
+    return harvestRecords.reduce((sum: number, h: HarvestRecord) => {
       const price = h.unitPriceVnd || 45000;
       return sum + (h.totalRevenueVnd || (h.totalWeightKg * price));
     }, 0);
@@ -409,9 +416,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {(['all', 'growing', 'ready_soon', 'completed'] as const).map((filterKey) => {
                 const labels: Record<string, string> = {
                   all: `Tất cả (${zones.length})`,
-                  growing: `Đang trồng (${zones.filter(z => z.status === 'growing').length})`,
-                  ready_soon: `Sắp thu (${zones.filter(z => z.status === 'ready_soon').length})`,
-                  completed: `Xong (${zones.filter(z => z.status === 'completed').length})`
+                  growing: `Đang trồng (${zones.filter((z: FarmZone) => z.status === 'growing').length})`,
+                  ready_soon: `Sắp thu (${zones.filter((z: FarmZone) => z.status === 'ready_soon').length})`,
+                  completed: `Xong (${zones.filter((z: FarmZone) => z.status === 'completed').length})`
                 };
                 return (
                   <button
@@ -439,7 +446,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Zones Grid */}
           <div className="dash-zones-grid">
-            {filteredZones.map((zone) => {
+            {filteredZones.map((zone: FarmZone) => {
               const activeBatchForZone = batches.find(b => b.status === 'active' && (b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId));
               const batch = activeBatchForZone || batches.find(b => b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId);
               const cultivarDisplay = zone.cultivarName || batch?.cultivarName || (zone.status === 'completed' ? 'Đã thu hoạch xong' : 'Chưa gieo');
@@ -447,13 +454,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 ? zone.biomassProgress
                 : (batch ? (batch.status === 'harvested' ? 100 : batch.currentStage === 'pre_harvest' ? 85 : 62) : undefined);
 
-              const statusBadge = {
+              const statusBadge = ({
                 growing: { label: 'Đang sinh trưởng', bg: '#ecfdf5', color: '#15803d' },
                 ready_soon: { label: 'Sẵn sàng thu hoạch', bg: '#fef3c7', color: '#b45309' },
                 completed: { label: 'Đã thu hoạch', bg: '#f0f9ff', color: '#0369a1' },
                 needs_attention: { label: 'Cần bảo trì', bg: '#fef2f2', color: '#b91c1c' },
                 empty: { label: 'Giàn trống', bg: '#f8fafc', color: '#64748b' }
-              }[zone.status] || { label: zone.status, bg: '#f8fafc', color: '#64748b' };
+              } as const)[zone.status] || { label: zone.status, bg: '#f8fafc', color: '#64748b' };
 
               return (
                 <div key={zone.id} className="dash-zone-card">
