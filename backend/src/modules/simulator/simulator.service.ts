@@ -58,12 +58,12 @@ export const SCENARIOS: {
     },
     {
       key: 'heatwave',
-      title: 'Nắng nóng',
+      title: 'Nắng nóng / Quá nhiệt',
       short: 'Nhiệt độ nước tăng vượt 25°C',
-      scope: 'farm',
+      scope: 'reservoir',
       watch: 'waterTemp',
-      cause: 'Thời tiết nắng nóng: nhiệt độ nhà màng tăng 6–7°C, máy làm lạnh nước không theo kịp. Áp dụng cho TOÀN trang trại.',
-      expected: 'Nhiệt độ nước vượt 25°C, cảnh báo Temp (CRITICAL, EMERGENCY khi ≥ 29°C). DO giảm theo.',
+      cause: 'Nhiệt độ môi trường tăng cao hoặc máy làm mát nước (Chiller) của bể gặp sự cố, nhiệt độ nước trong bồn tăng nhanh.',
+      expected: 'Nhiệt độ nước vượt ngưỡng, cảnh báo Temp (CRITICAL, EMERGENCY khi ≥ 29°C). DO giảm theo.',
       response: 'Bật chiller/quạt hút, kéo lưới cắt nắng, bù nước mát.'
     },
     {
@@ -315,26 +315,29 @@ class SimulatorService {
     if (!def) throw new Error(`Kịch bản không hợp lệ: ${scenario}`);
     if (this.reservoirs.size === 0) await this.syncTopology(true);
 
-    // Nắng nóng = sự cố thời tiết của cả trang trại
-    if (def.scope === 'farm') {
+    const isAll = reservoirId === 'all';
+    const targets = isAll ? [...this.reservoirs.values()] : [this.reservoirs.get(reservoirId)].filter(Boolean) as ReservoirSim[];
+    if (targets.length === 0) throw new Error('Không tìm thấy bể cần áp dụng kịch bản');
+
+    // Nắng nóng toàn trang trại chỉ khi chọn áp dụng cho mọi bể ('all')
+    if (scenario === 'heatwave' && isAll) {
       this.farmHeatwave = true;
       for (const r of this.reservoirs.values()) {
-        r.truth.waterTemp = Math.max(r.truth.waterTemp, r.targets.waterTemp.max + 0.6);
+        r.scenario = 'heatwave';
+        r.truth.waterTemp = Math.max(r.truth.waterTemp, round(r.targets.waterTemp.max + 1.2, 1));
         r.lastWritten = null;
       }
       this.pushEvent('scenario', `⚡ Toàn trang trại: kích hoạt "${def.title}". Dự kiến: ${def.expected}`);
-      // Bơm 1 nhịp ngay để thấy hiệu ứng tức thì
       await this.tick();
       return this.getStatus();
     }
 
-    const targets = reservoirId === 'all' ? [...this.reservoirs.values()] : [this.reservoirs.get(reservoirId)].filter(Boolean) as ReservoirSim[];
-    if (targets.length === 0) throw new Error('Không tìm thấy bể cần áp dụng kịch bản');
-
-    // "Vận hành bình thường" tắt luôn nắng nóng (nếu đang bật) để demo quay về trạng thái tốt
-    if (scenario === 'normal' && this.farmHeatwave) {
-      this.farmHeatwave = false;
-      this.pushEvent('scenario', 'Toàn trang trại: hết nắng nóng, chiller hoạt động bình thường.');
+    // Nếu chọn "Vận hành bình thường", tắt kịch bản tương ứng
+    if (scenario === 'normal') {
+      if (isAll) {
+        this.farmHeatwave = false;
+        this.pushEvent('scenario', 'Toàn trang trại: hết nắng nóng, chiller hoạt động bình thường.');
+      }
     }
 
     for (const r of targets) {
@@ -365,7 +368,10 @@ class SimulatorService {
         // Tạo bước nhảy khởi đầu khi bấm kịch bản sự cố để thuyết trình thấy ngay sự thay đổi & cảnh báo,
         // sau đó mô hình vật lý tiếp tục cho chỉ số trôi sâu hơn theo thời gian.
         const t = r.targets;
-        if (scenario === 'aeration_fail') {
+        if (scenario === 'heatwave') {
+          // Bể bị quá nhiệt: đẩy nhiệt độ nước vượt trần an toàn lên mức cảnh báo rõ ràng
+          r.truth.waterTemp = Math.max(r.truth.waterTemp, round(t.waterTemp.max + 1.2, 1));
+        } else if (scenario === 'aeration_fail') {
           r.truth.doLevel = Math.min(r.truth.doLevel, 5.2);
         } else if (scenario === 'nutrient_depletion') {
           r.truth.ec = Math.min(r.truth.ec, round(t.ec.min - 0.12, 2));
@@ -386,9 +392,11 @@ class SimulatorService {
       );
     }
 
-    // Nếu vừa kích hoạt sự cố mới, chạy luôn 1 nhịp để giao diện phản hồi ngay lập tức
+    // Nếu vừa kích hoạt sự cố mới, gửi gói tin cập nhật ngay lập tức cho các bể mục tiêu (withNoise: false để giá trị chuẩn xác 100%)
     if (scenario !== 'normal') {
-      await this.tick();
+      for (const r of targets) {
+        await this.sendReservoirPacket(r, r.truth, false);
+      }
     }
     return this.getStatus();
   }
@@ -636,6 +644,7 @@ class SimulatorService {
 
         this.reconcileWithDatabase(r, db);
 
+        const isResHeat = r.scenario === 'heatwave' || this.farmHeatwave;
         const { next, waterUptakeL } = stepReservoir(
           r.truth,
           this.climate,
@@ -643,7 +652,7 @@ class SimulatorService {
           dtHours,
           r.scenario,
           db.aerationStatus === 'active',
-          this.farmHeatwave
+          isResHeat
         );
         r.truth = next;
         r.lastWaterUptakeL = round(waterUptakeL, 2);
@@ -768,6 +777,13 @@ class SimulatorService {
       do: round(s.doLevel + n(0.08), 1),
       water_level: round((s.volumeLiters / s.capacityLiters) * 100 + n(0.2), 1)
     } as Record<string, number>;
+
+    // Đồng bộ ngược giá trị đo được vào s (r.truth) để mọi giao diện (Trạm giả lập, Bể nước, Cảnh báo)
+    // luôn hiển thị đồng nhất 100% không bị lệch số do nhiễu cảm biến
+    s.ph = measured.ph;
+    s.ec = measured.ec;
+    s.waterTemp = measured.water_temp;
+    s.doLevel = measured.do;
 
     const readings: DeviceReading[] = [];
     for (const sensor of r.sensors) {

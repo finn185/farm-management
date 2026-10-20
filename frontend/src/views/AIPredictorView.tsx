@@ -383,7 +383,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   }, [targetDays, standardWeightG, daysPlanted, currentPlantWeightG, predictedWeightG]);
 
   // Overall Health Diagnostic
-  const isEcOk = liveData.ec >= 1.5 && liveData.ec <= 1.85;
+  const isEcOk = liveData.ec >= 1.45 && liveData.ec <= 1.95;
   const isPhOk = liveData.ph >= 5.6 && liveData.ph <= 6.2;
   const isTempOk = liveData.temp >= 19 && liveData.temp <= 24;
 

@@ -153,7 +153,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ onDataChanged }) =
 
   const isDeviceMode = status.dataSource === 'device';
   const activeScenarioKey: ScenarioKey =
-    res && res.scenario !== 'normal' ? res.scenario : status.farmHeatwave ? 'heatwave' : 'normal';
+    res && res.scenario !== 'normal' ? res.scenario : (status.farmHeatwave ? 'heatwave' : 'normal');
   const activeScenarioDef = status.scenarios.find(s => s.key === activeScenarioKey);
   const incidentList = status.scenarios.filter(s => s.key !== 'normal');
 
@@ -323,11 +323,11 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:5000/api/v1/sensors/teleme
         <div className="sim-box">
           <div className="sim-section-header">
             <div>
-              <span className="sim-step-badge badge-amber">PHẦN 2 • DÙNG KHI DEMO VỚI CÔ</span>
+              <span className="sim-step-badge badge-amber">PHẦN 2 • DÙNG KHI DEMO</span>
               <h2>Bấm thử 1 sự cố để xem hệ thống tự động cảnh báo</h2>
             </div>
 
-            {activeScenarioKey !== 'normal' && (
+            {res && res.scenario !== 'normal' && (
               <button
                 className="sim-big-btn sim-btn-green"
                 disabled={busy || isDeviceMode}
@@ -345,7 +345,7 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:5000/api/v1/sensors/teleme
           <div className="sim-incident-grid">
             {incidentList.map(sc => {
               const Icon = SCENARIO_ICONS[sc.key] || AlertTriangle;
-              const isActive = sc.key === activeScenarioKey || (sc.key === 'heatwave' && status.farmHeatwave);
+              const isActive = sc.key === (res ? res.scenario : activeScenarioKey);
 
               return (
                 <button
@@ -511,12 +511,12 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:5000/api/v1/sensors/teleme
       )}
 
       {/* =====================================================================
-          PHẦN 4: GIẢI THÍCH VỚI GIẢNG VIÊN: KHI RA THỰC TẾ THÌ LÀM SAO?
+          PHẦN 4: GIẢI THÍCH: KHI RA THỰC TẾ THÌ LÀM SAO?
           ===================================================================== */}
       <div className="sim-box">
         <div className="sim-section-header">
           <div>
-            <span className="sim-step-badge badge-blue">PHẦN 4 • GIẢI THÍCH VỚI GIẢNG VIÊN</span>
+            <span className="sim-step-badge badge-blue">PHẦN 4 • GIẢI THÍCH</span>
             <h2>Khi ứng dụng thực tế thì thay đổi như thế nào?</h2>
           </div>
         </div>
@@ -591,7 +591,7 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:5000/api/v1/sensors/teleme
         <div className="sim-more-toggle">
           <button className="sim-big-btn sim-btn-outline" onClick={() => setShowTechDetail(v => !v)}>
             {showTechDetail ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {showTechDetail ? 'Ẩn chi tiết kỹ thuật (Gói tin JSON & Lệnh test)' : 'Xem chi tiết kỹ thuật (Gói tin JSON & Lệnh test cho giảng viên xem thêm)'}
+            {showTechDetail ? 'Ẩn chi tiết kỹ thuật (Gói tin JSON & Lệnh test)' : 'Xem chi tiết kỹ thuật (Gói tin JSON & Lệnh test)'}
           </button>
         </div>
 

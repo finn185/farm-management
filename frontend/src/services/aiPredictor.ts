@@ -54,7 +54,7 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
   baseWeight = baseWeight * (leafRatio * 0.6 + heightRatio * 0.4);
 
   // 2. Environmental & Nutrient Penalties / Bonuses
-  // Optimal EC for Lettuce: 1.5 - 1.85 mS/cm
+  // Optimal EC for Lettuce: 1.5 - 1.95 mS/cm
   let ecMultiplier = 1.0;
   let ecDeviation = 0;
   if (avgEc < 1.3) {
@@ -64,8 +64,8 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
   } else if (avgEc > 2.1) {
     // Osmotic stress & tipburn risk
     ecMultiplier = Math.max(0.7, 1.0 - (avgEc - 2.1) * 0.25);
-    ecDeviation = (avgEc - 1.85) / 1.85;
-  } else if (avgEc >= 1.5 && avgEc <= 1.85) {
+    ecDeviation = (avgEc - 1.95) / 1.95;
+  } else if (avgEc >= 1.5 && avgEc <= 1.95) {
     // Optimal zone
     ecMultiplier = 1.05;
   }

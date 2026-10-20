@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './views/DashboardView';
@@ -150,8 +150,17 @@ export const App: React.FC = () => {
     refreshState();
   }, []);
 
-  // Khi Trạm giả lập IoT đang chạy: tự động tải lại dữ liệu mỗi 5 giây
-  // để Dashboard, Bể dung dịch, Cảnh báo cập nhật mà không cần tải lại trang.
+  const location = useLocation();
+
+  // Tự động làm mới dữ liệu ngay lập tức khi người dùng chuyển tab
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshState();
+    }
+  }, [location.pathname, isAuthenticated]);
+
+  // Khi Trạm giả lập IoT đang chạy hoặc có nhịp sự cố mới: tự động tải lại dữ liệu
+  // để Dashboard, Bể dung dịch, Cảnh báo cập nhật tức thì khớp với nhịp trạm giả lập.
   const refreshRef = React.useRef(refreshState);
   refreshRef.current = refreshState;
   useEffect(() => {
@@ -160,14 +169,14 @@ export const App: React.FC = () => {
     const id = window.setInterval(async () => {
       try {
         const s = await simulatorApi.getHeartbeat();
-        if (s.running && s.tickCount !== lastTick) {
+        if (s.tickCount !== lastTick || s.running) {
           lastTick = s.tickCount;
           refreshRef.current();
         }
       } catch {
         /* backend chưa sẵn sàng: bỏ qua */
       }
-    }, 5000);
+    }, 2000);
     return () => window.clearInterval(id);
   }, [isAuthenticated]);
 

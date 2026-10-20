@@ -93,6 +93,18 @@ export class AlertEngineService {
         }
       }
 
+      // Với giàn tuần hoàn NFT: Nước tuần hoàn cấp chung cho các máng.
+      // Dải EC hoạt động của bồn phải tương thích với ngưỡng canh tác NFT của giống (tối thiểu 1.4 - 1.95 mS/cm),
+      // không để trần cây con ươm (1.4 mS/cm) gây cảnh báo sai lệch khi bể đang ở mức chuẩn (1.5 - 1.95 mS/cm).
+      if (batch.systemType === 'NFT' || batch.reservoirId) {
+        if (targetEcMax < (c.recommendedEcMax || 1.95)) {
+          targetEcMax = Math.max(targetEcMax, c.recommendedEcMax || 1.95);
+        }
+        if (targetEcMin < (c.recommendedEcMin || 1.4)) {
+          targetEcMin = Math.min(targetEcMin, c.recommendedEcMin || 1.4);
+        }
+      }
+
       const contextDesc = `giống ${c.name} (Lô ${batch.batchCode} - Giàn ${batch.zone?.code || 'NFT'})`;
 
       // 1. Đánh giá pH

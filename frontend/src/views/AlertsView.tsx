@@ -9,7 +9,8 @@ import {
   ChevronUp,
   Search,
   Droplets,
-  ShieldAlert
+  ShieldAlert,
+  ArrowUpDown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,8 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>('active'); // active, open, acknowledged, resolved, all
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterMetric, setFilterMetric] = useState<string>('all');
+  const [filterReservoir, setFilterReservoir] = useState<string>('all');
+  const [sortOption, setSortOption] = useState<string>('priority'); // priority, newest, oldest, severity, reservoir
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resolveNote, setResolveNote] = useState('');
@@ -45,9 +48,9 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   const criticalCount = alerts.filter(a => (a.severity === 'emergency' || a.severity === 'critical') && a.status !== 'resolved').length;
   const resolvedCount = alerts.filter(a => a.status === 'resolved').length;
 
-  // Filtered alert list
+  // Filtered and sorted alert list
   const filteredAlerts = useMemo(() => {
-    return alerts.filter(a => {
+    const list = alerts.filter(a => {
       // Status
       if (filterStatus === 'active') {
         if (a.status !== 'open' && a.status !== 'acknowledged') return false;
@@ -65,6 +68,11 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
         return false;
       }
 
+      // Reservoir
+      if (filterReservoir !== 'all' && a.reservoirId !== filterReservoir) {
+        return false;
+      }
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -77,7 +85,66 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
       return true;
     });
-  }, [alerts, filterStatus, filterSeverity, filterMetric, searchQuery]);
+
+    // Helper parse thời gian
+    const getAlertTime = (a: Alert) => {
+      if (!a.timestamp) return 0;
+      const t = new Date(a.timestamp.includes('T') ? a.timestamp : a.timestamp.replace(' ', 'T')).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+
+    // Mức độ nguy cơ sinh hóa: Khẩn cấp (4) > Nghiêm trọng (3) > Cảnh báo (2) > Thông tin (1)
+    const severityRank: Record<string, number> = {
+      emergency: 4,
+      critical: 3,
+      warning: 2,
+      info: 1
+    };
+
+    return list.sort((a, b) => {
+      if (sortOption === 'newest') {
+        return getAlertTime(b) - getAlertTime(a);
+      }
+      if (sortOption === 'oldest') {
+        return getAlertTime(a) - getAlertTime(b);
+      }
+      if (sortOption === 'status') {
+        const statusRank: Record<string, number> = { open: 0, acknowledged: 1, resolved: 2 };
+        const statDiff = (statusRank[a.status] ?? 0) - (statusRank[b.status] ?? 0);
+        if (statDiff !== 0) return statDiff;
+        const sevDiff = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
+        if (sevDiff !== 0) return sevDiff;
+        return getAlertTime(b) - getAlertTime(a);
+      }
+      if (sortOption === 'reservoir') {
+        const resA = a.reservoirId || '';
+        const resB = b.reservoirId || '';
+        const resDiff = resA.localeCompare(resB);
+        if (resDiff !== 0) return resDiff;
+        const sevDiff = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
+        if (sevDiff !== 0) return sevDiff;
+        return getAlertTime(b) - getAlertTime(a);
+      }
+
+      // Mặc định: 'priority' hoặc 'severity' -> ƯU TIÊN MỨC ĐỘ NGHIÊM TRỌNG TỪ CAO ĐẾN THẤP
+      // 1. Sự cố đang hoạt động (open, acknowledged) xếp trước sự cố đã giải quyết (resolved)
+      const aClosed = a.status === 'resolved' ? 1 : 0;
+      const bClosed = b.status === 'resolved' ? 1 : 0;
+      if (aClosed !== bClosed) return aClosed - bClosed;
+
+      // 2. Mức độ nghiêm trọng từ cao đến thấp: Khẩn cấp > Nghiêm trọng > Cảnh báo > Thông tin
+      const sevDiff = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
+      if (sevDiff !== 0) return sevDiff;
+
+      // 3. Trong cùng mức độ nghiêm trọng: Chưa tiếp nhận (open) xếp trước Đang xử lý (acknowledged)
+      const aStat = a.status === 'open' ? 0 : 1;
+      const bStat = b.status === 'open' ? 0 : 1;
+      if (aStat !== bStat) return aStat - bStat;
+
+      // 4. Thời gian phát sinh mới nhất xếp trước
+      return getAlertTime(b) - getAlertTime(a);
+    });
+  }, [alerts, filterStatus, filterSeverity, filterMetric, filterReservoir, searchQuery, sortOption]);
 
   return (
     <div className="alerts-container">
@@ -247,6 +314,33 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
             />
           </div>
 
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ArrowUpDown size={14} color="#00a651" />
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="farmvista-select-pill"
+              style={{ borderRadius: '8px', height: '34px', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}
+            >
+              <option value="priority">Sắp xếp: Mức độ nghiêm trọng (Cao → Thấp)</option>
+              <option value="newest">Sắp xếp: Mới nhất trước</option>
+              <option value="oldest">Sắp xếp: Cũ nhất trước</option>
+              <option value="status">Sắp xếp: Tiến độ xử lý (Chưa xử lý trước)</option>
+              <option value="reservoir">Sắp xếp: Theo bể chứa</option>
+            </select>
+          </div>
+
+          <select
+            value={filterReservoir}
+            onChange={(e) => setFilterReservoir(e.target.value)}
+            className="farmvista-select-pill"
+            style={{ borderRadius: '8px', height: '34px', fontSize: '0.75rem' }}
+          >
+            <option value="all">Mọi bể bồn</option>
+            <option value="res-01">Bể 01 (Tầng 1)</option>
+            <option value="res-02">Bể 02 (Tầng 2)</option>
+          </select>
+
           <select
             value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
@@ -344,7 +438,9 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                         <td>
                           <div className="alert-title-text">{alert.title}</div>
                           <div className="alert-location-sub">
-                            <span>{alert.reservoirId === 'res-01' ? 'Bể 01 (Tầng 1)' : alert.reservoirId === 'res-02' ? 'Bể 02 (Tầng 2)' : 'Toàn giàn'}</span>
+                            <span style={{ fontWeight: 700, color: alert.reservoirId === 'res-01' ? '#0284c7' : alert.reservoirId === 'res-02' ? '#7c3aed' : '#64748b' }}>
+                              {alert.reservoirId === 'res-01' ? 'Bể 01 (Tầng 1)' : alert.reservoirId === 'res-02' ? 'Bể 02 (Tầng 2)' : 'Toàn giàn'}
+                            </span>
                             {alert.zoneId && <span>• Giàn {alert.zoneId.replace('zone-', '').toUpperCase()}</span>}
                             <span>• {alert.timestamp}</span>
                           </div>

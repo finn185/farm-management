@@ -173,7 +173,7 @@ export class ReservoirsService {
       where: { id },
       data: {
         currentEc: newEc,
-        currentVolumeLiters: Math.min(reservoir.capacityLiters, reservoir.currentVolumeLiters + (data.amountStockAMl + data.amountStockBMl) / 1000)
+        currentVolumeLiters: Number(Math.min(reservoir.capacityLiters, reservoir.currentVolumeLiters + (data.amountStockAMl + data.amountStockBMl) / 1000).toFixed(1))
       }
     });
 
@@ -220,7 +220,7 @@ export class ReservoirsService {
     const reservoir = await this.getReservoirById(id);
 
     const oldVolume = reservoir.currentVolumeLiters;
-    const newVolume = Math.min(reservoir.capacityLiters, oldVolume + data.waterLitersAdded);
+    const newVolume = Number(Math.min(reservoir.capacityLiters, oldVolume + data.waterLitersAdded).toFixed(1));
     
     // Pha loãng EC theo tỷ lệ thể tích
     const dilutionFactor = oldVolume / newVolume;

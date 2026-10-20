@@ -96,7 +96,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const [drainNotes, setDrainNotes] = useState('');
 
   // Top KPI calculations
-  const totalCurrentVolume = reservoirs.reduce((sum, r) => sum + r.currentVolumeLiters, 0);
+  const totalCurrentVolume = Number(reservoirs.reduce((sum, r) => sum + r.currentVolumeLiters, 0).toFixed(1));
   const totalCapacity = reservoirs.reduce((sum, r) => sum + r.capacityLiters, 0);
   const volumePercent = totalCapacity > 0 ? Math.round((totalCurrentVolume / totalCapacity) * 100) : 0;
 
@@ -388,7 +388,13 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           </div>
           <div className="res-kpi-meta">
             <span>Tuần hoàn giàn NFT</span>
-            <span className="res-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+            <span 
+              className="res-kpi-badge" 
+              style={{ 
+                backgroundColor: volumePercent >= 50 ? '#e0f2fe' : '#fee2e2', 
+                color: volumePercent >= 50 ? '#0369a1' : '#dc2626' 
+              }}
+            >
               {volumePercent}% dung tích
             </span>
           </div>
@@ -406,10 +412,22 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
             {avgEc} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>mS/cm</span>
           </div>
           <div className="res-kpi-meta">
-            <span>Chuẩn: 1.5 - 1.9</span>
-            <span className="res-kpi-badge" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
-              Ổn định
-            </span>
+            <span>Chuẩn: 1.5 - 1.95</span>
+            {(() => {
+              const nEc = parseFloat(avgEc);
+              const isEcNorm = nEc >= 1.45 && nEc <= 1.95;
+              return (
+                <span 
+                  className="res-kpi-badge" 
+                  style={{ 
+                    backgroundColor: isEcNorm ? '#dcfce7' : '#fee2e2', 
+                    color: isEcNorm ? '#15803d' : '#dc2626' 
+                  }}
+                >
+                  {isEcNorm ? 'Ổn định' : nEc < 1.45 ? 'Thiếu phân' : 'Đậm phân'}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
@@ -426,9 +444,21 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           </div>
           <div className="res-kpi-meta">
             <span>Chuẩn: 5.6 - 6.2</span>
-            <span className="res-kpi-badge" style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
-              Hấp thụ tối đa
-            </span>
+            {(() => {
+              const nPh = parseFloat(avgPh);
+              const isPhOptimal = nPh >= 5.6 && nPh <= 6.2;
+              return (
+                <span 
+                  className="res-kpi-badge" 
+                  style={{ 
+                    backgroundColor: isPhOptimal ? '#dcfce7' : '#fee2e2', 
+                    color: isPhOptimal ? '#15803d' : '#dc2626' 
+                  }}
+                >
+                  {isPhOptimal ? 'Tối ưu' : nPh > 6.2 ? 'Kiềm hóa' : 'Axit hóa'}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
@@ -445,8 +475,14 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           </div>
           <div className="res-kpi-meta">
             <span>2 Bơm • 2 Sục oxy</span>
-            <span className="res-kpi-badge" style={{ backgroundColor: '#ede9fe', color: '#6d28d9' }}>
-              100% Online
+            <span 
+              className="res-kpi-badge" 
+              style={{ 
+                backgroundColor: totalActiveDevices >= maxDevices ? '#ede9fe' : '#fee2e2', 
+                color: totalActiveDevices >= maxDevices ? '#6d28d9' : '#dc2626' 
+              }}
+            >
+              {totalActiveDevices >= maxDevices ? '100% Online' : `${Math.round((totalActiveDevices / (maxDevices || 1)) * 100)}% Online (${maxDevices - totalActiveDevices} tắt)`}
             </span>
           </div>
         </div>
@@ -524,8 +560,10 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
 
           // Status checks
           const isPhOk = res.currentPh >= 5.6 && res.currentPh <= 6.2;
-          const isEcOk = res.currentEc >= 1.5 && res.currentEc <= 1.85;
-          const isTempOk = res.currentWaterTemp >= 19 && res.currentWaterTemp <= 24;
+          const isEcOk = res.currentEc >= 1.45 && res.currentEc <= 1.95;
+          const isTempOk = res.currentWaterTemp >= 19.0 && res.currentWaterTemp <= 22.5;
+          const doVal = res.currentDo ?? 6.8;
+          const isDoOk = doVal >= 6.0;
 
           return (
             <div key={res.id} className="res-card">
@@ -576,8 +614,8 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               {/* Tank Water Level & Equipment */}
               <div className="res-tank-block">
                 <div className="res-tank-head">
-                  <span>Dung tích nước: <strong>{res.currentVolumeLiters}L / {res.capacityLiters}L</strong></span>
-                  <span style={{ fontWeight: 700, color: '#0284c7' }}>{fillPercent}%</span>
+                  <span>Dung tích nước: <strong>{Number(res.currentVolumeLiters.toFixed(1))}L / {res.capacityLiters}L</strong></span>
+                  <span style={{ fontWeight: 700, color: fillPercent >= 50 ? '#0284c7' : '#dc2626' }}>{fillPercent}%</span>
                 </div>
 
                 <div className="res-tank-bar">
@@ -585,7 +623,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     className="res-tank-fill"
                     style={{
                       width: `${fillPercent}%`,
-                      background: fillPercent > 50 ? 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)' : '#f59e0b'
+                      background: fillPercent >= 50 ? 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)' : '#dc2626'
                     }}
                   />
                 </div>
@@ -628,21 +666,33 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <div className="res-sensors-grid">
                 <div className="res-sensor-tile">
                   <div className="res-sensor-label">pH</div>
-                  <div className="res-sensor-val" style={{ color: isPhOk ? '#16a34a' : '#d97706' }}>
+                  <div className="res-sensor-val" style={{ color: isPhOk ? '#16a34a' : '#dc2626' }}>
                     {res.currentPh.toFixed(2)}
                   </div>
-                  <span className="res-sensor-pill" style={{ backgroundColor: isPhOk ? '#dcfce7' : '#fef3c7', color: isPhOk ? '#15803d' : '#b45309' }}>
-                    {isPhOk ? 'Tối ưu' : 'Cần chỉnh'}
+                  <span 
+                    className="res-sensor-pill" 
+                    style={{ 
+                      backgroundColor: isPhOk ? '#dcfce7' : '#fee2e2', 
+                      color: isPhOk ? '#15803d' : '#dc2626' 
+                    }}
+                  >
+                    {isPhOk ? 'Tối ưu' : res.currentPh > 6.2 ? 'Kiềm hóa' : 'Axit hóa'}
                   </span>
                 </div>
 
                 <div className="res-sensor-tile">
                   <div className="res-sensor-label">EC (mS)</div>
-                  <div className="res-sensor-val" style={{ color: '#00a651' }}>
+                  <div className="res-sensor-val" style={{ color: isEcOk ? '#00a651' : '#dc2626' }}>
                     {res.currentEc.toFixed(2)}
                   </div>
-                  <span className="res-sensor-pill" style={{ backgroundColor: isEcOk ? '#dcfce7' : '#fee2e2', color: isEcOk ? '#15803d' : '#b91c1c' }}>
-                    {isEcOk ? 'Chuẩn' : res.currentEc < 1.5 ? 'Thiếu phân' : 'Đậm phân'}
+                  <span 
+                    className="res-sensor-pill" 
+                    style={{ 
+                      backgroundColor: isEcOk ? '#dcfce7' : '#fee2e2', 
+                      color: isEcOk ? '#15803d' : '#dc2626' 
+                    }}
+                  >
+                    {isEcOk ? 'Chuẩn' : res.currentEc < 1.45 ? 'Thiếu phân' : 'Đậm phân'}
                   </span>
                 </div>
 
@@ -651,18 +701,30 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   <div className="res-sensor-val" style={{ color: isTempOk ? '#0284c7' : '#dc2626' }}>
                     {res.currentWaterTemp.toFixed(1)}°
                   </div>
-                  <span className="res-sensor-pill" style={{ backgroundColor: isTempOk ? '#e0f2fe' : '#fee2e2', color: isTempOk ? '#0369a1' : '#b91c1c' }}>
-                    {isTempOk ? 'Mát rễ' : 'Ấm'}
+                  <span 
+                    className="res-sensor-pill" 
+                    style={{ 
+                      backgroundColor: isTempOk ? '#e0f2fe' : '#fee2e2', 
+                      color: isTempOk ? '#0369a1' : '#dc2626' 
+                    }}
+                  >
+                    {isTempOk ? 'Mát rễ' : res.currentWaterTemp > 22.5 ? 'Nước nóng' : 'Lạnh rễ'}
                   </span>
                 </div>
 
                 <div className="res-sensor-tile">
                   <div className="res-sensor-label">Oxy DO</div>
-                  <div className="res-sensor-val" style={{ color: '#059669' }}>
-                    {(res.currentDo ?? 6.8).toFixed(1)}
+                  <div className="res-sensor-val" style={{ color: isDoOk ? '#059669' : '#dc2626' }}>
+                    {doVal.toFixed(1)}
                   </div>
-                  <span className="res-sensor-pill" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
-                    Bão hòa
+                  <span 
+                    className="res-sensor-pill" 
+                    style={{ 
+                      backgroundColor: isDoOk ? '#d1fae5' : '#fee2e2', 
+                      color: isDoOk ? '#059669' : '#dc2626' 
+                    }}
+                  >
+                    {isDoOk ? 'Bão hòa' : 'Thiếu oxy'}
                   </span>
                 </div>
               </div>
@@ -753,6 +815,21 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                       <span>Châm {doseMl}ml Can A & B</span>
                     </button>
                   </div>
+                ) : res.currentEc > currentTargetEc + 0.15 ? (
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#b91c1c',
+                    backgroundColor: '#fee2e2',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 600
+                  }}>
+                    <AlertCircle size={14} color="#dc2626" />
+                    <span>Nồng độ EC cao ({res.currentEc.toFixed(2)} mS/cm). Cần bù nước sạch để pha loãng.</span>
+                  </div>
                 ) : (
                   <div style={{
                     fontSize: '0.75rem',
@@ -766,7 +843,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     fontWeight: 600
                   }}>
                     <CheckCircle2 size={14} color="#16a34a" />
-                    <span>Nồng độ EC đạt chuẩn ({res.currentEc} mS/cm). Chưa cần châm thêm.</span>
+                    <span>Nồng độ EC đạt chuẩn ({res.currentEc.toFixed(2)} mS/cm). Chưa cần châm thêm.</span>
                   </div>
                 )}
               </div>
@@ -1013,7 +1090,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Nhiệt độ nước (°C - Chuẩn: 20 - 24°C)</label>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Nhiệt độ nước (°C - Chuẩn: 19.0 - 22.5°C)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -1178,7 +1255,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '10px 12px', borderRadius: '8px', color: '#b91c1c', fontSize: '0.78rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <AlertCircle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
-                  <span>Xả toàn bộ <strong>{activeModalRes?.currentVolumeLiters}L</strong> nước dinh dưỡng hiện tại.</span>
+                  <span>Xả toàn bộ <strong>{activeModalRes ? Number(activeModalRes.currentVolumeLiters.toFixed(1)) : 0}L</strong> nước dinh dưỡng hiện tại.</span>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -1270,7 +1347,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                   return (
                     <div key={ev.id} style={{ border: '1px solid #e2e8f0', backgroundColor: '#ffffff', borderRadius: '8px', padding: '12px', fontSize: '0.78rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <strong style={{ color: '#0f172a' }}>{res?.name.split('-')[0].trim() || 'Bể'} • Xả {ev.volumeDrainedLiters}L</strong>
+                        <strong style={{ color: '#0f172a' }}>{res?.name.split('-')[0].trim() || 'Bể'} • Xả {Number(ev.volumeDrainedLiters.toFixed(1))}L</strong>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <Calendar size={11} />
                           {ev.drainDate}

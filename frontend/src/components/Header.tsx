@@ -132,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
     lines.push('', '2. TRANG THAI BE DINH DUONG TUAN HOAN');
     lines.push('Ma Be,Ten Be,The Tich (L),pH,EC (mS/cm),Nhiet Do Nuoc (C),DO (mg/L)');
     reservoirs.forEach(r => {
-      lines.push(`${r.id},"${r.name}",${r.currentVolumeLiters}/${r.capacityLiters},${r.currentPh},${r.currentEc},${r.currentWaterTemp},${r.currentDo ?? 6.8}`);
+      lines.push(`${r.id},"${r.name}",${Number(r.currentVolumeLiters.toFixed(1))}/${r.capacityLiters},${r.currentPh},${r.currentEc},${r.currentWaterTemp},${r.currentDo ?? 6.8}`);
     });
 
     lines.push('', '3. NHAT KY THU HOACH GAN NHAT');

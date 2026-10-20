@@ -68,7 +68,11 @@ export class AlertsService {
       ]
     });
 
-    // Sắp xếp ưu tiên: khẩn cấp (emergency) > nguy hiểm (critical) > cảnh báo (warning) > thông tin (info)
+    // Sắp xếp ưu tiên:
+    // 1. Sự cố đang diễn ra (open, acknowledged) xếp trước sự cố đã giải quyết (resolved)
+    // 2. Ưu tiên mức độ nghiêm trọng từ cao đến thấp: Khẩn cấp (emergency: 4) > Nghiêm trọng (critical: 3) > Cảnh báo (warning: 2) > Thông tin (info: 1)
+    // 3. Tiến độ tiếp nhận: Chưa tiếp nhận (open: 0) trước Đang xử lý (acknowledged: 1)
+    // 4. Thời gian phát sinh mới nhất xếp trước
     const severityRank: Record<string, number> = {
       emergency: 4,
       critical: 3,
@@ -77,17 +81,22 @@ export class AlertsService {
     };
 
     return alerts.sort((a, b) => {
-      // 1. Trạng thái: open & acknowledged trước, resolved sau
+      // 1. Phân biệt sự cố đang diễn ra vs đã giải quyết
       const aClosed = a.status === 'resolved' ? 1 : 0;
       const bClosed = b.status === 'resolved' ? 1 : 0;
       if (aClosed !== bClosed) return aClosed - bClosed;
 
-      // 2. Mức độ nghiêm trọng
+      // 2. ƯU TIÊN MỨC ĐỘ NGHIÊM TRỌNG TỪ CAO ĐẾN THẤP
       const aSev = severityRank[a.severity] || 0;
       const bSev = severityRank[b.severity] || 0;
       if (aSev !== bSev) return bSev - aSev;
 
-      // 3. Thời gian mới nhất
+      // 3. Trong cùng mức độ: Chưa tiếp nhận (open) trước Đang xử lý (acknowledged)
+      const aStat = a.status === 'open' ? 0 : 1;
+      const bStat = b.status === 'open' ? 0 : 1;
+      if (aStat !== bStat) return aStat - bStat;
+
+      // 4. Thời gian phát sinh mới nhất xếp trước
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }

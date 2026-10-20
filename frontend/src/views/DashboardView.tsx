@@ -387,12 +387,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="dash-kpi-meta">
             <span>pH {currentReservoir.currentPh.toFixed(1)} • EC {currentReservoir.currentEc.toFixed(1)}</span>
-            <span className="dash-kpi-badge" style={{
-              backgroundColor: openAlerts.length > 0 ? '#fef3c7' : '#dcfce7',
-              color: openAlerts.length > 0 ? '#b45309' : '#15803d'
-            }}>
-              2/2 Bể Bơm Tốt
-            </span>
+            {(() => {
+              const inactivePumps = reservoirs.filter(r => r.pumpStatus !== 'running').length;
+              const inactiveAerators = reservoirs.filter(r => r.aerationStatus !== 'active').length;
+              const hasDeviceIssue = inactivePumps > 0 || inactiveAerators > 0;
+              const totalDevices = Math.max(1, reservoirs.length * 2);
+              const activeDevices = totalDevices - (inactivePumps + inactiveAerators);
+              return (
+                <span className="dash-kpi-badge" style={{
+                  backgroundColor: (openAlerts.length > 0 || hasDeviceIssue) ? '#fef3c7' : '#dcfce7',
+                  color: (openAlerts.length > 0 || hasDeviceIssue) ? '#b45309' : '#15803d'
+                }}>
+                  {hasDeviceIssue 
+                    ? `${activeDevices}/${totalDevices} Thiết Bị ON` 
+                    : '2/2 Bể Bơm Tốt'}
+                </span>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -479,7 +490,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div className="dash-zone-metrics">
-                      <span><strong>{zone.plantQuantity || batch?.plantQuantity || zone.slotCapacity}</strong> rọ</span>
+                      <span>
+                        <strong>
+                          {batch?.currentQuantity && batch?.plantQuantity && batch.currentQuantity !== batch.plantQuantity
+                            ? `${batch.currentQuantity}/${batch.plantQuantity}`
+                            : (batch?.currentQuantity || batch?.plantQuantity || zone.plantQuantity || zone.slotCapacity)}
+                        </strong> rọ
+                      </span>
                       <span>•</span>
                       <span>{zone.reservoirId === 'res-01' ? 'Bể 01' : 'Bể 02'}</span>
                       {(batch?.batchCode || zone.currentBatchCode) && (
@@ -573,55 +590,96 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* 4 Metric Boxes */}
             <div className="dash-res-metrics">
-              <div className="dash-res-item">
-                <div className="dash-res-item-label">pH</div>
-                <div className="dash-res-item-val" style={{ color: currentReservoir.currentPh >= 5.5 && currentReservoir.currentPh <= 6.5 ? '#16a34a' : '#dc2626' }}>
-                  {currentReservoir.currentPh.toFixed(2)}
-                </div>
-                <div className="dash-res-item-status">Mục tiêu 5.8</div>
-              </div>
+              {/* 1. pH */}
+              {(() => {
+                const isPhOk = currentReservoir.currentPh >= 5.6 && currentReservoir.currentPh <= 6.2;
+                return (
+                  <div className="dash-res-item">
+                    <div className="dash-res-item-label">pH</div>
+                    <div className="dash-res-item-val" style={{ color: isPhOk ? '#16a34a' : '#dc2626' }}>
+                      {currentReservoir.currentPh.toFixed(2)}
+                    </div>
+                    <div className="dash-res-item-status" style={{ color: isPhOk ? '#16a34a' : '#dc2626' }}>
+                      {isPhOk ? 'Tối ưu' : currentReservoir.currentPh > 6.2 ? 'Kiềm hóa' : 'Axit hóa'}
+                    </div>
+                  </div>
+                );
+              })()}
 
-              <div className="dash-res-item">
-                <div className="dash-res-item-label">EC (mS)</div>
-                <div className="dash-res-item-val" style={{ color: currentReservoir.currentEc >= 1.4 && currentReservoir.currentEc <= 2.0 ? '#16a34a' : '#d97706' }}>
-                  {currentReservoir.currentEc.toFixed(2)}
-                </div>
-                <div className="dash-res-item-status">Mục tiêu 1.7</div>
-              </div>
+              {/* 2. EC */}
+              {(() => {
+                const isEcOk = currentReservoir.currentEc >= 1.45 && currentReservoir.currentEc <= 1.95;
+                return (
+                  <div className="dash-res-item">
+                    <div className="dash-res-item-label">EC (mS)</div>
+                    <div className="dash-res-item-val" style={{ color: isEcOk ? '#00a651' : '#dc2626' }}>
+                      {currentReservoir.currentEc.toFixed(2)}
+                    </div>
+                    <div className="dash-res-item-status" style={{ color: isEcOk ? '#00a651' : '#dc2626' }}>
+                      {isEcOk ? 'Chuẩn' : currentReservoir.currentEc < 1.45 ? 'Thiếu phân' : 'Đậm phân'}
+                    </div>
+                  </div>
+                );
+              })()}
 
-              <div className="dash-res-item">
-                <div className="dash-res-item-label">Nước (°C)</div>
-                <div className="dash-res-item-val" style={{ color: currentReservoir.currentWaterTemp <= 24 ? '#0284c7' : '#dc2626' }}>
-                  {currentReservoir.currentWaterTemp.toFixed(1)}°
-                </div>
-                <div className="dash-res-item-status" style={{ color: '#0284c7' }}>Mát rễ</div>
-              </div>
+              {/* 3. Nhiệt độ nước */}
+              {(() => {
+                const isTempOk = currentReservoir.currentWaterTemp >= 19.0 && currentReservoir.currentWaterTemp <= 22.5;
+                return (
+                  <div className="dash-res-item">
+                    <div className="dash-res-item-label">Nước (°C)</div>
+                    <div className="dash-res-item-val" style={{ color: isTempOk ? '#0284c7' : '#dc2626' }}>
+                      {currentReservoir.currentWaterTemp.toFixed(1)}°
+                    </div>
+                    <div className="dash-res-item-status" style={{ color: isTempOk ? '#0284c7' : '#dc2626' }}>
+                      {isTempOk ? 'Mát rễ' : currentReservoir.currentWaterTemp > 22.5 ? 'Nước nóng' : 'Lạnh rễ'}
+                    </div>
+                  </div>
+                );
+              })()}
 
-              <div className="dash-res-item">
-                <div className="dash-res-item-label">DO (mg/L)</div>
-                <div className="dash-res-item-val" style={{ color: '#059669' }}>
-                  {currentReservoir.currentDo || 6.8}
-                </div>
-                <div className="dash-res-item-status">Oxy hòa tan</div>
-              </div>
+              {/* 4. Oxy DO */}
+              {(() => {
+                const doVal = currentReservoir.currentDo ?? 6.8;
+                const isDoOk = doVal >= 6.0;
+                return (
+                  <div className="dash-res-item">
+                    <div className="dash-res-item-label">DO (mg/L)</div>
+                    <div className="dash-res-item-val" style={{ color: isDoOk ? '#059669' : '#dc2626' }}>
+                      {doVal.toFixed(1)}
+                    </div>
+                    <div className="dash-res-item-status" style={{ color: isDoOk ? '#059669' : '#dc2626' }}>
+                      {isDoOk ? 'Bão hòa' : 'Thiếu oxy'}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Tank Liquid Level */}
-            <div className="dash-res-tank">
-              <div className="dash-res-tank-header">
-                <span>Mức dung dịch trong bể: <strong>{currentReservoir.currentVolumeLiters}L / {currentReservoir.capacityLiters}L</strong></span>
-                <span style={{ color: '#00a651' }}>{Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100)}%</span>
-              </div>
-              <div className="dash-zone-progress-bar" style={{ height: '7px' }}>
-                <div
-                  className="dash-zone-progress-fill"
-                  style={{
-                    width: `${Math.min(100, Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100))}%`,
-                    backgroundColor: '#00a651'
-                  }}
-                />
-              </div>
-            </div>
+            {(() => {
+              const fillPct = Math.round((currentReservoir.currentVolumeLiters / currentReservoir.capacityLiters) * 100);
+              const isLevelDanger = fillPct < 35;
+              const isLevelWarn = fillPct < 55;
+              const levelColor = isLevelDanger ? '#dc2626' : isLevelWarn ? '#d97706' : '#00a651';
+              return (
+                <div className="dash-res-tank">
+                  <div className="dash-res-tank-header">
+                    <span>Mức dung dịch trong bể: <strong>{Number(currentReservoir.currentVolumeLiters.toFixed(1))}L / {currentReservoir.capacityLiters}L</strong></span>
+                    <span style={{ color: levelColor, fontWeight: 700 }}>{fillPct}%</span>
+                  </div>
+                  <div className="dash-zone-progress-bar" style={{ height: '7px' }}>
+                    <div
+                      className="dash-zone-progress-fill"
+                      style={{
+                        width: `${Math.min(100, fillPct)}%`,
+                        backgroundColor: levelColor
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
               <button
@@ -712,7 +770,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <tr>
                 <th>Mã Lô & Giống</th>
                 <th>Vị Trí & Bồn Cấp</th>
-                <th>Số Cây</th>
+                <th>Số Cây / Sống Sót</th>
                 <th>Tuổi Cây & Giai Đoạn</th>
                 <th>Hạn Thu Hoạch</th>
                 <th style={{ textAlign: 'right' }}>Hành Động</th>
@@ -739,8 +797,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <span>{reservoirName}</span>
                       </div>
                     </td>
-                    <td style={{ fontWeight: 700, color: '#00a651' }}>
-                      {b.currentQuantity || b.plantQuantity} rọ
+                    <td style={{ fontWeight: 600 }}>
+                      {b.currentQuantity && b.plantQuantity && b.currentQuantity !== b.plantQuantity ? (
+                        <div>
+                          <span style={{ fontWeight: 700, color: '#00a651' }}>{b.currentQuantity}</span>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>/{b.plantQuantity} rọ</span>
+                          <span style={{ fontSize: '0.7rem', color: '#16a34a', marginLeft: '4px', fontWeight: 700 }}>
+                            ({Math.round((b.currentQuantity / b.plantQuantity) * 100)}%)
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontWeight: 700, color: '#00a651' }}>
+                          {b.currentQuantity || b.plantQuantity} rọ
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', marginBottom: '3px' }}>
