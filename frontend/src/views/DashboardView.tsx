@@ -40,7 +40,8 @@ interface DashboardViewProps {
   reservoirs: Reservoir[];
   sensorHistory?: any[];
   alerts: Alert[];
-  harvests?: any[];
+  zones?: FarmZone[];
+  harvests?: HarvestRecord[];
   onNavigateTab: (tab: any) => void;
   onSelectBatchForAI: (batch: CropBatch) => void;
   onSelectBatchForHarvest?: (batch: CropBatch) => void;
@@ -98,7 +99,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   batches = [],
   reservoirs = [],
   alerts = [],
-  harvests: propHarvests = [],
   zones = [],
   harvests = [],
   onNavigateTab,
@@ -135,12 +135,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     loadWeatherForCity(selectedCityId);
   }, [selectedCityId]);
 
-  // Farm Store data
-  const zones: FarmZone[] = useMemo(() => farmStore.getZones(), []);
-  const harvestRecords = useMemo(() => {
-    if (propHarvests && propHarvests.length > 0) return propHarvests;
-    return farmStore.getHarvests();
-  }, [propHarvests]);
+  // Real database records from props
+  const harvestRecords = harvests;
 
   // Aggregated KPIs
   const activeBatches = useMemo(() => batches.filter(b => b.status === 'active'), [batches]);

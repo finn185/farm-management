@@ -14,46 +14,46 @@
     ],
     "target": "Target_Shoot_Weight_g",
     "metrics": {
-      "r2_score": 0.967,
-      "mae_g": 3.25,
-      "rmse_g": 6.92
+      "r2_score": 0.9664,
+      "mae_g": 3.3,
+      "rmse_g": 6.99
     },
     "top_features": [
       {
         "feature": "Avg_Air_Temp",
-        "importance_percent": 42.79
+        "importance_percent": 42.86
       },
       {
         "feature": "Cumulative_Acid_ml",
-        "importance_percent": 22.49
+        "importance_percent": 21.67
       },
       {
         "feature": "Cumulative_Nutrient_AB_ml",
-        "importance_percent": 16.02
+        "importance_percent": 16.91
       },
       {
         "feature": "Avg_Water_Temp",
-        "importance_percent": 7.91
+        "importance_percent": 7.93
       },
       {
         "feature": "Avg_EC",
-        "importance_percent": 5.78
+        "importance_percent": 5.66
       },
       {
         "feature": "Plant_Age_Days",
-        "importance_percent": 2.31
+        "importance_percent": 2.27
       },
       {
         "feature": "Avg_Humidity",
-        "importance_percent": 1.59
+        "importance_percent": 1.64
       },
       {
         "feature": "Avg_pH",
-        "importance_percent": 1.03
+        "importance_percent": 0.97
       },
       {
         "feature": "Days_Since_Last_Dosing",
-        "importance_percent": 0.08
+        "importance_percent": 0.09
       }
     ]
   },

@@ -376,6 +376,7 @@ export const App: React.FC = () => {
                           reservoirs={reservoirs}
                           sensorHistory={sensorHistory}
                           alerts={alerts}
+                          zones={zones}
                           harvests={harvests}
                           onNavigateTab={handleNavigateTab}
                           onSelectBatchForAI={handleSelectBatchForAI}
