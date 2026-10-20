@@ -12,6 +12,8 @@ import { RecordHarvestModal } from './components/RecordHarvestModal';
 import { LoginView } from './views/LoginView';
 import { RegisterView } from './views/RegisterView';
 import { ProfileView } from './views/ProfileView';
+import { SimulatorView } from './views/SimulatorView';
+import { simulatorApi } from './services/simulatorApi';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import { farmStore } from './mock/store';
@@ -81,15 +83,13 @@ export const App: React.FC = () => {
         reservoirsApi.getDrainEvents()
       ]);
 
-      if (batchesRes.status === 'fulfilled' && batchesRes.value && batchesRes.value.length > 0) {
-        setBatches(batchesRes.value);
-      } else if (batchesRes.status === 'fulfilled' && batchesRes.value) {
+      if (batchesRes.status === 'fulfilled' && batchesRes.value) {
         setBatches(batchesRes.value);
       } else {
         setBatches(farmStore.getBatches());
       }
 
-      if (reservoirsRes.status === 'fulfilled' && reservoirsRes.value && reservoirsRes.value.length > 0) {
+      if (reservoirsRes.status === 'fulfilled' && reservoirsRes.value) {
         setReservoirs(reservoirsRes.value);
       } else {
         setReservoirs(farmStore.getReservoirs());
@@ -107,25 +107,25 @@ export const App: React.FC = () => {
         setHarvests(farmStore.getHarvests());
       }
 
-      if (cultivarsRes.status === 'fulfilled' && cultivarsRes.value && cultivarsRes.value.length > 0) {
+      if (cultivarsRes.status === 'fulfilled' && cultivarsRes.value) {
         setCultivars(cultivarsRes.value);
       } else {
         setCultivars(farmStore.getCultivars());
       }
 
-      if (zonesRes.status === 'fulfilled' && zonesRes.value && zonesRes.value.length > 0) {
+      if (zonesRes.status === 'fulfilled' && zonesRes.value) {
         setZones(zonesRes.value);
       } else {
         setZones(farmStore.getZones());
       }
 
-      if (formulasRes.status === 'fulfilled' && formulasRes.value && formulasRes.value.length > 0) {
+      if (formulasRes.status === 'fulfilled' && formulasRes.value) {
         setFormulas(formulasRes.value);
       } else {
         setFormulas(farmStore.getFormulas());
       }
 
-      if (drainEventsRes.status === 'fulfilled' && drainEventsRes.value && drainEventsRes.value.length > 0) {
+      if (drainEventsRes.status === 'fulfilled' && drainEventsRes.value) {
         setDrainEvents(drainEventsRes.value);
       } else {
         setDrainEvents(farmStore.getDrainEvents());
@@ -149,6 +149,27 @@ export const App: React.FC = () => {
   useEffect(() => {
     refreshState();
   }, []);
+
+  // Khi Trạm giả lập IoT đang chạy: tự động tải lại dữ liệu mỗi 5 giây
+  // để Dashboard, Bể dung dịch, Cảnh báo cập nhật mà không cần tải lại trang.
+  const refreshRef = React.useRef(refreshState);
+  refreshRef.current = refreshState;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let lastTick = -1;
+    const id = window.setInterval(async () => {
+      try {
+        const s = await simulatorApi.getHeartbeat();
+        if (s.running && s.tickCount !== lastTick) {
+          lastTick = s.tickCount;
+          refreshRef.current();
+        }
+      } catch {
+        /* backend chưa sẵn sàng: bỏ qua */
+      }
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [isAuthenticated]);
 
   const handleAddBatch = async (data: any) => {
     await batchesApi.createBatch(data);
@@ -234,7 +255,6 @@ export const App: React.FC = () => {
       // Nếu không nhập ô số đo riêng, quét từ ghi chú (hỗ trợ mọi định dạng: "5.8", "đo mới 5.8", "về 5.80", "5.8 pH", v.v.)
       if (resolvedValue === undefined && note) {
         if (targetAlert.metric === 'pH') {
-          // Bắt các số thập phân từ 4.5 đến 8.5 ở bất kỳ đâu trong ghi chú
           const matches = note.match(/\b([4-8](?:[.,]\d{1,2})?)\b/g);
           if (matches && matches.length > 0) {
             for (let i = matches.length - 1; i >= 0; i--) {
@@ -246,7 +266,6 @@ export const App: React.FC = () => {
             }
           }
         } else if (targetAlert.metric === 'EC') {
-          // Bắt số EC từ 0.8 đến 3.5
           const matches = note.match(/\b([0-3](?:[.,]\d{1,2})?)\b/g);
           if (matches && matches.length > 0) {
             for (let i = matches.length - 1; i >= 0; i--) {
@@ -363,7 +382,13 @@ export const App: React.FC = () => {
 
               {/* Main Area */}
               <div className="app-main">
-                <Header unreadAlertCount={unreadAlertsCount} />
+                <Header
+                  unreadAlertCount={unreadAlertsCount}
+                  batches={batches}
+                  reservoirs={reservoirs}
+                  alerts={alerts}
+                  harvests={harvests}
+                />
 
                 <main className="content-body">
                   <Routes>
@@ -450,6 +475,10 @@ export const App: React.FC = () => {
                           onRecordHarvest={handleRecordHarvest}
                         />
                       }
+                    />
+                    <Route
+                      path="simulator"
+                      element={<SimulatorView onDataChanged={() => { farmStore.resetAllData(); refreshState(); }} />}
                     />
                     <Route
                       path="profile"

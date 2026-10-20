@@ -62,10 +62,10 @@ def load_ai_models():
 
     if os.path.exists(RF_YIELD_PATH):
         rf_yield_model = joblib.load(RF_YIELD_PATH)
-        print(f"✅ Đã tải mô hình Yield Prediction: {RF_YIELD_PATH}")
+        print(f"Đã tải mô hình Yield Prediction: {RF_YIELD_PATH}")
     if os.path.exists(ISO_ANOMALY_PATH):
         iso_anomaly_model = joblib.load(ISO_ANOMALY_PATH)
-        print(f"✅ Đã tải mô hình Anomaly Detection: {ISO_ANOMALY_PATH}")
+        print(f"Đã tải mô hình Anomaly Detection: {ISO_ANOMALY_PATH}")
     if os.path.exists(METADATA_PATH):
         with open(METADATA_PATH, 'r', encoding='utf-8') as f:
             models_metadata = json.load(f)
@@ -274,7 +274,7 @@ def predict_yield(req: PredictionRequest):
     elif req.avgPh > 6.3:
         recommendations.append(f"🧪 pH ({req.avgPh}) bị kiềm. Bổ sung pH Down loãng tránh kết tủa Sắt và vi lượng.")
     if not recommendations:
-        recommendations.append(f"✅ Môi trường dung dịch và phát triển của giống {cultivar} đang ở trạng thái tối ưu.")
+        recommendations.append(f"Môi trường dung dịch và phát triển của giống {cultivar} đang ở trạng thái tối ưu.")
 
     r2_val = 0.967
     if models_metadata and 'yield_model' in models_metadata:
@@ -356,7 +356,7 @@ def detect_anomaly(req: AnomalyDetectionRequest):
     elif severity == "warning":
         suggested_action = "⚠️ Cần chú ý điều chỉnh: Cân chỉnh pH/EC bể dinh dưỡng về ngưỡng tiêu chuẩn trong ca trực."
     else:
-        suggested_action = "✅ Bể dinh dưỡng đang vận hành ổn định trong giới hạn sinh thái lý tưởng."
+        suggested_action = "Bể dinh dưỡng đang vận hành ổn định trong giới hạn sinh thái lý tưởng."
 
     return AnomalyDetectionResponse(
         reservoirId=req.reservoirId,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Plus, 
+import {
+  Plus,
   Droplets,
   CheckCircle2,
   AlertCircle,
@@ -96,13 +96,13 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const totalCurrentVolume = reservoirs.reduce((sum, r) => sum + r.currentVolumeLiters, 0);
   const totalCapacity = reservoirs.reduce((sum, r) => sum + r.capacityLiters, 0);
   const volumePercent = totalCapacity > 0 ? Math.round((totalCurrentVolume / totalCapacity) * 100) : 0;
-  
-  const avgEc = reservoirs.length > 0 
-    ? (reservoirs.reduce((sum, r) => sum + r.currentEc, 0) / reservoirs.length).toFixed(2) 
+
+  const avgEc = reservoirs.length > 0
+    ? (reservoirs.reduce((sum, r) => sum + r.currentEc, 0) / reservoirs.length).toFixed(2)
     : '1.75';
-    
-  const avgPh = reservoirs.length > 0 
-    ? (reservoirs.reduce((sum, r) => sum + r.currentPh, 0) / reservoirs.length).toFixed(2) 
+
+  const avgPh = reservoirs.length > 0
+    ? (reservoirs.reduce((sum, r) => sum + r.currentPh, 0) / reservoirs.length).toFixed(2)
     : '5.85';
 
   const runningPumpsCount = reservoirs.filter(r => r.pumpStatus === 'running').length;
@@ -235,7 +235,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
       if (result.isAnomaly) {
         showNotice(`🚨 AI Phát hiện bất thường tại ${shortName}: ${result.riskFactors.join('. ')}`);
       } else {
-        showNotice(`✅ AI Giám Sát: Các chỉ số của ${shortName} an toàn (Isolation Forest).`);
+        showNotice(`AI Giám Sát: Các chỉ số của ${shortName} an toàn (Isolation Forest).`);
       }
       return result;
     } catch (err: any) {
@@ -256,7 +256,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
   const filteredReservoirs = reservoirs.filter(res => {
     if (activeTab === 'res-01' && res.id !== 'res-01') return false;
     if (activeTab === 'res-02' && res.id !== 'res-02') return false;
-    
+
     const curTarget = targetEcs[res.id] ?? (res.currentEc < 1.7 ? 1.75 : res.currentEc);
     const isDeficit = curTarget > res.currentEc;
     if (activeTab === 'needs-dosing' && !isDeficit) return false;
@@ -279,7 +279,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
 
   return (
     <div className="res-container">
-      
+
       {/* ========================================================
           1. PAGE HEADER: Title, Subtitle & Action Buttons
           ======================================================== */}
@@ -288,7 +288,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
           <div>
             <h1 className="res-title">
               <Droplets size={22} color="#00a651" />
-              Bể Dinh Dưỡng & Tuần Hoàn NFT
+              Bể Nước & Dinh Dưỡng
             </h1>
             <div className="res-subtitle">
               Giám sát pH, EC, nhiệt độ & mực nước 2 trạm bồn tuần hoàn
@@ -612,7 +612,7 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                     <span style={{ fontWeight: 700, color: anomalyMap[res.id].isAnomaly ? '#991b1b' : '#166534' }}>
                       {anomalyMap[res.id].isAnomaly
                         ? `🚨 Cảnh báo AI: ${anomalyMap[res.id].riskFactors.join('. ')}`
-                        : '✅ AI Giám Sát: Môi trường an toàn (Mô hình Isolation Forest)'}
+                        : 'AI Giám Sát: Môi trường an toàn (Mô hình Isolation Forest)'}
                     </span>
                   </div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 600 }}>
@@ -873,29 +873,29 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" domain={[1.4, 2.2]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="right" orientation="right" domain={[5.0, 7.0]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', fontSize: '11px' }} 
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', fontSize: '11px' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
-                <Area 
+                <Area
                   yAxisId="left"
-                  type="monotone" 
-                  dataKey={selectedChartTank === 'res-02' ? 'ec2' : 'ec1'} 
-                  name="EC (mS/cm)" 
-                  stroke="#00a651" 
-                  strokeWidth={2} 
-                  fillOpacity={1} 
-                  fill="url(#ecGrad)" 
+                  type="monotone"
+                  dataKey={selectedChartTank === 'res-02' ? 'ec2' : 'ec1'}
+                  name="EC (mS/cm)"
+                  stroke="#00a651"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#ecGrad)"
                 />
-                <Area 
+                <Area
                   yAxisId="right"
-                  type="monotone" 
-                  dataKey={selectedChartTank === 'res-02' ? 'ph2' : 'ph1'} 
-                  name="pH" 
-                  stroke="#0284c7" 
-                  strokeWidth={2} 
-                  fillOpacity={1} 
-                  fill="url(#phGrad)" 
+                  type="monotone"
+                  dataKey={selectedChartTank === 'res-02' ? 'ph2' : 'ph1'}
+                  name="pH"
+                  stroke="#0284c7"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#phGrad)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -960,18 +960,18 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Ghi Số Đo Mới: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsLogModalOpen(false)} 
-                style={{ 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '28px', 
-                  height: '28px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  cursor: 'pointer', 
+              <button
+                onClick={() => setIsLogModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
                   color: 'var(--text-muted)'
                 }}
               >
@@ -983,71 +983,71 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Độ pH (Chuẩn: 5.6 - 6.2)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     min="4.0"
                     max="9.0"
-                    className="form-input clean-number" 
-                    value={formPh} 
-                    onChange={e => setFormPh(parseFloat(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={formPh}
+                    onChange={e => setFormPh(parseFloat(e.target.value))}
+                    required
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Nồng độ EC (mS/cm - Chuẩn: 1.5 - 1.9)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     min="0.5"
                     max="3.5"
-                    className="form-input clean-number" 
-                    value={formEc} 
-                    onChange={e => setFormEc(parseFloat(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={formEc}
+                    onChange={e => setFormEc(parseFloat(e.target.value))}
+                    required
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Nhiệt độ nước (°C - Chuẩn: 20 - 24°C)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.1"
                     min="15.0"
                     max="35.0"
-                    className="form-input clean-number" 
-                    value={formTemp} 
-                    onChange={e => setFormTemp(parseFloat(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={formTemp}
+                    onChange={e => setFormTemp(parseFloat(e.target.value))}
+                    required
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Oxy hòa tan DO (mg/L - Chuẩn: 6.0 - 8.0)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.1"
                     min="2.0"
                     max="12.0"
-                    className="form-input clean-number" 
-                    value={formDo} 
-                    onChange={e => setFormDo(parseFloat(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={formDo}
+                    onChange={e => setFormDo(parseFloat(e.target.value))}
+                    required
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Mực nước (% dung tích bể)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="1"
                     min="0"
                     max="100"
-                    className="form-input clean-number" 
-                    value={formWaterLevel} 
-                    onChange={e => setFormWaterLevel(parseFloat(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={formWaterLevel}
+                    onChange={e => setFormWaterLevel(parseFloat(e.target.value))}
+                    required
                   />
                 </div>
               </div>
@@ -1073,19 +1073,19 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Bù Nước Sạch: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsTopUpModalOpen(false)} 
-                style={{ 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '28px', 
-                  height: '28px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  cursor: 'pointer', 
-                  color: 'var(--text-muted)' 
+              <button
+                onClick={() => setIsTopUpModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)'
                 }}
               >
                 <X size={15} />
@@ -1096,14 +1096,14 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Số lít nước châm thêm (Lít)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min="10"
                     max="500"
-                    className="form-input clean-number" 
-                    value={topUpLiters} 
-                    onChange={e => setTopUpLiters(Number(e.target.value))} 
-                    required 
+                    className="form-input clean-number"
+                    value={topUpLiters}
+                    onChange={e => setTopUpLiters(Number(e.target.value))}
+                    required
                   />
                 </div>
 
@@ -1152,19 +1152,19 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#dc2626' }}>
                 Xác Nhận Xả Bể: {activeModalRes?.name.split('-')[0].trim()}
               </h3>
-              <button 
-                onClick={() => setIsDrainModalOpen(false)} 
-                style={{ 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '28px', 
-                  height: '28px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  cursor: 'pointer', 
-                  color: 'var(--text-muted)' 
+              <button
+                onClick={() => setIsDrainModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)'
                 }}
               >
                 <X size={15} />
@@ -1180,9 +1180,9 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Lý do xả</label>
-                  <select 
-                    className="form-select" 
-                    value={drainReason} 
+                  <select
+                    className="form-select"
+                    value={drainReason}
                     onChange={e => setDrainReason(e.target.value as any)}
                   >
                     <option value="end_of_batch">Kết thúc đợt trồng</option>
@@ -1194,22 +1194,22 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Người thực hiện</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={drainOperator} 
-                    onChange={e => setDrainOperator(e.target.value)} 
-                    required 
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={drainOperator}
+                    onChange={e => setDrainOperator(e.target.value)}
+                    required
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Ghi chú kỹ thuật</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={drainNotes} 
-                    onChange={e => setDrainNotes(e.target.value)} 
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={drainNotes}
+                    onChange={e => setDrainNotes(e.target.value)}
                     placeholder="Vệ sinh bồn trước khi pha dung dịch mới."
                   />
                 </div>
@@ -1237,19 +1237,19 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 <History size={16} color="#00a651" />
                 <span>Nhật Ký Xả & Thay Nước</span>
               </h3>
-              <button 
-                onClick={() => setIsDrainHistoryModalOpen(false)} 
-                style={{ 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '28px', 
-                  height: '28px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  cursor: 'pointer', 
-                  color: 'var(--text-muted)' 
+              <button
+                onClick={() => setIsDrainHistoryModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)'
                 }}
               >
                 <X size={15} />
@@ -1307,19 +1307,19 @@ export const ReservoirsView: React.FC<ReservoirsViewProps> = ({
                 <FlaskConical size={16} color="#00a651" />
                 <span>Công Thức Pha Can 10L Tại Kho (Stock)</span>
               </h3>
-              <button 
-                onClick={() => setIsFormulaModalOpen(false)} 
-                style={{ 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '28px', 
-                  height: '28px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  cursor: 'pointer', 
-                  color: 'var(--text-muted)' 
+              <button
+                onClick={() => setIsFormulaModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)'
                 }}
               >
                 <X size={15} />

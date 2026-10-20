@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { CropBatch, Cultivar, Reservoir, GrowthStage, BatchStatus, FarmZone } from '../types/farm';
 import { batchesApi } from '../services/batchesApi';
+import { cultivarScopeLabel } from '../utils/cultivarSupport';
 import './BatchesView.css';
 
 interface BatchesViewProps {
@@ -73,21 +74,22 @@ function getDaysRemaining(targetDateStr: string): { days: number; text: string; 
 // Calculate cycle progress %
 function calculateBatchProgress(seedDateStr: string, harvestDateStr: string, currentStage: GrowthStage, status: BatchStatus): number {
   if (status === 'harvested') return 100;
-  if (currentStage === 'harvest') return 95;
-  if (currentStage === 'pre_harvest') return 80;
-  if (currentStage === 'vegetative') return 55;
-  if (currentStage === 'seedling') return 25;
-  
   try {
     const start = new Date(seedDateStr).getTime();
     const end = new Date(harvestDateStr).getTime();
     const now = Date.now();
-    if (end <= start) return 50;
-    const p = Math.round(((now - start) / (end - start)) * 100);
-    return Math.min(Math.max(p, 5), 98);
+    if (end > start && now >= start) {
+      const p = Math.round(((now - start) / (end - start)) * 100);
+      if (p >= 5 && p <= 99) return p;
+    }
   } catch {
-    return 50;
+    // fallback below
   }
+  if (currentStage === 'harvest') return 95;
+  if (currentStage === 'pre_harvest') return 80;
+  if (currentStage === 'vegetative') return 55;
+  if (currentStage === 'seedling') return 25;
+  return 50;
 }
 
 // SVG Aerial Field Layout Component - Interactive & High Fidelity
@@ -126,16 +128,13 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             <stop offset="100%" stopColor="#1e4d35" />
           </linearGradient>
 
-          {/* Glow filter for active/selected block */}
           <filter id="blockGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#ffffff" floodOpacity="0.9" />
           </filter>
         </defs>
 
-        {/* Nền xanh thực địa phẳng mượt */}
         <rect width="520" height="220" fill="url(#farmGroundGrad)" />
 
-        {/* Cụm bóng cây góc nhà màng nhẹ nhàng */}
         <g fill="#102e1f" opacity="0.75">
           <circle cx="20" cy="30" r="14" />
           <circle cx="36" cy="22" r="16" />
@@ -145,11 +144,9 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
           <circle cx="35" cy="205" r="14" />
         </g>
 
-        {/* Bể/Hồ nước sinh thái phía đông */}
         <path d="M 460 70 C 480 60, 510 75, 515 110 C 520 150, 485 180, 470 170 C 455 160, 445 130, 450 100 Z" fill="#0284c7" />
         <path d="M 465 75 C 482 68, 505 80, 510 110 C 514 145, 485 170, 472 162 C 459 154, 452 128, 455 102 Z" fill="#38bdf8" opacity="0.75" />
 
-        {/* Trục đường nội bộ giao nhau */}
         <rect x="235" y="10" width="12" height="200" fill="#64748b" rx="2" opacity="0.6" />
         <rect x="40" y="108" width="400" height="10" fill="#64748b" rx="2" opacity="0.6" />
 
@@ -261,7 +258,6 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
           <text x="404" y="179" textAnchor="middle" fill="#fee2e2" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">100 m²</text>
         </g>
 
-        {/* La bàn chỉ hướng Bắc */}
         <g transform="translate(485, 182)">
           <circle cx="12" cy="12" r="13" fill="#ffffff" fillOpacity="0.95" />
           <path d="M 12 3 L 15 12 L 12 10 L 9 12 Z" fill="#ef4444" />
@@ -283,7 +279,6 @@ const LotProgressBarChart: React.FC<LotProgressBarChartProps> = ({ batches, onSe
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const chartData = useMemo(() => {
-    // 3 lô chuẩn khớp 100% hình ảnh thực tế (55%, 25%, 80%)
     if (batches.length === 0) {
       return [
         { code: 'LET-20...', fullCode: 'LET-2026-001', cultivar: 'Green Oak Leaf', percent: 55, color: '#16a34a', rawBatch: null },
@@ -296,19 +291,15 @@ const LotProgressBarChart: React.FC<LotProgressBarChartProps> = ({ batches, onSe
     const displayList = activeList.length > 0 ? activeList : batches;
 
     return displayList.slice(0, 5).map((b) => {
-      let percent = calculateBatchProgress(b.seedDate, b.expectedHarvestDate, b.currentStage, b.status);
+      const percent = calculateBatchProgress(b.seedDate, b.expectedHarvestDate, b.currentStage, b.status);
       let color = '#16a34a';
 
-      // Màu sắc theo tiến độ sinh khối khớp chính xác ảnh
-      if (b.batchCode === 'LET-2026-001' || b.currentStage === 'vegetative') {
-        percent = 55;
-        color = '#16a34a'; // Xanh lá
-      } else if (b.batchCode === 'LET-2026-002' || b.currentStage === 'seedling') {
-        percent = 25;
-        color = '#4ade80'; // Xanh nhạt
-      } else if (b.batchCode === 'LET-2026-003' || b.currentStage === 'pre_harvest' || b.currentStage === 'harvest') {
-        percent = 80;
-        color = '#eab308'; // Vàng cam
+      if (b.currentStage === 'seedling' || percent < 35) {
+        color = '#4ade80';
+      } else if (b.currentStage === 'pre_harvest' || b.currentStage === 'harvest' || percent >= 78) {
+        color = '#eab308';
+      } else {
+        color = '#16a34a';
       }
 
       const shortCode = b.batchCode.length > 8 ? `${b.batchCode.substring(0, 6)}...` : b.batchCode;
@@ -329,7 +320,6 @@ const LotProgressBarChart: React.FC<LotProgressBarChartProps> = ({ batches, onSe
   return (
     <div style={{ width: '100%', height: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingTop: '10px' }}>
       <div style={{ position: 'relative', width: '100%', height: '160px', display: 'flex', alignItems: 'flex-end', paddingLeft: '38px', paddingRight: '12px' }}>
-        {/* Horizontal gridlines: 100%, 75%, 50%, 25%, 0% */}
         {[100, 75, 50, 25, 0].map((val) => {
           const bottomPos = (val / 100) * maxH;
           return (
@@ -342,7 +332,6 @@ const LotProgressBarChart: React.FC<LotProgressBarChartProps> = ({ batches, onSe
           );
         })}
 
-        {/* Bars Container */}
         <div style={{ width: '100%', height: maxH, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', zIndex: 2 }}>
           {chartData.map((item, idx) => {
             const barHeight = Math.max(12, (item.percent / 100) * maxH);
@@ -356,7 +345,6 @@ const LotProgressBarChart: React.FC<LotProgressBarChartProps> = ({ batches, onSe
                 onMouseLeave={() => setHoveredIdx(null)}
                 onClick={() => item.rawBatch && onSelectBatch && onSelectBatch(item.rawBatch)}
               >
-                {/* Floating Tooltip */}
                 {isHovered && (
                   <div style={{
                     position: 'absolute',
@@ -417,7 +405,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   onAdvanceStage,
   onUpdateStatus
 }) => {
-  // Tabs: Hạng mục 3.2 yêu cầu có 'all' | 'active' | 'harvested' | 'failed'
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'ready' | 'harvested' | 'failed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCropFilter, setSelectedCropFilter] = useState('All');
@@ -429,7 +416,15 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
 
-  // Observation Modal state (Hạng mục 3.4)
+  // Close 3-dots menu on outside click
+  useEffect(() => {
+    if (!activeActionMenuId) return;
+    const handleOutsideClick = () => setActiveActionMenuId(null);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [activeActionMenuId]);
+
+  // Observation Modal state
   const [obsBatch, setObsBatch] = useState<CropBatch | null>(null);
   const [obsDate, setObsDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [obsLeaves, setObsLeaves] = useState<number>(14);
@@ -482,27 +477,23 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
   // Filter & Sort batches
   const filteredBatches = useMemo(() => {
     let list = batches.filter((b) => {
-      // Tab filter
       if (activeTab === 'active' && b.status !== 'active') return false;
       if (activeTab === 'ready' && !(b.status === 'active' && (b.currentStage === 'harvest' || b.currentStage === 'pre_harvest'))) return false;
       if (activeTab === 'harvested' && b.status !== 'harvested') return false;
       if (activeTab === 'failed' && b.status !== 'failed') return false;
 
-      // Search
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const match = 
           b.batchCode.toLowerCase().includes(q) ||
           (b.cultivarName && b.cultivarName.toLowerCase().includes(q)) ||
           (b.reservoirName && b.reservoirName.toLowerCase().includes(q)) ||
+          (b.zoneCode && b.zoneCode.toLowerCase().includes(q)) ||
           (b.notes && b.notes.toLowerCase().includes(q));
         if (!match) return false;
       }
 
-      // Crop Filter
       if (selectedCropFilter !== 'All' && b.cultivarId !== selectedCropFilter) return false;
-
-      // Reservoir Filter
       if (selectedReservoirFilter !== 'All' && b.reservoirId !== selectedReservoirFilter) return false;
 
       return true;
@@ -595,14 +586,14 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
     <div className="batches-container">
       
       {/* ========================================================
-          PAGE HEADER (Synchronized with Dashboard, Reservoirs & Alerts)
+          PAGE HEADER
           ======================================================== */}
       <div className="batches-header">
         <div className="batches-header-left">
           <div>
             <h1 className="batches-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sprout size={22} color="#00a651" />
-              Lô Canh Tác & Giàn Máng NFT
+              Quản Lý Lô Trồng
             </h1>
             <div className="batches-subtitle">
               Giám sát bồn cấp dinh dưỡng, mật độ rọ, ngày chuyển máng NFT và lịch trình thu hoạch
@@ -628,10 +619,9 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
       </div>
 
       {/* ========================================================
-          KPI CARDS (Synchronized with Dashboard, Reservoirs & Alerts)
+          KPI CARDS
           ======================================================== */}
       <div className="batches-kpis">
-        {/* Metric 1: Total Batches */}
         <div className="batches-kpi-card">
           <div className="batches-kpi-top">
             <span className="batches-kpi-label">Tổng Lô Canh Tác</span>
@@ -650,7 +640,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
           </div>
         </div>
 
-        {/* Metric 2: Active Batches */}
         <div className="batches-kpi-card">
           <div className="batches-kpi-top">
             <span className="batches-kpi-label">Đang Lưu Chuyển</span>
@@ -669,7 +658,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
           </div>
         </div>
 
-        {/* Metric 3: Total Active Plants */}
         <div className="batches-kpi-card">
           <div className="batches-kpi-top">
             <span className="batches-kpi-label">Tổng Số Rọ Cây</span>
@@ -688,7 +676,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
           </div>
         </div>
 
-        {/* Metric 4: Ready for Harvest */}
         <div className="batches-kpi-card">
           <div className="batches-kpi-top">
             <span className="batches-kpi-label">Sắp Thu Hoạch</span>
@@ -709,12 +696,10 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
       </div>
 
       {/* ========================================================
-          FILTER TABS & CONTROLS TOOLBAR (Clean 2-Row Responsive Layout)
+          FILTER TABS & CONTROLS TOOLBAR
           ======================================================== */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-        {/* Row 1: Status Filter Tabs + View Mode Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
-          {/* Status Filter Tabs (Hạng mục 3.2: Có đầy đủ active, harvested, failed) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: `Tất cả (${batches.length})` },
@@ -743,7 +728,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
             ))}
           </div>
 
-          {/* View Mode Toggle */}
           <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
             <button
               onClick={() => setViewMode('table')}
@@ -780,9 +764,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Search, Filters & Sorting */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
-          {/* Search Input */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -799,16 +781,23 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
             <Search size={15} color="var(--text-disabled)" />
             <input
               type="text"
-              placeholder="Tìm mã lô, bồn cấp..."
+              placeholder="Tìm mã lô, giống cây, giàn máng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ border: 'none', outline: 'none', fontSize: '0.8125rem', color: 'var(--text-main)', width: '100%' }}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex', color: '#94a3b8' }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          {/* Dropdown Filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {/* Cultivar Select */}
             <select
               value={selectedCropFilter}
               onChange={(e) => setSelectedCropFilter(e.target.value)}
@@ -817,11 +806,10 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
             >
               <option value="All">Tất cả giống xà lách</option>
               {cultivars.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name} · {cultivarScopeLabel(c.name)}</option>
               ))}
             </select>
 
-            {/* Reservoir Select */}
             <select
               value={selectedReservoirFilter}
               onChange={(e) => setSelectedReservoirFilter(e.target.value)}
@@ -834,7 +822,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
               ))}
             </select>
 
-            {/* Sort Select */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <ArrowUpDown size={13} color="var(--text-subtle)" style={{ position: 'absolute', left: '10px', pointerEvents: 'none' }} />
               <select
@@ -854,7 +841,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
       </div>
 
       {/* ========================================================
-          VIEW 1: BẢNG DỮ LIỆU ĐẦY ĐỦ (Responsive Scrolling & Stable Widths)
+          VIEW 1: BẢNG DỮ LIỆU ĐẦY ĐỦ
           ======================================================== */}
       {viewMode === 'table' ? (
         <div className="farmvista-card" style={{ width: '100%', overflow: 'hidden', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
@@ -871,7 +858,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   <th style={{ padding: '14px 14px', fontWeight: 600, minWidth: '130px', whiteSpace: 'nowrap' }}>Tiến Độ</th>
                   <th style={{ padding: '14px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>Dự Kiến Thu Hoạch</th>
                   <th style={{ padding: '14px 14px', fontWeight: 600, whiteSpace: 'nowrap' }}>Trạng Thái</th>
-                  <th style={{ padding: '14px 14px', fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>Thao Tác</th>
+                  <th style={{ padding: '14px 14px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>Thao Tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -892,14 +879,12 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
 
                     return (
                       <tr key={batch.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background-color 0.1s ease' }}>
-                        {/* Batch Code */}
                         <td style={{ padding: '14px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
                           <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontFamily: 'monospace' }}>
                             {batch.batchCode}
                           </span>
                         </td>
 
-                        {/* Cultivar Name */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '1.2rem' }}>🥬</span>
@@ -910,7 +895,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           </div>
                         </td>
 
-                        {/* Reservoir Name (Hạng mục 3.1) */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <MapPin size={14} color="#00a651" />
@@ -920,7 +904,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           </div>
                         </td>
 
-                        {/* Plant Quantity & Survival Rate (Hạng mục 3.1: 492 / 500 cây) */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           <div>
                             <strong style={{ color: 'var(--text-main)' }}>{batch.currentQuantity}</strong>
@@ -939,13 +922,11 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           </div>
                         </td>
 
-                        {/* Transplant Date (Hạng mục 3.1) */}
                         <td style={{ padding: '14px', color: 'var(--text-main)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                           <div>{batch.transplantDate || batch.seedDate}</div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Gieo: {batch.seedDate}</div>
                         </td>
 
-                        {/* Growth Stage (Hạng mục 3.3) */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           <span style={{ 
                             display: 'inline-flex', 
@@ -963,7 +944,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           </span>
                         </td>
 
-                        {/* Progress Bar */}
                         <td style={{ padding: '14px', minWidth: '130px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: 700, fontSize: '0.75rem', width: '32px' }}>{progress}%</span>
@@ -973,7 +953,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           </div>
                         </td>
 
-                        {/* Expected Harvest Date & Countdown (Hạng mục 3.1) */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{batch.expectedHarvestDate}</div>
                           {batch.status === 'active' && (
@@ -987,7 +966,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           )}
                         </td>
 
-                        {/* Status Badge (Hạng mục 3.2: active, harvested, failed) */}
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
                           {batch.status === 'active' && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '9999px', backgroundColor: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 600 }}>
@@ -1009,31 +987,83 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                           )}
                         </td>
 
-                        {/* Actions */}
-                        <td style={{ padding: '14px', textAlign: 'center', position: 'relative', whiteSpace: 'nowrap' }}>
-                          <button
-                            onClick={() => setActiveActionMenuId(activeActionMenuId === batch.id ? null : batch.id)}
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)', padding: '5px' }}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
+                        {/* Actions: Direct Quick Buttons + Dropdown Menu */}
+                        <td style={{ padding: '14px', textAlign: 'right', position: 'relative', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => onSelectBatchForAI(batch)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #bbf7d0',
+                                backgroundColor: '#ecfdf5',
+                                color: '#065f46',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                              title="Dự báo năng suất AI"
+                            >
+                              <Sparkles size={11} />
+                              <span>AI</span>
+                            </button>
+
+                            {onSelectBatchForHarvest && batch.status === 'active' && (
+                              <button
+                                onClick={() => onSelectBatchForHarvest(batch)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fde68a',
+                                  backgroundColor: '#fffbeb',
+                                  color: '#b45309',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                                title="Ghi nhận thu hoạch cho lô này"
+                              >
+                                <Scale size={11} />
+                                <span>Thu hoạch</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveActionMenuId(activeActionMenuId === batch.id ? null : batch.id);
+                              }}
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)', padding: '5px' }}
+                              title="Thêm thao tác"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                          </div>
 
                           {/* Dropdown Menu */}
                           {activeActionMenuId === batch.id && (
-                            <div style={{
-                              position: 'absolute',
-                              right: '12px',
-                              top: '38px',
-                              backgroundColor: '#ffffff',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '8px',
-                              boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-                              zIndex: 50,
-                              padding: '6px',
-                              minWidth: '180px',
-                              textAlign: 'left'
-                            }}>
-                              {/* AI Predictor */}
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                position: 'absolute',
+                                right: '12px',
+                                top: '44px',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '8px',
+                                boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                                zIndex: 50,
+                                padding: '6px',
+                                minWidth: '185px',
+                                textAlign: 'left'
+                              }}
+                            >
                               <button
                                 onClick={() => {
                                   onSelectBatchForAI(batch);
@@ -1047,7 +1077,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 <span>Dự báo năng suất AI</span>
                               </button>
 
-                              {/* Observation Modal (Hạng mục 3.4) */}
                               <button
                                 onClick={() => {
                                   handleOpenObservationModal(batch);
@@ -1061,7 +1090,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 <span>Ghi nhận số đo sinh học</span>
                               </button>
 
-                              {/* Advance Stage (Hạng mục 3.3) */}
                               {onAdvanceStage && batch.status === 'active' && batch.currentStage !== 'harvest' && (
                                 <button
                                   onClick={() => {
@@ -1081,7 +1109,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 </button>
                               )}
 
-                              {/* Navigate to Harvest recording */}
                               {onSelectBatchForHarvest && batch.status === 'active' && (
                                 <button
                                   onClick={() => {
@@ -1097,7 +1124,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 </button>
                               )}
 
-                              {/* Change status to Harvested or Failed */}
                               {onUpdateStatus && batch.status === 'active' && (
                                 <>
                                   <button
@@ -1129,7 +1155,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                                 </>
                               )}
 
-                              {/* Delete Batch */}
                               <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '4px 0' }} />
                               <button
                                 onClick={() => {
@@ -1156,7 +1181,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
         </div>
       ) : (
         /* ========================================================
-           VIEW 2: THẺ LÔ TRỰC QUAN (Grid Cards - Zero Overflow)
+           VIEW 2: THẺ LÔ TRỰC QUAN (Grid Cards)
            ======================================================== */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', width: '100%' }}>
           {filteredBatches.map(batch => {
@@ -1169,7 +1194,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
 
             return (
               <div key={batch.id} className="farmvista-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '4px', fontFamily: 'monospace' }}>
@@ -1196,7 +1220,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   </span>
                 </div>
 
-                {/* Key Agronomic Details */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.78rem' }}>
                   <div>
                     <span style={{ color: 'var(--text-subtle)', display: 'block' }}>Số cây / Sống sót:</span>
@@ -1217,14 +1240,12 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   </div>
                 </div>
 
-                {/* Last Observation */}
                 {batch.lastObservation && (
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderLeft: '3px solid #00a651', paddingLeft: '8px' }}>
                     Số đo gần nhất ({batch.lastObservation.date}): <strong>{batch.lastObservation.avgLeafCount} lá</strong> | <strong>{batch.lastObservation.avgHeightCm} cm</strong> | mẫu <strong>{batch.lastObservation.sampleWeightG}g</strong>
                   </div>
                 )}
 
-                {/* Progress bar */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
                     <span style={{ color: 'var(--text-subtle)' }}>Tiến trình vụ ({progress}%)</span>
@@ -1235,7 +1256,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   </div>
                 </div>
 
-                {/* Card footer buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto', paddingTop: '6px' }}>
                   <button
                     onClick={() => onSelectBatchForAI(batch)}
@@ -1306,20 +1326,17 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '18px', alignItems: 'center' }}>
-            {/* Aerial SVG Map */}
             <FieldLayoutMap 
               zones={zones} 
               selectedZoneCode={selectedZone?.code || null} 
               onSelectZone={(z) => setSelectedZone(selectedZone?.code === z.code ? null : z)} 
             />
 
-            {/* Right Status Legend - Clickable to Filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
                 Trạng thái giàn
               </div>
 
-              {/* Đang lớn */}
               <div 
                 onClick={() => setActiveTab('active')}
                 style={{ 
@@ -1344,7 +1361,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                 </strong>
               </div>
 
-              {/* Sắp thu */}
               <div 
                 onClick={() => setActiveTab('ready')}
                 style={{ 
@@ -1369,7 +1385,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                 </strong>
               </div>
 
-              {/* Đã thu */}
               <div 
                 onClick={() => setActiveTab('harvested')}
                 style={{ 
@@ -1394,7 +1409,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                 </strong>
               </div>
 
-              {/* Cần chú ý */}
               <div 
                 onClick={() => setActiveTab('failed')}
                 style={{ 
@@ -1431,10 +1445,10 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
             <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 600 }}>% Chu kỳ sinh khối</span>
           </div>
 
-          {/* Bar Chart */}
           <LotProgressBarChart 
             batches={batches} 
             onSelectBatch={(batch) => {
+              setActiveTab('all');
               setSearchQuery(batch.batchCode);
             }} 
           />
@@ -1444,167 +1458,192 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
       {/* ========================================================
           SELECTED ZONE TELEMETRY INSPECTOR (Slideout Card)
           ======================================================== */}
-      {selectedZone && (
-        <div className="farmvista-card" style={{ 
-          padding: '20px 24px', 
-          backgroundColor: '#ffffff', 
-          border: '1.5px solid #10b981', 
-          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.12)',
-          borderRadius: '12px',
-          animation: 'fadeIn 0.25s ease'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                backgroundColor: selectedZone.color,
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '1rem'
-              }}>
-                {selectedZone.code}
-              </span>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {selectedZone.name}
-                </h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-                  <span>Diện tích: <strong>{selectedZone.areaM2} m²</strong></span>
-                  <span>•</span>
-                  <span>Sức chứa giàn: <strong>{selectedZone.slotCapacity.toLocaleString()} rọ</strong></span>
-                  <span>•</span>
-                  <span>Khu vực: <strong>{selectedZone.greenhouse}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 10px',
-                borderRadius: '9999px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                backgroundColor: selectedZone.status === 'growing' ? '#dcfce7' : selectedZone.status === 'ready_soon' ? '#fef3c7' : selectedZone.status === 'completed' ? '#e0f2fe' : '#fee2e2',
-                color: selectedZone.status === 'growing' ? '#15803d' : selectedZone.status === 'ready_soon' ? '#b45309' : selectedZone.status === 'completed' ? '#0369a1' : '#b91c1c'
-              }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: selectedZone.color }} />
-                {selectedZone.status === 'growing' ? 'Đang phát triển sinh dưỡng' : selectedZone.status === 'ready_soon' ? 'Sắp thu hoạch' : selectedZone.status === 'completed' ? 'Đã hoàn thành thu hoạch' : 'Cần chú ý / Bảo trì máng'}
-              </span>
-
-              <button
-                onClick={() => setSelectedZone(null)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)', padding: '6px' }}
-                title="Đóng chi tiết giàn"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
-            {/* Lô canh tác liên kết */}
-            <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Lô canh tác trên giàn NFT
-              </div>
-              {selectedZone.currentBatchCode ? (
+      {selectedZone && (() => {
+        const matchedZoneBatch = batches.find(b => b.id === selectedZone.currentBatchId || b.zoneId === selectedZone.id || b.zoneCode === selectedZone.code);
+        return (
+          <div className="farmvista-card" style={{ 
+            padding: '20px 24px', 
+            backgroundColor: '#ffffff', 
+            border: '1.5px solid #10b981', 
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.12)',
+            borderRadius: '12px',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  backgroundColor: selectedZone.color,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '1rem'
+                }}>
+                  {selectedZone.code}
+                </span>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      {selectedZone.currentBatchCode}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#16a34a' }}>
-                      Tiến độ: {selectedZone.biomassProgress || 55}%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
-                    🥬 {selectedZone.cultivarName || 'Xà lách thủy canh'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span>Số rọ: <strong>{selectedZone.currentQuantity || selectedZone.plantQuantity || 600} rọ</strong></span>
-                    <span>Gieo hạt: {selectedZone.seedDate || '2026-08-15'} • Thu hoạch: {selectedZone.expectedHarvestDate || '2026-09-19'}</span>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {selectedZone.name}
+                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+                    <span>Diện tích: <strong>{selectedZone.areaM2} m²</strong></span>
+                    <span>•</span>
+                    <span>Sức chứa giàn: <strong>{selectedZone.slotCapacity.toLocaleString()} rọ</strong></span>
+                    <span>•</span>
+                    <span>Khu vực: <strong>{selectedZone.greenhouse}</strong></span>
                   </div>
                 </div>
-              ) : (
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-subtle)', padding: '10px 0' }}>
-                  Giàn hiện đang trống hoặc vừa thu hoạch xong.
-                </div>
-              )}
-            </div>
+              </div>
 
-            {/* Bể dinh dưỡng cấp nước */}
-            <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Bể dinh dưỡng tuần hoàn
-              </div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
-                💧 {selectedZone.reservoirName || 'Bể Tuần Hoàn 01 (NFT)'}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>pH nước</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0284c7' }}>{selectedZone.ph || 5.85}</div>
-                </div>
-                <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>EC (mS/cm)</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#16a34a' }}>{selectedZone.ec || 1.72}</div>
-                </div>
-                <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>Nhiệt độ</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d97706' }}>{selectedZone.waterTemp || 22.4}°C</div>
-                </div>
-              </div>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  backgroundColor: selectedZone.status === 'growing' ? '#dcfce7' : selectedZone.status === 'ready_soon' ? '#fef3c7' : selectedZone.status === 'completed' ? '#e0f2fe' : '#fee2e2',
+                  color: selectedZone.status === 'growing' ? '#15803d' : selectedZone.status === 'ready_soon' ? '#b45309' : selectedZone.status === 'completed' ? '#0369a1' : '#b91c1c'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: selectedZone.color }} />
+                  {selectedZone.status === 'growing' ? 'Đang phát triển sinh dưỡng' : selectedZone.status === 'ready_soon' ? 'Sắp thu hoạch' : selectedZone.status === 'completed' ? 'Đã hoàn thành thu hoạch' : 'Cần chú ý / Bảo trì máng'}
+                </span>
 
-            {/* Quick Actions */}
-            <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase' }}>
-                Hành động nhanh
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 <button
-                  onClick={() => {
-                    if (selectedZone.currentBatchCode) {
-                      setSearchQuery(selectedZone.currentBatchCode.split(' ')[0]);
-                    }
-                  }}
-                  className="btn btn-secondary"
-                  style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => setSelectedZone(null)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)', padding: '6px' }}
+                  title="Đóng chi tiết giàn"
                 >
-                  <Search size={13} />
-                  Lọc bảng theo lô này
+                  <X size={18} />
                 </button>
+              </div>
+            </div>
 
-                {selectedZone.currentBatchId && (
-                  <button
-                    onClick={() => {
-                      const matched = batches.find(b => b.id === selectedZone.currentBatchId || b.batchCode === selectedZone.currentBatchCode);
-                      if (matched) onSelectBatchForAI(matched);
-                    }}
-                    className="btn btn-primary"
-                    style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Sparkles size={13} />
-                    Dự báo AI sinh khối
-                  </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
+              {/* Lô canh tác liên kết */}
+              <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Lô canh tác trên giàn NFT
+                </div>
+                {(selectedZone.currentBatchCode || matchedZoneBatch) ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                        {selectedZone.currentBatchCode || matchedZoneBatch?.batchCode}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#16a34a' }}>
+                        Tiến độ: {selectedZone.biomassProgress || (matchedZoneBatch?.status === 'harvested' ? 100 : 55)}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+                      🥬 {selectedZone.cultivarName || matchedZoneBatch?.cultivarName || 'Xà lách thủy canh'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span>Số rọ: <strong>{selectedZone.currentQuantity || selectedZone.plantQuantity || matchedZoneBatch?.currentQuantity || 600} rọ</strong></span>
+                      <span>Gieo hạt: {selectedZone.seedDate || matchedZoneBatch?.seedDate || '2026-08-15'} • Thu hoạch: {selectedZone.expectedHarvestDate || matchedZoneBatch?.expectedHarvestDate || '2026-09-19'}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-subtle)', padding: '10px 0' }}>
+                    Giàn hiện đang trống hoặc vừa thu hoạch xong. Sẵn sàng gieo lô mới.
+                  </div>
                 )}
               </div>
+
+              {/* Bể dinh dưỡng cấp nước */}
+              <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Bể dinh dưỡng tuần hoàn
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  💧 {selectedZone.reservoirName || 'Bể Tuần Hoàn 01 (NFT)'}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>pH nước</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0284c7' }}>{selectedZone.ph || 5.85}</div>
+                  </div>
+                  <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>EC (mS/cm)</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#16a34a' }}>{selectedZone.ec || 1.72}</div>
+                  </div>
+                  <div style={{ backgroundColor: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>Nhiệt độ</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#d97706' }}>{selectedZone.waterTemp || 22.4}°C</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase' }}>
+                  Hành động nhanh
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {matchedZoneBatch ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveTab('all');
+                          setSearchQuery(matchedZoneBatch.batchCode);
+                        }}
+                        className="btn btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Search size={13} />
+                        Lọc bảng theo lô này
+                      </button>
+
+                      <button
+                        onClick={() => onSelectBatchForAI(matchedZoneBatch)}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Sparkles size={13} />
+                        Dự báo AI sinh khối
+                      </button>
+
+                      {onSelectBatchForHarvest && matchedZoneBatch.status === 'active' && (
+                        <button
+                          onClick={() => onSelectBatchForHarvest(matchedZoneBatch)}
+                          className="btn btn-secondary"
+                          style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fffbeb', color: '#b45309', borderColor: '#fde68a' }}
+                        >
+                          <Scale size={13} />
+                          Thu hoạch lô này
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setZoneId(selectedZone.id);
+                        if (selectedZone.reservoirId) setReservoirId(selectedZone.reservoirId);
+                        setIsCreateModalOpen(true);
+                      }}
+                      className="farmvista-btn-green"
+                      style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Plus size={13} />
+                      Gieo lô mới tại giàn {selectedZone.code}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
 
       {/* ========================================================
-          CREATE NEW LOT MODAL (Zero Width Overflow)
+          CREATE NEW LOT MODAL
           ======================================================== */}
       {isCreateModalOpen && (
         <div className="modal-backdrop">
@@ -1660,7 +1699,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                       className="form-select"
                     >
                       {cultivars.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.cropName})</option>
+                        <option key={c.id} value={c.id}>{c.name} ({c.cropName}) · {cultivarScopeLabel(c.name)}</option>
                       ))}
                     </select>
                   </div>
@@ -1775,7 +1814,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
       )}
 
       {/* ========================================================
-          OBSERVATION MEASUREMENT MODAL (Hạng mục 3.4)
+          OBSERVATION MEASUREMENT MODAL
           ======================================================== */}
       {obsBatch && (
         <div className="modal-backdrop">
@@ -1795,7 +1834,6 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                   Giống: <strong>{obsBatch.cultivarName}</strong> | Cấp bởi: <strong>{obsBatch.reservoirName}</strong>
                 </div>
 
-                {/* Hạng mục 3.4: Cho phép chọn ngày đo đạc thực tế */}
                 <div>
                   <label className="form-label">
                     <Calendar size={13} style={{ display: 'inline', marginRight: '4px' }} />

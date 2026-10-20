@@ -428,42 +428,43 @@ export class AlertEngineService {
 
   /**
    * Cập nhật chỉ số cho các cảm biến vật lý / IoT thuộc bồn
+   * Lưu ý: chỉ đồng bộ giá trị hiển thị (lastReading). Trạng thái online/offline
+   * và lastSeenAt do luồng tiếp nhận thiết bị (SensorsService) quản lý, để
+   * cơ chế phát hiện mất kết nối (heartbeat) không bị ghi đè sai.
    */
   private async updateReservoirSensors(reservoirId: string, data: WaterEvaluationData) {
-    const now = new Date();
-
     if (data.ph !== undefined) {
       await prisma.sensor.updateMany({
         where: { reservoirId, sensorType: 'ph' },
-        data: { lastReading: data.ph, lastSeenAt: now, status: 'online' }
+        data: { lastReading: data.ph }
       }).catch(() => {});
     }
 
     if (data.ec !== undefined) {
       await prisma.sensor.updateMany({
         where: { reservoirId, sensorType: 'ec' },
-        data: { lastReading: data.ec, lastSeenAt: now, status: 'online' }
+        data: { lastReading: data.ec }
       }).catch(() => {});
     }
 
     if (data.waterTemp !== undefined) {
       await prisma.sensor.updateMany({
         where: { reservoirId, sensorType: 'water_temp' },
-        data: { lastReading: data.waterTemp, lastSeenAt: now, status: 'online' }
+        data: { lastReading: data.waterTemp }
       }).catch(() => {});
     }
 
     if (data.doLevel !== undefined && data.doLevel !== null) {
       await prisma.sensor.updateMany({
         where: { reservoirId, sensorType: 'do' },
-        data: { lastReading: data.doLevel, lastSeenAt: now, status: 'online' }
+        data: { lastReading: data.doLevel }
       }).catch(() => {});
     }
 
     if (data.waterLevelPercent !== undefined && data.waterLevelPercent !== null) {
       await prisma.sensor.updateMany({
         where: { reservoirId, sensorType: 'water_level' },
-        data: { lastReading: data.waterLevelPercent, lastSeenAt: now, status: 'online' }
+        data: { lastReading: data.waterLevelPercent }
       }).catch(() => {});
     }
   }

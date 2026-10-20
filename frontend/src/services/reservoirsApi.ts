@@ -4,7 +4,7 @@ import { farmStore } from '../mock/store';
 const API_BASE_URL = 'http://localhost:5000/api/v1/reservoirs';
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('hydrosmart_auth_token') || localStorage.getItem('token');
+  const token = localStorage.getItem('hydrosmart_token') || localStorage.getItem('hydrosmart_auth_token') || localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -125,7 +125,7 @@ export const reservoirsApi = {
   },
 
   async drainReservoir(id: string, data: {
-    reason: 'end_of_batch' | 'salt_accumulation' | 'contamination' | 'maintenance' | 'other';
+    reason: 'scheduled_replacement' | 'end_of_batch' | 'salt_accumulation' | 'contamination' | 'maintenance' | 'other';
     operator: string;
     notes?: string;
     refillWithFormula?: string;
@@ -210,6 +210,7 @@ export const reservoirsApi = {
   },
 
   async getFormulas(): Promise<NutrientFormula[]> {
+    const localFormulas = farmStore.getFormulas();
     try {
       const res = await fetch(`${API_BASE_URL}/formulas`, {
         headers: getAuthHeaders(),
@@ -218,13 +219,22 @@ export const reservoirsApi = {
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          return json.data;
+          return json.data.map((f: any, idx: number) => {
+            const fallback = localFormulas.find(init => init.id === f.id || init.name === f.name) || localFormulas[idx] || localFormulas[0];
+            return {
+              ...fallback,
+              ...f,
+              stockAItems: Array.isArray(f.stockAItems) && f.stockAItems.length > 0 ? f.stockAItems : fallback?.stockAItems,
+              stockBItems: Array.isArray(f.stockBItems) && f.stockBItems.length > 0 ? f.stockBItems : fallback?.stockBItems,
+              targetPpm: f.targetPpm || fallback?.targetPpm
+            };
+          });
         }
       }
     } catch {
       // Offline fallback
     }
-    return farmStore.getFormulas();
+    return localFormulas;
   },
 
   async getDrainEvents(): Promise<SolutionDrainEvent[]> {

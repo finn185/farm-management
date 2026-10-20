@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import type { CropBatch, Reservoir, Cultivar, AIPredictionResult } from '../types/farm';
 import { predictLettuceYield, predictLettuceYieldRemote } from '../services/aiPredictor';
+import { isAiSupportedCultivar } from '../utils/cultivarSupport';
 import './AIPredictorView.css';
 
 interface AIPredictorViewProps {
@@ -118,15 +119,27 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   cultivars = []
 }) => {
   const activeBatches = batches.filter(b => b.status === 'active');
+  // Mặc định ưu tiên lô Xà lách Batavia (giống duy nhất mà mô hình AI hỗ trợ)
+  const defaultBatch = activeBatches.find(b => isAiSupportedCultivar(b.cultivarName)) || activeBatches[0] || batches[0];
 
   // Selected Batch State
   const [selectedBatchId, setSelectedBatchId] = useState<string>(
-    selectedBatch ? selectedBatch.id : (activeBatches[0]?.id || '')
+    selectedBatch ? selectedBatch.id : (defaultBatch?.id || '')
   );
 
-  const currentBatch = batches.find(b => b.id === selectedBatchId) || activeBatches[0];
+  // Sync selectedBatchId when selectedBatch prop or activeBatches updates
+  useEffect(() => {
+    if (selectedBatch?.id && selectedBatch.status === 'active') {
+      setSelectedBatchId(selectedBatch.id);
+    } else if ((!selectedBatchId || !activeBatches.some(b => b.id === selectedBatchId)) && defaultBatch?.id) {
+      setSelectedBatchId(defaultBatch.id);
+    }
+  }, [selectedBatch, defaultBatch?.id, activeBatches.length]);
+
+  const currentBatch = activeBatches.find(b => b.id === selectedBatchId) || defaultBatch;
   const currentCultivar = cultivars.find(c => c.id === currentBatch?.cultivarId);
   const currentReservoir = reservoirs.find(r => r.id === currentBatch?.reservoirId);
+  const aiSupported = isAiSupportedCultivar(currentBatch?.cultivarName);
 
   // Simulation Mode: 'live' (Thực tế) vs 'simulate' (Thử nghiệm)
   const [isSimulating, setIsSimulating] = useState(false);
@@ -148,7 +161,6 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
     const obsTime = currentBatch.lastObservation ? new Date(currentBatch.lastObservation.date).getTime() : 0;
     const nowTime = new Date().getTime();
     
-    // In mock timeline where system date > harvest date, anchor around last observation (+2 days)
     let rawAge: number;
     if (nowTime > expTime && obsTime > seedTime) {
       rawAge = Math.round((obsTime - seedTime) / (1000 * 3600 * 24)) + 2;
@@ -166,7 +178,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
     const ec = res ? res.currentEc : 1.72;
     const ph = res ? res.currentPh : 5.85;
     const temp = res ? res.currentWaterTemp : 22.4;
-    const plants = currentBatch.currentQuantity;
+    const plants = currentBatch.currentQuantity || currentBatch.plantQuantity || 500;
 
     return { age, leaves, height, ec, ph, temp, plants, sampleWeight };
   }, [currentBatch, currentCultivar, reservoirs]);
@@ -191,7 +203,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
     return d;
   }, [daysLeft]);
 
-  // Estimated/measured plant weight today (e.g. 142.5g)
+  // Estimated/measured plant weight today
   const currentPlantWeightG = useMemo(() => {
     if (liveData.sampleWeight) return liveData.sampleWeight;
     const inflection = targetDays * 0.66;
@@ -200,7 +212,6 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
   }, [liveData.sampleWeight, targetDays, daysPlanted, standardWeightG]);
 
   const [remotePrediction, setRemotePrediction] = useState<AIPredictionResult | null>(null);
-  const [aiSource, setAiSource] = useState<'fastapi_rf' | 'local_sim'>('fastapi_rf');
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
 
   // Local Baseline / Fallback Prediction
@@ -227,12 +238,13 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
 
   // Asynchronous Sync with Python FastAPI / Backend Gateway Real Model
   useEffect(() => {
-    if (!currentBatch) return;
+    if (!currentBatch || !aiSupported) return;
     let isMounted = true;
     setIsAiLoading(true);
 
     const effectiveAge = Math.min(targetDays + 5, daysPlanted + (isSimulating ? simDaysOffset : 0));
     const effectiveEc = isSimulating ? simEc : liveData.ec;
+    const effectivePlants = isSimulating ? simPlants : liveData.plants;
 
     const timer = setTimeout(async () => {
       try {
@@ -248,15 +260,14 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
           avgEc: effectiveEc,
           avgPh: liveData.ph,
           avgWaterTemp: liveData.temp,
-          expectedPlants: liveData.plants
+          expectedPlants: effectivePlants
         });
 
         if (isMounted && res) {
           setRemotePrediction(res);
-          setAiSource('fastapi_rf');
         }
       } catch {
-        if (isMounted) setAiSource('local_sim');
+        // Fallback to local prediction
       } finally {
         if (isMounted) setIsAiLoading(false);
       }
@@ -266,13 +277,15 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [currentBatch, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, liveData]);
+  }, [currentBatch, aiSupported, targetDays, standardWeightG, daysPlanted, isSimulating, simDaysOffset, simEc, simPlants, liveData]);
 
   const prediction = remotePrediction || localPrediction;
 
   const predictedWeightG = prediction?.predictedFreshWeightG || standardWeightG;
   const currentPlantsCount = isSimulating ? simPlants : liveData.plants;
-  const totalBatchYieldKg = prediction?.totalBatchYieldKg || Math.round((predictedWeightG * currentPlantsCount) / 1000);
+  const totalBatchYieldKg = isSimulating
+    ? Math.round(((predictedWeightG * currentPlantsCount) / 1000) * 10) / 10
+    : (prediction?.totalBatchYieldKg || Math.round((predictedWeightG * currentPlantsCount) / 1000));
   const diffPercent = Math.round(((predictedWeightG - standardWeightG) / standardWeightG) * 100);
 
   // Baseline Live Yield for comparison
@@ -297,6 +310,36 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
 
   const simulationYieldDiff = isSimulating ? Number((totalBatchYieldKg - baselineYieldKg).toFixed(1)) : 0;
 
+  const handleDownloadForecastReport = () => {
+    if (!currentBatch) return;
+    const today = new Date().toISOString().split('T')[0];
+    const lines = [
+      'BAO CAO DU BAO NANG SUAT AI - HYDROSMART',
+      `Ngay xuat,${today}`,
+      `Ma lo canh tac,${currentBatch.batchCode}`,
+      `Giong cay,"${currentBatch.cultivarName}"`,
+      `Tuoi cay hien tai,${daysPlanted}/${targetDays} ngay`,
+      `Ngay thu hoach du kien,${plannedHarvestDate.toLocaleDateString('vi-VN')}`,
+      `Khoi luong hien tai (g/cay),${currentPlantWeightG}`,
+      `Khoi luong du bao thu hoach (g/cay),${predictedWeightG}`,
+      `Chuan giong ly thuyet (g/cay),${standardWeightG}`,
+      `Quy mo ro cay,${currentPlantsCount}`,
+      `Tong san luong du kien (kg),${totalBatchYieldKg}`,
+      `Do tin cay R2,${prediction?.confidenceR2 || 0.94}`,
+      `Thong so be dinh duong,pH ${liveData.ph.toFixed(2)} | EC ${(isSimulating ? simEc : liveData.ec).toFixed(2)} mS/cm | Nuoc ${liveData.temp.toFixed(1)}C`
+    ];
+    const csvContent = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `BaoCao_DuBao_AI_${currentBatch.batchCode}_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Growth Curve Chart points across targetDays
   const growthCurveData = useMemo(() => {
     const inflection = targetDays * 0.66;
@@ -307,7 +350,6 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
     const uniqueDays = Array.from(new Set(stepDays)).sort((a, b) => a - b);
 
     for (const d of uniqueDays) {
-      // Standard cultivar curve (Chuẩn giống lý thuyết)
       const stdFactor = 1 / (1 + Math.exp(-0.20 * (d - inflection)));
       const stdVal = Math.max(2, Math.round(maxStdWeight * stdFactor));
 
@@ -315,16 +357,13 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       let aiVal: number | null = null;
 
       if (d < daysPlanted) {
-        // Actual historical growth up to yesterday
         const curFactor = 1 / (1 + Math.exp(-0.20 * (d - inflection)));
         const ageFactor = 1 / (1 + Math.exp(-0.20 * (daysPlanted - inflection)));
         actualVal = Math.max(2, Math.round((currentPlantWeightG * (curFactor / ageFactor)) * 10) / 10);
       } else if (d === daysPlanted) {
-        // Today is the intersection point: both lines connect cleanly
         actualVal = currentPlantWeightG;
         aiVal = currentPlantWeightG;
       } else {
-        // Future AI projection from today to harvest
         const remainingDays = targetDays - daysPlanted;
         const progressInRemaining = (d - daysPlanted) / Math.max(1, remainingDays);
         const projected = currentPlantWeightG + (predictedWeightG - currentPlantWeightG) * Math.pow(progressInRemaining, 0.88);
@@ -356,6 +395,67 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
     );
   }
 
+  // Giống chưa được mô hình AI hỗ trợ → chỉ minh hoạ, ghi "phát triển sau"
+  if (!aiSupported) {
+    const bataviaBatches = activeBatches.filter(b => isAiSupportedCultivar(b.cultivarName));
+    return (
+      <div className="forecast-container">
+        <div className="forecast-header">
+          <div className="forecast-header-left">
+            <div>
+              <h1 className="forecast-title" style={{ margin: 0 }}>
+                <Sparkles size={22} color="#00a651" />
+                Dự Báo Năng Suất AI
+              </h1>
+              <div className="forecast-subtitle">
+                Ước tính khối lượng thu hoạch, tổng sản lượng dự kiến và mô phỏng kịch bản dinh dưỡng
+              </div>
+            </div>
+          </div>
+          <div className="forecast-header-actions">
+            <select
+              id="ai-batch-select"
+              value={currentBatch.id}
+              onChange={(e) => setSelectedBatchId(e.target.value)}
+              className="farmvista-select-pill"
+              style={{ height: '34px', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}
+            >
+              {activeBatches.map(b => (
+                <option key={b.id} value={b.id}>
+                  Lô {b.batchCode} • {b.cultivarName} ({b.currentQuantity} rọ)
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="farmvista-card" style={{ padding: '48px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', display: 'grid', placeItems: 'center' }}>
+            <Clock size={30} color="#b45309" />
+          </div>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>Chức năng AI cho giống "{currentBatch.cultivarName}" sẽ phát triển sau</h2>
+          <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-subtle)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            Phiên bản hiện tại, mô hình dự báo năng suất chỉ được huấn luyện và kiểm định cho
+            <strong style={{ color: '#00a651' }}> Xà lách Batavia</strong>. Các giống khác được đưa vào hệ thống để minh hoạ
+            chức năng quản lý lô trồng, bể dung dịch và cảnh báo. Khi có đủ dữ liệu sinh trưởng riêng cho từng giống,
+            nhóm sẽ huấn luyện thêm mô hình tương ứng.
+          </p>
+          {bataviaBatches.length > 0 && (
+            <button
+              id="ai-goto-batavia"
+              className="farmvista-btn-secondary"
+              style={{ height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
+              onClick={() => setSelectedBatchId(bataviaBatches[0].id)}
+            >
+              <Leaf size={14} color="#00a651" />
+              <span>Xem dự báo lô Batavia {bataviaBatches[0].batchCode}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="forecast-container">
       
@@ -365,32 +465,12 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
       <div className="forecast-header">
         <div className="forecast-header-left">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1 className="forecast-title" style={{ margin: 0 }}>
-                <Sparkles size={22} color="#00a651" />
-                Dự Báo Sản Lượng & Năng Suất AI
-              </h1>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: aiSource === 'fastapi_rf' ? '#e8f8f0' : '#fef3c7',
-                color: aiSource === 'fastapi_rf' ? '#00a651' : '#b45309',
-                padding: '4px 10px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700
-              }}>
-                <Sparkles size={13} color={aiSource === 'fastapi_rf' ? '#00a651' : '#b45309'} />
-                <span>{isAiLoading ? '⚡ Đang đồng bộ AI...' : aiSource === 'fastapi_rf' ? `🌲 AI Model: RandomForest (R² = ${prediction?.confidenceR2 || '0.967'})` : '⚡ AI Heuristic Engine'}</span>
-              </span>
-            </div>
+            <h1 className="forecast-title" style={{ margin: 0 }}>
+              <Sparkles size={22} color="#00a651" />
+              Dự Báo Năng Suất AI
+            </h1>
             <div className="forecast-subtitle">
-              <span>Đang xem lô: <strong style={{ color: '#0f172a' }}>{currentBatch.cultivarName} ({currentBatch.batchCode})</strong></span>
-              <span>•</span>
-              <span>Bể cấp: <strong style={{ color: '#0f172a' }}>{currentReservoir?.name.split('-')[0].trim() || 'Bể Tuần Hoàn 01'}</strong></span>
-              <span>•</span>
-              <span style={{ color: '#00a651', fontWeight: 700 }}>Ngày {daysPlanted} / {targetDays} (Còn {daysLeft} ngày đến thu hoạch)</span>
+              Ước tính khối lượng thu hoạch, tổng sản lượng dự kiến và mô phỏng kịch bản dinh dưỡng
             </div>
           </div>
         </div>
@@ -399,13 +479,15 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
         <div className="forecast-header-actions">
           <span className="forecast-status-pill">
             <span className="dot" />
-            AI Trợ Lý (R² = {prediction?.confidenceR2 || 0.94})
+            {isAiLoading
+              ? 'Đang phân tích...'
+              : `Độ tin cậy ${Math.round((prediction?.confidenceR2 || 0.945) * 100)}%`}
           </span>
 
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <Leaf size={14} color="#00a651" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
             <select
-              value={selectedBatchId}
+              value={currentBatch.id}
               onChange={(e) => setSelectedBatchId(e.target.value)}
               className="farmvista-select-pill"
               style={{
@@ -419,7 +501,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
             >
               {activeBatches.map(b => (
                 <option key={b.id} value={b.id}>
-                  {b.batchCode} • {b.cultivarName} ({b.currentQuantity} rọ)
+                  Lô {b.batchCode} • {b.cultivarName} ({b.currentQuantity} rọ){isAiSupportedCultivar(b.cultivarName) ? '' : ' · Chưa hỗ trợ AI'}
                 </option>
               ))}
             </select>
@@ -510,7 +592,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
             {totalBatchYieldKg} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>kg</span>
           </div>
           <div className="forecast-kpi-meta">
-            <span>Cả lô {liveData.plants} rọ</span>
+            <span>Cả lô {currentPlantsCount} rọ</span>
             <span className="forecast-kpi-badge blue">
               Năng suất cao
             </span>
@@ -531,7 +613,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
           <div className="forecast-kpi-meta">
             <span>Còn {daysLeft} ngày nữa</span>
             <span className="forecast-kpi-badge amber">
-              R² = {prediction?.confidenceR2 || 0.94}
+              Chu kỳ {targetDays} ngày
             </span>
           </div>
         </div>
@@ -548,7 +630,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 Đường Cong Sinh Trưởng & Dự Báo Sinh Khối ({targetDays} Ngày)
               </h3>
               <span style={{ fontSize: '0.72rem', backgroundColor: '#e8f8f0', color: '#00a651', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                {currentBatch.cultivarName} • Lô {currentBatch.batchCode}
+                Lô {currentBatch.batchCode} • {currentBatch.cultivarName} • {currentReservoir?.name.split('-')[0].trim() || 'Bể Tuần Hoàn 01'}
               </span>
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 0 0' }}>
@@ -873,7 +955,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '6px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Thời điểm cắt rau:</span>
                   <strong style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>
-                    {simDaysOffset === 0 ? 'Đúng hạn (Ngày 35)' : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${Math.abs(simDaysOffset)} ngày`}
+                    {simDaysOffset === 0 ? `Đúng hạn (Ngày ${targetDays})` : simDaysOffset > 0 ? `Lùi thêm +${simDaysOffset} ngày` : `Cắt sớm ${Math.abs(simDaysOffset)} ngày`}
                   </strong>
                 </div>
                 <input 
@@ -1003,16 +1085,16 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', backgroundColor: '#f8fafc' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Tổng sản lượng cả lô</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0284c7' }}>{totalBatchYieldKg} kg</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Quy mô: {liveData.plants} rọ cây</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Quy mô: {currentPlantsCount} rọ cây</div>
                 </div>
               </div>
 
               <div>
                 <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Các kết luận kỹ thuật chính:</strong>
                 <ul style={{ paddingLeft: '18px', margin: 0, color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.78rem' }}>
-                  <li>Nồng độ dinh dưỡng EC đạt {liveData.ec.toFixed(2)} mS/cm, nằm trong ngưỡng tối ưu hấp thụ của rau.</li>
+                  <li>Nồng độ dinh dưỡng EC đạt {(isSimulating ? simEc : liveData.ec).toFixed(2)} mS/cm, nằm trong ngưỡng tối ưu hấp thụ của rau.</li>
                   <li>Độ pH duy trì {liveData.ph.toFixed(2)}, rễ không bị hiện tượng phong tỏa dưỡng chất.</li>
-                  <li>Tỷ lệ cây đạt chuẩn Grade A ước tính 82%, sẵn sàng cho các đơn hàng siêu thị.</li>
+                  <li>Tỷ lệ cây thương phẩm đạt chuẩn Loại 1 (Hạng A) ước tính 95%, sẵn sàng cho các đơn hàng siêu thị.</li>
                 </ul>
               </div>
             </div>
@@ -1021,15 +1103,16 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
               <button 
                 type="button" 
                 onClick={() => {
+                  handleDownloadForecastReport();
                   setIsReportModalOpen(false);
-                  setToastMsg('Đã lưu và xuất báo cáo dự báo AI thành công!');
+                  setToastMsg('Đã lưu và tải xuống báo cáo dự báo AI (CSV) thành công!');
                   setTimeout(() => setToastMsg(null), 3000);
                 }} 
                 className="farmvista-btn-green"
                 style={{ height: '36px', padding: '0 20px' }}
               >
                 <Check size={14} />
-                <span>Hoàn Tất & Lưu</span>
+                <span>Hoàn Tất & Lưu CSV</span>
               </button>
             </div>
           </div>

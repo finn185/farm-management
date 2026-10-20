@@ -254,10 +254,10 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
           <div>
             <h1 className="harvest-title">
               <Scale size={22} color="#00a651" />
-              Lịch Sử Thu Hoạch & Ground Truth AI
+              Nhật Ký Thu Hoạch
             </h1>
             <div className="harvest-subtitle">
-              Ghi nhận năng suất thực tế, đối chiếu sai số mô hình AI và xuất tập dữ liệu huấn luyện
+              Ghi nhận sản lượng thực thu, phân hạng chất lượng và đối chiếu sai số dự báo AI
             </div>
           </div>
         </div>
@@ -275,7 +275,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
             style={{ height: '34px', fontSize: '0.78rem', padding: '0 12px' }}
           >
             <Sparkles size={14} color="#00a651" />
-            <span>Dataset AI</span>
+            <span>Xuất Dữ Liệu AI</span>
           </button>
 
           <button 
@@ -387,7 +387,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
           <div>
             <h3 className="harvest-card-title">Lịch Sử Thu Hoạch & Đối Chiếu Năng Suất</h3>
             <div className="harvest-card-subtitle">
-              Số liệu đối chứng Ground Truth phục vụ kiểm định độ chính xác thuật toán vi khí hậu
+              Chi tiết sản lượng thực tế và độ lệch so với dự báo của mô hình AI qua từng vụ
             </div>
           </div>
         </div>

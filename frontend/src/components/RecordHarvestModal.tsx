@@ -21,7 +21,8 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
   reservoirs = [],
   onSubmit
 }) => {
-  const readyBatches = batches.filter(b => b.status === 'active');
+  const activeBatches = batches.filter(b => b.status === 'active');
+  const readyBatches = activeBatches.length > 0 ? activeBatches : batches;
 
   const getBatchDefaults = (b?: CropBatch) => {
     if (!b) return { plants: 500, weightKg: 95 };
@@ -35,6 +36,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
   const [harvestedPlants, setHarvestedPlants] = useState(500);
   const [totalWeightKg, setTotalWeightKg] = useState(95);
   const [rejectedWeightKg, setRejectedWeightKg] = useState(3.0);
+  const [unitPriceVnd, setUnitPriceVnd] = useState(45000);
   const [grade, setGrade] = useState<'A' | 'B' | 'C'>('A');
   const [notes, setNotes] = useState('');
 
@@ -42,7 +44,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const batchToSelect = (targetBatch && targetBatch.status === 'active')
+    const batchToSelect = targetBatch
       ? targetBatch
       : (readyBatches.find(b => b.id === selectedBatchId) || readyBatches[0]);
 
@@ -57,14 +59,16 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
 
     setHarvestDate(new Date().toISOString().split('T')[0]);
     setRejectedWeightKg(3.0);
+    setUnitPriceVnd(45000);
     setGrade('A');
     setNotes('');
   }, [isOpen, targetBatch]);
 
   if (!isOpen) return null;
 
-  const selectedBatch = readyBatches.find(b => b.id === selectedBatchId) || 
-    (targetBatch && targetBatch.status === 'active' ? targetBatch : readyBatches[0]);
+  const selectedBatch = readyBatches.find(b => b.id === selectedBatchId) ||
+    targetBatch ||
+    readyBatches[0];
 
   const handleBatchSelect = (newId: string) => {
     setSelectedBatchId(newId);
@@ -80,7 +84,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
     e.preventDefault();
     if (!selectedBatch) return;
 
-    const avgWeightG = Math.round(((Number(totalWeightKg) * 1000) / Number(harvestedPlants)) * 10) / 10;
+    const avgWeightG = Math.round(((Number(totalWeightKg) * 1000) / Math.max(1, Number(harvestedPlants))) * 10) / 10;
 
     const seedTime = new Date(selectedBatch.seedDate).getTime();
     const hDate = new Date(harvestDate).getTime();
@@ -100,6 +104,9 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
       expectedPlants: Number(harvestedPlants)
     });
 
+    const price = Number(unitPriceVnd) || 45000;
+    const totalRevenueVnd = Math.round(Number(totalWeightKg) * price);
+
     onSubmit({
       batchId: selectedBatch.id,
       batchCode: selectedBatch.batchCode,
@@ -111,9 +118,13 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
       rejectedWeightKg: Number(rejectedWeightKg),
       aiPredictedWeightG: predResult.predictedFreshWeightG,
       grade,
+      unitPriceVnd: price,
+      totalRevenueVnd,
       notes
     });
   };
+
+  const estimatedRevenue = Math.round((Number(totalWeightKg) || 0) * (Number(unitPriceVnd) || 45000));
 
   return (
     <div className="harvest-modal-overlay" onClick={onClose}>
@@ -149,11 +160,11 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                   required
                 >
                   {readyBatches.length === 0 ? (
-                    <option value="" disabled>Không có lô nào đang trồng để thu hoạch</option>
+                    <option value="" disabled>Không có lô nào để thu hoạch</option>
                   ) : (
                     readyBatches.map(b => (
                       <option key={b.id} value={b.id}>
-                        {b.batchCode} - {b.cultivarName} ({b.currentQuantity || b.plantQuantity} cây)
+                        {b.batchCode} - {b.cultivarName} ({b.currentQuantity || b.plantQuantity} cây{b.status === 'harvested' ? ' - Đã thu' : ''})
                       </option>
                     ))
                   )}
@@ -198,6 +209,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                 </label>
                 <input 
                   type="number" 
+                  min={1}
                   className="form-input" 
                   style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '0 10px' }}
                   value={harvestedPlants} 
@@ -213,6 +225,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                 <input 
                   type="number" 
                   step="0.1"
+                  min={0.1}
                   className="form-input" 
                   style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '0 10px' }}
                   value={totalWeightKg} 
@@ -228,6 +241,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                 <input 
                   type="number" 
                   step="0.1"
+                  min={0}
                   className="form-input" 
                   style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '0 10px' }}
                   value={rejectedWeightKg} 
@@ -236,7 +250,7 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                 />
               </div>
 
-              <div style={{ gridColumn: 'span 2' }}>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
                   Phân loại chất lượng
                 </label>
@@ -246,10 +260,42 @@ export const RecordHarvestModal: React.FC<RecordHarvestModalProps> = ({
                   value={grade}
                   onChange={e => setGrade(e.target.value as 'A' | 'B' | 'C')}
                 >
-                  <option value="A">Hạng A (Chuẩn xuất bán lẻ siêu thị)</option>
-                  <option value="B">Hạng B (Bán sỉ nhà hàng, đóng gói túi)</option>
-                  <option value="C">Hạng C (Chế biến nước ép / salad sơ chế)</option>
+                  <option value="A">Hạng A (Siêu thị)</option>
+                  <option value="B">Hạng B (Nhà hàng)</option>
+                  <option value="C">Hạng C (Sơ chế)</option>
                 </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#334155', marginBottom: '5px' }}>
+                  Đơn giá xuất bán (VNĐ/kg)
+                </label>
+                <input 
+                  type="number" 
+                  step="1000"
+                  min={1000}
+                  className="form-input" 
+                  style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '0 10px' }}
+                  value={unitPriceVnd} 
+                  onChange={e => setUnitPriceVnd(Number(e.target.value))} 
+                  required 
+                />
+              </div>
+
+              <div style={{
+                gridColumn: 'span 2',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                color: '#334155',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>Trọng lượng TB: <strong>{Math.round(((Number(totalWeightKg) * 1000) / Math.max(1, Number(harvestedPlants))) * 10) / 10} g/cây</strong></span>
+                <span>Doanh thu dự kiến: <strong style={{ color: '#00a651' }}>{estimatedRevenue.toLocaleString('vi-VN')} ₫</strong></span>
               </div>
 
               <div style={{ gridColumn: 'span 2' }}>

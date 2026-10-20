@@ -65,6 +65,16 @@ npm run preview
 | **[`/forecast`](http://localhost:5173/forecast)** | **AI Dự báo Năng suất** | Dự đoán trọng lượng (g/cây) và sản lượng (kg/lô), phân tích mức độ tác động của các yếu tố (EC, pH, lá thật), chế độ thử nghiệm What-If. |
 | **[`/alerts`](http://localhost:5173/alerts)** | **Trung tâm Cảnh báo** | Giám sát các sự cố nồng độ EC tụt, pH lệch ngưỡng, sốc nhiệt nước kèm quy trình xử lý từng bước. |
 | **[`/harvest`](http://localhost:5173/harvest)** | **Nhật ký & So sánh Thu hoạch** | Thống kê sản lượng thực tế, đối chiếu sai số với dự báo AI và theo dõi tỷ lệ rau đạt tiêu chuẩn loại 1. |
+| **[`/simulator`](http://localhost:3000/simulator)** | **Trạm giả lập IoT** | Thiết bị ảo mô phỏng cảm biến bể và khí hậu theo mô hình thủy canh, kịch bản sự cố, gói tin JSON và hướng dẫn chuyển sang ESP32 thật. |
+
+---
+
+## 📡 Trạm giả lập IoT và thiết bị thật
+
+- Phạm vi AI: **chỉ Xà lách Batavia**. Các giống khác chỉ minh hoạ; phần AI hiển thị *"phát triển sau"*.
+- Thiết bị ảo và ESP32 thật dùng **chung API** `POST /api/v1/sensors/telemetry/batch`.
+- Chuyển sang thiết bị thật: nạp [firmware ESP32](./hardware/esp32_hydro_node/esp32_hydro_node.ino), rồi đặt `DATA_SOURCE=device` và `DEVICE_API_KEY` trong `backend/.env`.
+- Tài liệu chi tiết và kịch bản thuyết trình: 👉 **[HE_THONG_GIA_LAP_VA_TICH_HOP_THIET_BI.md](./documents/HE_THONG_GIA_LAP_VA_TICH_HOP_THIET_BI.md)**
 
 ---
 

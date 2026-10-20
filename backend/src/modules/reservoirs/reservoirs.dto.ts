@@ -32,7 +32,7 @@ export const topUpWaterSchema = z.object({
 });
 
 export const drainReservoirSchema = z.object({
-  reason: z.enum(['end_of_batch', 'salt_accumulation', 'contamination', 'maintenance', 'other']),
+  reason: z.enum(['scheduled_replacement', 'end_of_batch', 'salt_accumulation', 'contamination', 'maintenance', 'other']),
   operator: z.string().min(1, 'Vui lòng nhập tên người thực hiện xả bể'),
   notes: z.string().optional(),
   refillWithFormula: z.string().optional()

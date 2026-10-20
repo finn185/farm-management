@@ -493,7 +493,7 @@ VALUES
 INSERT INTO "crop_batches" ("id", "batchCode", "cultivarId", "reservoirId", "zoneId", "systemType", "plantQuantity", "currentQuantity", "seedDate", "transplantDate", "expectedHarvestDate", "currentStage", "status", "densityPlantsPerM2", "notes")
 VALUES
   ('batch-01', 'LET-2026-001', 'cult-01', 'res-01', 'zone-a1', 'NFT', 650, 642, '2026-08-15', '2026-08-27', '2026-09-19', 'vegetative', 'active', 26.0, 'Máng NFT giàn A1, tốc độ sinh trưởng đồng đều 55%, rễ trắng khỏe.'),
-  ('batch-02', 'LET-2026-002', 'cult-02', 'res-01', 'zone-a2', 'NFT', 500, 495, '2026-08-28', '2026-09-08', '2026-10-02', 'seedling', 'active', 24.0, 'Giàn A2 mới chuyển máng NFT 2 ngày, bén rễ tốt 25%, bung lá thật thứ 3.'),
+  ('batch-02', 'LET-2026-002', 'cult-02', 'res-01', 'zone-a2', 'NFT', 500, 495, '2026-08-28', '2026-09-08', '2026-10-02', 'vegetative', 'active', 24.0, 'Giàn A2 mới chuyển máng NFT 2 ngày, bén rễ tốt 25%, bung lá thật thứ 3.'),
   ('batch-03', 'LET-2026-003', 'cult-03', 'res-02', 'zone-b2', 'NFT', 800, 785, '2026-08-04', '2026-08-16', '2026-09-12', 'pre_harvest', 'active', 22.0, 'Giàn B2 giai đoạn tích lũy sinh khối 80%. Sẵn sàng thu hoạch.');
 
 -- 7. Lịch sử đo đạc sinh trắc học

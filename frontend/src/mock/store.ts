@@ -24,8 +24,26 @@ const STORAGE_KEYS = {
   HARVESTS: 'hydrosmart_harvests',
   CHANNELS: 'hydrosmart_channels',
   DRAIN_EVENTS: 'hydrosmart_drain_events',
-  ZONES: 'hydrosmart_zones'
+  ZONES: 'hydrosmart_zones',
+  VERSION: 'hydrosmart_store_version'
 };
+
+const CURRENT_STORE_VERSION = '2026-10-20-clean-v2';
+
+// Tự động xóa toàn bộ dữ liệu mock cũ bị lưu kẹt trong localStorage của trình duyệt
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const savedVer = window.localStorage.getItem(STORAGE_KEYS.VERSION);
+    if (savedVer !== CURRENT_STORE_VERSION) {
+      Object.values(STORAGE_KEYS).forEach(k => {
+        if (k !== STORAGE_KEYS.VERSION) window.localStorage.removeItem(k);
+      });
+      window.localStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_STORE_VERSION);
+    }
+  }
+} catch {
+  // ignore storage errors
+}
 
 function getStorage<T>(key: string, fallback: T): T {
   try {
@@ -528,14 +546,8 @@ export const farmStore = {
   },
 
   resetAllData: () => {
-    localStorage.removeItem(STORAGE_KEYS.BATCHES);
-    localStorage.removeItem(STORAGE_KEYS.RESERVOIRS);
-    localStorage.removeItem(STORAGE_KEYS.CULTIVARS);
-    localStorage.removeItem(STORAGE_KEYS.FORMULAS);
-    localStorage.removeItem(STORAGE_KEYS.SENSORS);
-    localStorage.removeItem(STORAGE_KEYS.ALERTS);
-    localStorage.removeItem(STORAGE_KEYS.HARVESTS);
-    localStorage.removeItem(STORAGE_KEYS.CHANNELS);
-    localStorage.removeItem(STORAGE_KEYS.DRAIN_EVENTS);
+    Object.values(STORAGE_KEYS).forEach(k => {
+      if (k !== STORAGE_KEYS.VERSION) localStorage.removeItem(k);
+    });
   }
 };

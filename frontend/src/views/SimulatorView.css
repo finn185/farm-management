@@ -1,0 +1,894 @@
+/* =====================================================================
+   SIMULATOR VIEW - GIAO DIỆN TỐI GIẢN, DỄ HIỂU NGAY TRONG 5 GIÂY
+   Chia thành 3 hộp rõ ràng:
+     Phần 1: Số đo hiện tại trong bể
+     Phần 2: Nút bấm thử gây sự cố
+     Phần 3: Giải thích cách gắn thiết bị thật (ESP32)
+   ===================================================================== */
+
+.sim-simple-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  padding-bottom: 40px;
+}
+
+.sim-simple-page code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.82rem;
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.sim-center-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 48px 24px;
+}
+
+/* =====================================================================
+   1. HEADER ĐỒNG BỘ VỚI CÁC TRANG KHÁC
+   ===================================================================== */
+.sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 16px 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.sim-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sim-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.sim-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sim-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sim-status-pill.is-on {
+  background: #ecfdf5;
+  color: #16a34a;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.sim-status-pill.is-off {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.sim-status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Các nút bấm lớn, rõ ràng */
+.sim-big-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 11px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.sim-big-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sim-btn-green {
+  background: #00a651;
+  color: #ffffff;
+}
+
+.sim-btn-green:hover:not(:disabled) {
+  background: #047857;
+}
+
+.sim-btn-amber {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.sim-btn-amber:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.sim-btn-outline {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.sim-btn-outline:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.sim-btn-red-outline {
+  background: #ffffff;
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.sim-btn-red-outline:hover:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* =====================================================================
+   TIÊU ĐỀ MỖI PHẦN (PHẦN 1, PHẦN 2, PHẦN 3)
+   ===================================================================== */
+.sim-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sim-step-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #15803d;
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+}
+
+.sim-step-badge.badge-amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.sim-step-badge.badge-blue {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.sim-section-header h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sim-helper-text {
+  margin: -6px 0 16px;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.sim-tank-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.sim-tank-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sim-tank-btn.active {
+  background: #00a651;
+  border-color: #00a651;
+  color: #ffffff;
+}
+
+/* =====================================================================
+   PHẦN 1: 5 THẺ SỐ ĐO BỂ NƯỚC
+   ===================================================================== */
+.sim-5-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sim-sensor-card {
+  border-radius: 14px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-sensor-card.card-ok {
+  border-color: #bbf7d0;
+  background: #f8fafc;
+}
+
+.sim-sensor-card.card-error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.sim-sensor-card.card-offline {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.sim-sensor-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sim-sensor-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sim-sensor-status {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.st-ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.st-error {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.st-offline {
+  background: #64748b;
+  color: #ffffff;
+}
+
+.sim-sensor-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 4px 0 2px;
+}
+
+.card-error .sim-sensor-value {
+  color: #dc2626;
+}
+
+.sim-sensor-meaning {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.sim-sensor-safe {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #047857;
+  padding-top: 6px;
+  border-top: 1px dashed #cbd5e1;
+  margin-top: auto;
+}
+
+/* Thanh hiển thị tác động của nước lên sức khỏe cây trồng */
+.sim-plant-health-bar {
+  margin-top: 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sim-plant-health-bar.health-good {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #065f46;
+}
+
+.sim-plant-health-bar.health-stress {
+  background: #fffbeb;
+  border: 1.5px solid #fbbf24;
+  color: #92400e;
+}
+
+.sim-plant-health-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.sim-plant-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.sim-plant-score strong {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.sim-plant-detail {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+/* =====================================================================
+   PHẦN 2: LƯỚI 6 NÚT BẤM THỬ GÂY SỰ CỐ
+   ===================================================================== */
+.sim-incident-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.sim-incident-btn {
+  text-align: left;
+  padding: 16px;
+  border-radius: 14px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: all 0.15s ease;
+}
+
+.sim-incident-btn:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #fffafa;
+}
+
+.sim-incident-btn.is-active {
+  border-color: #dc2626;
+  background: #fef2f2;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.sim-incident-btn-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sim-incident-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sim-incident-btn-top strong {
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.sim-running-pill {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.sim-incident-effect {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.sim-incident-fix {
+  font-size: 0.8rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* Hộp thông báo kết quả dưới các nút sự cố */
+.sim-result-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+}
+
+.sim-result-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.sim-result-left strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #991b1b;
+  margin-bottom: 3px;
+}
+
+.sim-result-left p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #7f1d1d;
+}
+
+.sim-result-ok {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* =====================================================================
+   PHẦN 3: GIẢ LẬP CÂY TRỒNG LỚN LÊN THEO NGÀY
+   ===================================================================== */
+.sim-grow-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sim-batch-growth-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.sim-batch-card {
+  border-radius: 14px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sim-batch-card.is-batavia {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.sim-batch-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sim-batch-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sim-batch-code strong {
+  font-size: 0.96rem;
+  color: #0f172a;
+}
+
+.sim-ai-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sim-batch-cultivar {
+  font-size: 0.8rem;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.sim-stage-pill {
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sim-progress-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-progress-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.sim-progress-track {
+  width: 100%;
+  height: 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.sim-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #00a651 100%);
+  transition: width 0.25s ease;
+}
+
+.sim-bio-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  gap: 8px;
+}
+
+.sim-bio-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sim-bio-item.highlight {
+  border-color: #86efac;
+  background: #ffffff;
+}
+
+.sim-bio-item span {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.sim-bio-item strong {
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.sim-batch-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* =====================================================================
+   PHẦN 3: SƠ ĐỒ CHUYỂN ĐỔI SANG THIẾT BỊ THẬT (ESP32)
+   ===================================================================== */
+.sim-easy-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sim-flow-card {
+  flex: 1;
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 2px solid #e2e8f0;
+}
+
+.sim-flow-replace {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.sim-flow-keep {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.sim-flow-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #f59e0b;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.sim-flow-tag.tag-keep {
+  background: #00a651;
+}
+
+.sim-flow-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim-flow-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-flow-item strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.sim-flow-item span {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.sim-flow-vs {
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #b45309;
+  text-transform: uppercase;
+}
+
+.sim-flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #00a651;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.sim-keep-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sim-keep-items div {
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #065f46;
+}
+
+/* 3 bước thực hiện */
+.sim-3-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sim-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sim-step-item strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.sim-step-item p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+/* Nút mở chi tiết kỹ thuật */
+.sim-more-toggle {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.sim-tech-drawer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sim-tech-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.sim-tech-drawer h4 {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  color: #1e293b;
+}
+
+.sim-code-block {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow: auto;
+  max-height: 240px;
+  white-space: pre-wrap;
+}
+
+.sim-ps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 1200px) {
+  .sim-5-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sim-incident-grid,
+  .sim-batch-growth-grid,
+  .sim-3-steps {
+    grid-template-columns: 1fr;
+  }
+  .sim-easy-flow {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .sim-5-cards,
+  .sim-bio-metrics,
+  .sim-tech-grid,
+  .sim-keep-items {
+    grid-template-columns: 1fr;
+  }
+}

@@ -90,7 +90,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
           <div>
             <h1 className="alerts-title">
               <ShieldAlert size={22} color="#00a651" />
-              Cảnh Báo & Sự Cố Kỹ Thuật
+              Cảnh Báo Sinh Hóa
             </h1>
             <div className="alerts-subtitle">
               Giám sát sai lệch nồng độ EC, pH, nhiệt độ dung dịch và mực nước tuần hoàn

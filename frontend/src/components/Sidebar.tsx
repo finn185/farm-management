@@ -8,7 +8,8 @@ import {
   Settings2, 
   ClipboardCheck, 
   User,
-  LogOut
+  LogOut,
+  Radio
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { path: '/forecast', label: 'Dự báo năng suất AI', icon: CloudSun },
     { path: '/harvest', label: 'Nhật ký thu hoạch', icon: ClipboardCheck },
     { path: '/alerts', label: 'Cảnh báo sinh hóa', icon: Settings2, badge: unreadAlertCount },
+    { path: '/simulator', label: 'Trạm giả lập IoT', icon: Radio },
     { path: '/profile', label: 'Hồ sơ cá nhân', icon: User },
   ];
 

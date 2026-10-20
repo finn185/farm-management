@@ -55,6 +55,12 @@ export class AIService {
       throw new Error(`Không tìm thấy lô canh tác với ID: ${batchId}`);
     }
 
+    // Phạm vi mô hình hiện tại: chỉ huấn luyện cho Xà lách Batavia.
+    // Các giống khác chỉ mang tính minh hoạ quản lý → AI sẽ phát triển sau.
+    if (!/batavia/i.test(batch.cultivar?.name || '')) {
+      throw new Error(`Mô hình AI hiện chỉ hỗ trợ Xà lách Batavia. Giống "${batch.cultivar?.name || 'không xác định'}" sẽ được phát triển sau khi có dữ liệu huấn luyện riêng.`);
+    }
+
     // 1. Tính toán số ngày tuổi cây (Plant_Age_Days)
     const baseDateStr = batch.transplantDate || batch.seedDate;
     const baseDate = new Date(baseDateStr);

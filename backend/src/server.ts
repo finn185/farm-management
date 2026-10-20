@@ -11,6 +11,9 @@ import zoneRoutes from './modules/zones/zones.routes';
 import aiRoutes from './modules/ai/ai.routes';
 import sensorRoutes from './modules/sensors/sensors.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import simulatorRoutes from './modules/simulator/simulator.routes';
+import { bootstrapSimulator } from './modules/simulator/simulator.service';
+import { startDeviceWatchdog } from './modules/sensors/device-watchdog';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -73,6 +76,10 @@ app.use('/api/sensors', sensorRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+// Trạm giả lập IoT (thiết bị ảo) - tắt khi DATA_SOURCE=device
+app.use('/api/v1/simulator', simulatorRoutes);
+app.use('/api/simulator', simulatorRoutes);
+
 // 404 Route Handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
@@ -94,7 +101,11 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`   - POST http://localhost:${config.PORT}/api/v1/auth/register`);
     console.log(`   - POST http://localhost:${config.PORT}/api/v1/auth/login`);
     console.log(`   - GET  http://localhost:${config.PORT}/api/v1/auth/me`);
+    console.log(`📡 Nguồn dữ liệu cảm biến: ${config.DATA_SOURCE === 'device' ? 'THIẾT BỊ THẬT (ESP32)' : 'TRẠM GIẢ LẬP (có thể bật/tắt trên giao diện)'}`);
+    console.log(`   - POST http://localhost:${config.PORT}/api/v1/sensors/telemetry/batch`);
     console.log(`=======================================================`);
+    bootstrapSimulator();
+    startDeviceWatchdog();
   });
 }
 

@@ -400,19 +400,22 @@ export class BatchesService {
 
     const calcProgress = (seedDateStr: string, harvestDateStr: string, stage: string, status: string) => {
       if (status === 'harvested') return 100;
-      if (stage === 'harvest') return 95;
-      if (stage === 'pre_harvest') return 80;
-      if (stage === 'vegetative') return 55;
-      if (stage === 'seedling') return 25;
       try {
         const start = new Date(seedDateStr).getTime();
         const end = new Date(harvestDateStr).getTime();
         const now = Date.now();
-        if (end <= start) return 50;
-        return Math.min(Math.max(Math.round(((now - start) / (end - start)) * 100), 5), 98);
+        if (end > start && now >= start) {
+          const p = Math.round(((now - start) / (end - start)) * 100);
+          if (p >= 5 && p <= 99) return p;
+        }
       } catch {
-        return 50;
+        // fallback below
       }
+      if (stage === 'harvest') return 95;
+      if (stage === 'pre_harvest') return 80;
+      if (stage === 'vegetative') return 55;
+      if (stage === 'seedling') return 25;
+      return 50;
     };
 
     const formattedZones = zones.map(z => {

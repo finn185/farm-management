@@ -116,7 +116,7 @@ export const ProfileView: React.FC = () => {
           <div>
             <h1 className="profile-title">
               <User size={22} color="#00a651" />
-              Hồ Sơ Cá Nhân & Phân Quyền
+              Hồ Sơ Cá Nhân
             </h1>
             <div className="profile-subtitle">
               Quản lý thông tin định danh kỹ sư, vai trò quản trị hệ thống và thiết lập mật khẩu bảo mật

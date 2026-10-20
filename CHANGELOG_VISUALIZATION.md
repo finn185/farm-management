@@ -2,7 +2,7 @@
 
 ## Ngày: 11/09/2026
 
-### ✅ Đã hoàn thành 3 cải tiến chính
+### Đã hoàn thành 3 cải tiến chính
 
 ---
 
@@ -212,17 +212,17 @@ export interface SolutionDrainEvent {
 ## 📦 Files đã thay đổi
 
 ### Backend (Mock Data & Store)
-- ✅ `frontend/src/types/farm.ts` — Thêm `AlertStatus`, `Channel`, `SolutionDrainEvent`
-- ✅ `frontend/src/mock/initialData.ts` — Thêm `INITIAL_CHANNELS`, `INITIAL_DRAIN_EVENTS`, cập nhật `INITIAL_ALERTS`
-- ✅ `frontend/src/mock/store.ts` — Thêm `acknowledgeAlert()`, `getChannels()`, `getDrainEvents()`, `addDrainEvent()`
+- `frontend/src/types/farm.ts` — Thêm `AlertStatus`, `Channel`, `SolutionDrainEvent`
+- `frontend/src/mock/initialData.ts` — Thêm `INITIAL_CHANNELS`, `INITIAL_DRAIN_EVENTS`, cập nhật `INITIAL_ALERTS`
+- `frontend/src/mock/store.ts` — Thêm `acknowledgeAlert()`, `getChannels()`, `getDrainEvents()`, `addDrainEvent()`
 
 ### Frontend Views
-- ✅ `frontend/src/views/AlertsView.tsx` — Viết lại hoàn toàn với lifecycle UI
-- ✅ `frontend/src/views/ReservoirsView.tsx` — Thêm 3 tabs: Dosing / Channels / History + modal xả bể
-- ✅ `frontend/src/App.tsx` — Kết nối handlers mới
+- `frontend/src/views/AlertsView.tsx` — Viết lại hoàn toàn với lifecycle UI
+- `frontend/src/views/ReservoirsView.tsx` — Thêm 3 tabs: Dosing / Channels / History + modal xả bể
+- `frontend/src/App.tsx` — Kết nối handlers mới
 
 ### Documentation
-- ✅ `OVERVIEW.md` — Thêm section 10A, 10B, 21A với giải thích chi tiết
+- `OVERVIEW.md` — Thêm section 10A, 10B, 21A với giải thích chi tiết
 
 ---
 
@@ -255,19 +255,19 @@ export interface SolutionDrainEvent {
 ## ✨ Lợi ích
 
 ### Về mặt khoa học
-- ✅ Phản ánh đúng thực tế vận hành trang trại: 1 bể → nhiều máng → nhiều lô
-- ✅ Truy xuất nguồn gốc: Biết lô nào dùng dung dịch pha ngày nào, xả khi nào
-- ✅ Phù hợp với OVERVIEW section 10A, 10B, 21A
+- Phản ánh đúng thực tế vận hành trang trại: 1 bể → nhiều máng → nhiều lô
+- Truy xuất nguồn gốc: Biết lô nào dùng dung dịch pha ngày nào, xả khi nào
+- Phù hợp với OVERVIEW section 10A, 10B, 21A
 
 ### Về mặt trực quan
-- ✅ UI rõ ràng, dễ hiểu hơn với tab phân chia rõ ràng
-- ✅ Alert lifecycle giống hệ thống ticketing chuyên nghiệp (Jira, ServiceNow)
-- ✅ Dữ liệu có tính truy xuất cao — audit trail đầy đủ
+- UI rõ ràng, dễ hiểu hơn với tab phân chia rõ ràng
+- Alert lifecycle giống hệ thống ticketing chuyên nghiệp (Jira, ServiceNow)
+- Dữ liệu có tính truy xuất cao — audit trail đầy đủ
 
 ### Về mặt demo
-- ✅ Thể hiện được độ phức tạp của hệ thống quản lý thực tế
-- ✅ Không còn là CRUD đơn giản, mà là workflow có vòng đời
-- ✅ Hội đồng sẽ thấy "hệ thống này nghĩ kỹ về quy trình thực tế"
+- Thể hiện được độ phức tạp của hệ thống quản lý thực tế
+- Không còn là CRUD đơn giản, mà là workflow có vòng đời
+- Hội đồng sẽ thấy "hệ thống này nghĩ kỹ về quy trình thực tế"
 
 ---
 

@@ -1,5 +1,11 @@
 import type { Cultivar, CropBatch, Reservoir, NutrientFormula, Alert, HarvestRecord, Channel, SolutionDrainEvent, FarmZone, Sensor } from '../types/farm';
 
+function dateFromToday(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + Math.round(offsetDays));
+  return d.toISOString().slice(0, 10);
+}
+
 export const INITIAL_CULTIVARS: Cultivar[] = [
   {
     id: 'cult-01',
@@ -102,68 +108,6 @@ export const INITIAL_CULTIVARS: Cultivar[] = [
         { stage: 'harvest', days: 1, phMin: 5.5, phMax: 6.0, ecMin: 1.4, ecMax: 1.8, waterTempMin: 18, waterTempMax: 22, lightDli: 12, notes: 'Thu hoạch' }
       ]
     }
-  },
-  {
-    id: 'cult-04',
-    cropName: 'Xà lách (Lettuce)',
-    name: 'Lollo Rossa',
-    scientificName: 'Lactuca sativa var. crispa',
-    description: 'Xà lách lá sồi đỏ tím, giàu anthocyanin chống oxy hóa, viền lá xoăn tít thẩm mỹ cao cho salad nhà hàng.',
-    targetCycleDays: 37,
-    expectedWeightG: 185.0,
-    recommendedPhMin: 5.6,
-    recommendedPhMax: 6.2,
-    recommendedEcMin: 1.4,
-    recommendedEcMax: 1.9,
-    optimalWaterTempMin: 18.0,
-    optimalWaterTempMax: 23.0,
-    minWaterLevelPercent: 20.0,
-    optimalAirTempMin: 18.0,
-    optimalAirTempMax: 24.0,
-    optimalHumidityMin: 60.0,
-    optimalHumidityMax: 75.0,
-    optimalLightPpfdMin: 180.0,
-    optimalLightPpfdMax: 250.0,
-    optimalLightDliMin: 14.0,
-    optimalLightDliMax: 18.0,
-    stageConfigs: {
-      stages: [
-        { stage: 'seedling', days: 10, phMin: 5.6, phMax: 6.0, ecMin: 1.1, ecMax: 1.4, waterTempMin: 18, waterTempMax: 22, lightDli: 11, notes: 'Cây con viền đỏ nhạt' },
-        { stage: 'vegetative', days: 18, phMin: 5.6, phMax: 6.2, ecMin: 1.5, ecMax: 1.9, waterTempMin: 18, waterTempMax: 23, lightDli: 16, notes: 'Đòi hỏi ánh sáng mạnh để tạo sắc tố đỏ đậm' },
-        { stage: 'harvest', days: 1, phMin: 5.8, phMax: 6.2, ecMin: 1.3, ecMax: 1.7, waterTempMin: 18, waterTempMax: 22, lightDli: 12, notes: 'Thu hoạch' }
-      ]
-    }
-  },
-  {
-    id: 'cult-05',
-    cropName: 'Xà lách (Lettuce)',
-    name: 'Butterhead (Mỡ)',
-    scientificName: 'Lactuca sativa var. capitata',
-    description: 'Xà lách mỡ lá mềm mịn như bơ, cuộn lỏng, vị thơm ngọt bùi, được ưa chuộng hàng đầu.',
-    targetCycleDays: 40,
-    expectedWeightG: 220.0,
-    recommendedPhMin: 5.6,
-    recommendedPhMax: 6.2,
-    recommendedEcMin: 1.3,
-    recommendedEcMax: 1.8,
-    optimalWaterTempMin: 18.0,
-    optimalWaterTempMax: 23.0,
-    minWaterLevelPercent: 20.0,
-    optimalAirTempMin: 17.0,
-    optimalAirTempMax: 24.0,
-    optimalHumidityMin: 60.0,
-    optimalHumidityMax: 75.0,
-    optimalLightPpfdMin: 150.0,
-    optimalLightPpfdMax: 220.0,
-    optimalLightDliMin: 12.0,
-    optimalLightDliMax: 16.0,
-    stageConfigs: {
-      stages: [
-        { stage: 'seedling', days: 12, phMin: 5.6, phMax: 6.0, ecMin: 1.0, ecMax: 1.3, waterTempMin: 18, waterTempMax: 22, lightDli: 10, notes: 'Cây con lá bóng mượt' },
-        { stage: 'vegetative', days: 20, phMin: 5.6, phMax: 6.2, ecMin: 1.4, ecMax: 1.8, waterTempMin: 18, waterTempMax: 23, lightDli: 15, notes: 'Lá bơ xếp tầng cuộn búp mềm' },
-        { stage: 'harvest', days: 1, phMin: 5.8, phMax: 6.2, ecMin: 1.3, ecMax: 1.6, waterTempMin: 18, waterTempMax: 22, lightDli: 12, notes: 'Thu hoạch' }
-      ]
-    }
   }
 ];
 
@@ -174,13 +118,13 @@ export const INITIAL_RESERVOIRS: Reservoir[] = [
     systemType: 'NFT',
     capacityLiters: 600,
     currentVolumeLiters: 540,
-    currentPh: 5.85,
+    currentPh: 5.95,
     currentEc: 1.72,
-    currentWaterTemp: 22.4,
-    currentDo: 6.8,
+    currentWaterTemp: 21.8,
+    currentDo: 7.5,
     formulaName: 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)',
-    lastTopUpDate: '2026-09-09',
-    lastReplacementDate: '2026-08-25',
+    lastTopUpDate: dateFromToday(-2),
+    lastReplacementDate: dateFromToday(-16),
     pumpStatus: 'running',
     aerationStatus: 'active'
   },
@@ -189,14 +133,14 @@ export const INITIAL_RESERVOIRS: Reservoir[] = [
     name: 'Bể Tuần Hoàn 02 - Giàn NFT Tầng 2 (Khu B, C, D)',
     systemType: 'NFT',
     capacityLiters: 1000,
-    currentVolumeLiters: 920,
-    currentPh: 6.75,
-    currentEc: 1.84,
-    currentWaterTemp: 21.8,
-    currentDo: 7.2,
+    currentVolumeLiters: 900,
+    currentPh: 5.82,
+    currentEc: 1.75,
+    currentWaterTemp: 21.4,
+    currentDo: 7.6,
     formulaName: 'Chuẩn Hoagland - Resh Xà Lách Thủy Canh (NFT Sinh Trưởng)',
-    lastTopUpDate: '2026-09-08',
-    lastReplacementDate: '2026-08-20',
+    lastTopUpDate: dateFromToday(-3),
+    lastReplacementDate: dateFromToday(-18),
     pumpStatus: 'running',
     aerationStatus: 'active'
   }
@@ -228,20 +172,6 @@ export const INITIAL_FORMULAS: NutrientFormula[] = [
     ],
     targetPpm: { n: 165, p: 48, k: 210, ca: 165, mg: 45, s: 65, fe: 2.8 },
     notes: 'Công thức cân bằng tối ưu cho máng mỏng NFT vùng khí hậu nhiệt đới, giữ pH ổn định và hạn chế tối đa nguy cơ cháy lá sinh lý.'
-  },
-  {
-    id: 'form-02',
-    name: 'Cornell CEA Lettuce Standard (Môi Trường Đóng)',
-    applicableCrop: 'Xà lách Romaine, Butterhead, Batavia',
-    systemType: 'Nhà màng kín kiểm soát vi khí hậu',
-    scientificStandard: 'Cornell University Controlled Environment Agriculture Program',
-    targetEc: 1.82,
-    targetPh: 5.90,
-    dosingRatio: '1:100 (10 ml Stock A + 10 ml Stock B trên 1 Lít nước)',
-    chemicalIncompatibilityReason: 'Phòng ngừa phản ứng kết tủa ion Canxi và Sunfat/Photphat ở nồng độ cao trước khi hòa vào bể chính.',
-    stockADetails: 'Canxi Nitrat, Amoni Nitrat NH4NO3, Sắt Chelate Fe-DTPA 7%',
-    stockBDetails: 'Monokali Photphat, Magie Sunfat, Chelate vi lượng tổng hợp',
-    notes: 'Phù hợp canh tác môi trường kiểm soát nhiệt độ điều hòa & ánh sáng bổ sung.'
   }
 ];
 
@@ -260,19 +190,19 @@ export const INITIAL_BATCHES: CropBatch[] = [
     zoneName: 'Phân khu A1 - Nhà màng 1',
     plantQuantity: 650,
     currentQuantity: 642,
-    seedDate: '2026-08-15',
-    transplantDate: '2026-08-27',
-    expectedHarvestDate: '2026-09-19',
+    seedDate: dateFromToday(-22),
+    transplantDate: dateFromToday(-11),
+    expectedHarvestDate: dateFromToday(13),
     currentStage: 'vegetative',
     status: 'active',
     densityPlantsPerM2: 26,
-    notes: 'Máng NFT tầng 2, tốc độ sinh trưởng đồng đều 55%, rễ trắng khỏe.',
+    notes: 'Ngày tuổi 22/35 (Sinh dưỡng). Nước đạt chuẩn, rễ trắng khỏe.',
     lastObservation: {
-      date: '2026-09-08',
-      avgLeafCount: 16,
-      avgHeightCm: 15.2,
-      sampleWeightG: 142.5,
-      notes: 'Rễ phân nhánh nhiều, không có dấu hiệu nấm bệnh'
+      date: dateFromToday(0),
+      avgLeafCount: 15.2,
+      avgHeightCm: 15.1,
+      sampleWeightG: 103.4,
+      notes: 'Đo sinh trắc học ngày thứ 22/35: cây khỏe mạnh, đồng đều.'
     }
   },
   {
@@ -289,19 +219,19 @@ export const INITIAL_BATCHES: CropBatch[] = [
     zoneName: 'Phân khu A2 - Nhà màng 1',
     plantQuantity: 500,
     currentQuantity: 495,
-    seedDate: '2026-08-28',
-    transplantDate: '2026-09-08',
-    expectedHarvestDate: '2026-10-02',
-    currentStage: 'seedling',
+    seedDate: dateFromToday(-15),
+    transplantDate: dateFromToday(-4),
+    expectedHarvestDate: dateFromToday(21),
+    currentStage: 'vegetative',
     status: 'active',
     densityPlantsPerM2: 24,
-    notes: 'Mới chuyển máng NFT 2 ngày, bén rễ tốt 25%, bắt đầu bung lá thật thứ 3.',
+    notes: 'Ngày tuổi 15/36 (Sinh dưỡng - Xà lách Batavia hỗ trợ AI Dự báo). Nước đạt chuẩn, rễ trắng khỏe.',
     lastObservation: {
-      date: '2026-09-09',
-      avgLeafCount: 6,
-      avgHeightCm: 6.8,
-      sampleWeightG: 34.0,
-      notes: 'Cây con hồi xanh khỏe mạnh sau khi chuyển máng'
+      date: dateFromToday(0),
+      avgLeafCount: 10.8,
+      avgHeightCm: 10.7,
+      sampleWeightG: 35.8,
+      notes: 'Đo sinh trắc học ngày thứ 15/36: cây Batavia bén rễ khỏe, đang tăng sinh khối.'
     }
   },
   {
@@ -318,19 +248,49 @@ export const INITIAL_BATCHES: CropBatch[] = [
     zoneName: 'Phân khu B2 - Nhà màng 1',
     plantQuantity: 800,
     currentQuantity: 785,
-    seedDate: '2026-08-04',
-    transplantDate: '2026-08-16',
-    expectedHarvestDate: '2026-09-12',
+    seedDate: dateFromToday(-31),
+    transplantDate: dateFromToday(-20),
+    expectedHarvestDate: dateFromToday(7),
     currentStage: 'pre_harvest',
     status: 'active',
     densityPlantsPerM2: 22,
-    notes: 'Giai đoạn cuối trước thu hoạch. Cây cuộn búp chắc 80%, lá xanh bóng.',
+    notes: 'Ngày tuổi 31/38 (Tích lũy sinh khối). Búp cuộn chắc, chuẩn bị thu hoạch.',
     lastObservation: {
-      date: '2026-09-09',
-      avgLeafCount: 24,
-      avgHeightCm: 22.4,
-      sampleWeightG: 228.0,
-      notes: 'Búp cuộn đặc, sẵn sàng thu hoạch trong 3 ngày tới'
+      date: dateFromToday(0),
+      avgLeafCount: 19.1,
+      avgHeightCm: 18.9,
+      sampleWeightG: 200.6,
+      notes: 'Đo sinh trắc học ngày thứ 31/38: búp cuộn đặc, đồng đều.'
+    }
+  },
+  {
+    id: 'batch-00-hist',
+    batchCode: 'LET-2026-000',
+    cultivarId: 'cult-02',
+    cultivarName: 'Batavia Lettuce',
+    cropName: 'Xà lách (Lettuce)',
+    systemType: 'NFT',
+    reservoirId: 'res-02',
+    reservoirName: 'Bể Tuần Hoàn 02 (NFT)',
+    zoneId: 'zone-d1',
+    zoneCode: 'D1',
+    zoneName: 'Phân khu D1 - Nhà màng 2',
+    plantQuantity: 760,
+    currentQuantity: 750,
+    seedDate: dateFromToday(-46),
+    transplantDate: dateFromToday(-35),
+    expectedHarvestDate: dateFromToday(-10),
+    actualHarvestDate: dateFromToday(-10),
+    currentStage: 'harvest',
+    status: 'harvested',
+    densityPlantsPerM2: 24,
+    notes: 'Lô Xà lách Batavia vụ trước tại Phân khu D1 đã thu hoạch hoàn tất, đạt chuẩn loại A.',
+    lastObservation: {
+      date: dateFromToday(-10),
+      avgLeafCount: 22.0,
+      avgHeightCm: 21.5,
+      sampleWeightG: 204.8,
+      notes: 'Kiểm tra sinh khối trước khi thu hoạch toàn bộ lô.'
     }
   }
 ];
@@ -351,89 +311,27 @@ export const INITIAL_SENSOR_HISTORY = [
   { day: '10/09', time: '08:00', ph: 5.85, ec: 1.72, waterTemp: 22.4, airTemp: 26.4, humidity: 68, vpd: 1.10 }
 ];
 
-export const INITIAL_ALERTS: Alert[] = [
-  {
-    id: 'alt-01',
-    timestamp: '2026-09-10 10:15',
-    severity: 'warning',
-    status: 'open',
-    metric: 'EC',
-    title: 'Độ dẫn điện EC bể 01 giảm nhẹ',
-    message: 'EC đo được 1.42 mS/cm thấp hơn ngưỡng khuyến nghị (1.5 - 2.0 mS/cm) cho giống Green Oak Leaf (Lô LET-2026-001 giàn A1).',
-    reservoirId: 'res-01',
-    batchId: 'batch-01',
-    zoneId: 'zone-a1',
-    thresholdValue: 1.50,
-    actualValue: 1.42,
-    unit: 'mS/cm',
-    resolved: false,
-    suggestedAction: 'Châm thêm 350ml dung dịch mẹ Stock A & Stock B vào Bể Tuần Hoàn 01.',
-    assignedTo: 'Kỹ sư Nông nghiệp'
-  },
-  {
-    id: 'alt-02',
-    timestamp: '2026-09-09 14:30',
-    severity: 'critical',
-    status: 'open',
-    metric: 'pH',
-    title: 'pH bể 02 vượt ngưỡng kiềm',
-    message: 'pH đo được 6.75 cao hơn ngưỡng tối ưu (5.5 - 6.0) cho giống Romaine lô LET-2026-003 giàn B2.',
-    reservoirId: 'res-02',
-    batchId: 'batch-03',
-    zoneId: 'zone-b2',
-    thresholdValue: 6.00,
-    actualValue: 6.75,
-    unit: 'pH',
-    resolved: false,
-    suggestedAction: 'Châm 150ml axit Phosphoric (pH Down 10%) để hạ pH về mức 5.8.',
-    assignedTo: 'Quản lý Trang trại',
-    acknowledgedBy: 'Quản lý Trang trại',
-    acknowledgedAt: '2026-09-09 15:00'
-  },
-  {
-    id: 'alt-03',
-    timestamp: '2026-09-07 15:45',
-    severity: 'info',
-    status: 'resolved',
-    metric: 'Nutrient',
-    title: 'Bù nước & châm dinh dưỡng định kỳ hoàn tất',
-    message: 'Đã bổ sung 120L nước sạch và châm 600ml Stock A + B.',
-    reservoirId: 'res-01',
-    batchId: 'batch-01',
-    zoneId: 'zone-a1',
-    thresholdValue: 1.70,
-    actualValue: 1.70,
-    unit: 'mS/cm',
-    resolved: true,
-    suggestedAction: 'Hệ thống đã đạt cân bằng chỉ số.',
-    assignedTo: 'Kỹ sư Nông nghiệp',
-    acknowledgedBy: 'Kỹ sư Nông nghiệp',
-    acknowledgedAt: '2026-09-07 15:50',
-    resolvedBy: 'Lê Thị Kỹ Sư Nông Học',
-    resolvedAt: '2026-09-07 16:30',
-    resolutionNote: 'Đã châm dung dịch và kiểm tra EC ổn định 1.7 mS/cm'
-  }
-];
+export const INITIAL_ALERTS: Alert[] = [];
 
 export const INITIAL_HARVESTS: HarvestRecord[] = [
   {
     id: 'harv-01',
-    batchId: 'batch-03',
-    batchCode: 'LET-2026-000-HIST',
-    cultivarName: 'Romaine (Cos)',
-    harvestDate: '2026-08-01',
+    batchId: 'batch-00-hist',
+    batchCode: 'LET-2026-000',
+    cultivarName: 'Batavia Lettuce',
+    harvestDate: dateFromToday(-10),
     harvestedPlants: 750,
-    totalWeightKg: 168.5,
-    avgWeightG: 224.6,
-    rejectedWeightKg: 5.2,
-    lossPercentage: 3.0,
-    aiPredictedWeightG: 220.0,
-    differencePercent: 2.09,
+    totalWeightKg: 153.6,
+    avgWeightG: 204.8,
+    rejectedWeightKg: 3.2,
+    lossPercentage: 1.32,
+    aiPredictedWeightG: 202.5,
+    differencePercent: 1.14,
     grade: 'A',
     unitPriceVnd: 45000,
-    totalRevenueVnd: 7582500,
+    totalRevenueVnd: 6912000,
     operatorName: 'Phạm Văn Vận Hành',
-    notes: 'Thu hoạch đợt 1 mùa thu, chất lượng đồng đều, giòn ngọt, tỷ lệ loại 1 đạt 97%.'
+    notes: 'Thu hoạch vụ trước tại Phân khu D1 (Xà lách Batavia), búp cuộn giòn ngọt, sai số so với AI chỉ 1.14%.'
   }
 ];
 
@@ -451,34 +349,21 @@ export const INITIAL_CHANNELS: Channel[] = [
   { id: 'ch-11', name: 'Máng NFT B5', reservoirId: 'res-02', batchId: undefined, slotCount: 120, activePlants: 0, status: 'empty', notes: 'Đang trống, chuẩn bị cho lô mới' }
 ];
 
-export const INITIAL_DRAIN_EVENTS: SolutionDrainEvent[] = [
-  {
-    id: 'drain-01',
-    reservoirId: 'res-01',
-    batchId: 'batch-01',
-    drainDate: '2026-08-25',
-    volumeDrainedLiters: 500,
-    finalPh: 6.4,
-    finalEc: 2.1,
-    finalDo: 5.8,
-    reason: 'end_of_batch',
-    operator: 'Lê Thị Kỹ Sư Nông Học',
-    notes: 'Xả toàn bộ dung dịch cuối chu kỳ lô trước, vệ sinh máng khử trùng trước khi gieo lô LET-2026-001.'
-  }
-];
+export const INITIAL_DRAIN_EVENTS: SolutionDrainEvent[] = [];
 
 export const INITIAL_SENSORS: Sensor[] = [
-  { id: 'sen-01', code: 'SEN-PH-01', name: 'Cảm biến pH Bể Tuần Hoàn 01', sensorType: 'ph', status: 'online', reservoirId: 'res-01', lastReading: 5.85, unit: 'pH', batteryLevel: 98.0 },
+  { id: 'sen-01', code: 'SEN-PH-01', name: 'Cảm biến pH Bể Tuần Hoàn 01', sensorType: 'ph', status: 'online', reservoirId: 'res-01', lastReading: 5.95, unit: 'pH', batteryLevel: 98.0 },
   { id: 'sen-02', code: 'SEN-EC-01', name: 'Cảm biến EC Bể Tuần Hoàn 01', sensorType: 'ec', status: 'online', reservoirId: 'res-01', lastReading: 1.72, unit: 'mS/cm', batteryLevel: 97.0 },
-  { id: 'sen-03', code: 'SEN-TEMP-01', name: 'Cảm biến Nhiệt nước Bể 01', sensorType: 'water_temp', status: 'online', reservoirId: 'res-01', lastReading: 22.4, unit: '°C', batteryLevel: 99.0 },
-  { id: 'sen-04', code: 'SEN-DO-01', name: 'Cảm biến Oxy hòa tan Bể 01', sensorType: 'do', status: 'online', reservoirId: 'res-01', lastReading: 6.8, unit: 'mg/L', batteryLevel: 95.0 },
+  { id: 'sen-03', code: 'SEN-TEMP-01', name: 'Cảm biến Nhiệt nước Bể 01', sensorType: 'water_temp', status: 'online', reservoirId: 'res-01', lastReading: 21.8, unit: '°C', batteryLevel: 99.0 },
+  { id: 'sen-04', code: 'SEN-DO-01', name: 'Cảm biến Oxy hòa tan Bể 01', sensorType: 'do', status: 'online', reservoirId: 'res-01', lastReading: 7.5, unit: 'mg/L', batteryLevel: 95.0 },
   { id: 'sen-05', code: 'SEN-LVL-01', name: 'Cảm biến Mực nước Bể 01', sensorType: 'water_level', status: 'online', reservoirId: 'res-01', lastReading: 90.0, unit: '%', batteryLevel: 99.0 },
-  { id: 'sen-06', code: 'SEN-PH-02', name: 'Cảm biến pH Bể Tuần Hoàn 02', sensorType: 'ph', status: 'warning', reservoirId: 'res-02', lastReading: 6.75, unit: 'pH', batteryLevel: 96.0 },
-  { id: 'sen-07', code: 'SEN-EC-02', name: 'Cảm biến EC Bể Tuần Hoàn 02', sensorType: 'ec', status: 'online', reservoirId: 'res-02', lastReading: 1.84, unit: 'mS/cm', batteryLevel: 95.0 },
-  { id: 'sen-08', code: 'SEN-TEMP-02', name: 'Cảm biến Nhiệt nước Bể 02', sensorType: 'water_temp', status: 'online', reservoirId: 'res-02', lastReading: 21.8, unit: '°C', batteryLevel: 98.0 },
-  { id: 'sen-09', code: 'SEN-DO-02', name: 'Cảm biến Oxy hòa tan Bể 02', sensorType: 'do', status: 'online', reservoirId: 'res-02', lastReading: 7.2, unit: 'mg/L', batteryLevel: 94.0 },
-  { id: 'sen-10', code: 'SEN-ENV-A1', name: 'Trạm vi khí hậu giàn Nhà màng 1', sensorType: 'multi', status: 'online', zoneId: 'zone-a1', lastReading: 24.5, unit: '°C', batteryLevel: 100.0 },
-  { id: 'sen-11', code: 'SEN-ENV-B2', name: 'Trạm vi khí hậu giàn Nhà màng 2', sensorType: 'multi', status: 'online', zoneId: 'zone-b2', lastReading: 25.2, unit: '°C', batteryLevel: 100.0 }
+  { id: 'sen-06', code: 'SEN-PH-02', name: 'Cảm biến pH Bể Tuần Hoàn 02', sensorType: 'ph', status: 'online', reservoirId: 'res-02', lastReading: 5.82, unit: 'pH', batteryLevel: 96.0 },
+  { id: 'sen-07', code: 'SEN-EC-02', name: 'Cảm biến EC Bể Tuần Hoàn 02', sensorType: 'ec', status: 'online', reservoirId: 'res-02', lastReading: 1.75, unit: 'mS/cm', batteryLevel: 95.0 },
+  { id: 'sen-08', code: 'SEN-TEMP-02', name: 'Cảm biến Nhiệt nước Bể 02', sensorType: 'water_temp', status: 'online', reservoirId: 'res-02', lastReading: 21.4, unit: '°C', batteryLevel: 98.0 },
+  { id: 'sen-09', code: 'SEN-DO-02', name: 'Cảm biến Oxy hòa tan Bể 02', sensorType: 'do', status: 'online', reservoirId: 'res-02', lastReading: 7.6, unit: 'mg/L', batteryLevel: 94.0 },
+  { id: 'sen-12', code: 'SEN-LVL-02', name: 'Cảm biến Mực nước Bể 02', sensorType: 'water_level', status: 'online', reservoirId: 'res-02', lastReading: 90.0, unit: '%', batteryLevel: 98.0 },
+  { id: 'sen-10', code: 'SEN-ENV-A1', name: 'Trạm vi khí hậu giàn Nhà màng 1', sensorType: 'multi', status: 'online', zoneId: 'zone-a1', lastReading: 22.8, unit: '°C', batteryLevel: 100.0 },
+  { id: 'sen-11', code: 'SEN-ENV-B2', name: 'Trạm vi khí hậu giàn Nhà màng 2', sensorType: 'multi', status: 'online', zoneId: 'zone-b2', lastReading: 23.2, unit: '°C', batteryLevel: 100.0 }
 ];
 
 export const INITIAL_ZONES: FarmZone[] = [

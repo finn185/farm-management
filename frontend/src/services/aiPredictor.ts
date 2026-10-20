@@ -39,7 +39,7 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
 
   // 1. Sigmoidal Growth Baseline tuned to Cultivar Target
   // Cultivar max potential fresh head weight under ideal conditions
-  const maxPotentialWeight = expectedWeightG * 1.1; 
+  const maxPotentialWeight = expectedWeightG * 1.1;
   const inflectionDay = targetCycleDays * 0.66; // Sigmoid inflection around 66% of harvest cycle
   const growthFactor = 1 / (1 + Math.exp(-0.20 * (plantAgeDays - inflectionDay)));
   let baseWeight = maxPotentialWeight * growthFactor;
@@ -47,7 +47,7 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
   // Morphological feature modifiers (Leaf count & height provide strong vegetative correlation)
   const expectedLeaves = Math.max(2, plantAgeDays * (targetCycleDays > 36 ? 0.65 : 0.58));
   const leafRatio = Math.min(1.4, Math.max(0.6, leafCount / expectedLeaves));
-  
+
   const expectedHeight = Math.max(3, plantAgeDays * (targetCycleDays > 36 ? 0.60 : 0.52));
   const heightRatio = Math.min(1.3, Math.max(0.7, plantHeightCm / expectedHeight));
 
@@ -191,7 +191,7 @@ export function predictLettuceYield(input: AIPredictorInput): AIPredictionResult
   }
 
   if (recommendations.length === 0) {
-    recommendations.push(`✅ Điều kiện dinh dưỡng, pH và nhiệt độ nước đang ở trạng thái lý tưởng cho giống ${cultivarName}. Tiếp tục duy trì để đạt khối lượng mục tiêu ${finalProjectedWeight} g/cây vào ngày thu hoạch.`);
+    recommendations.push(`Điều kiện dinh dưỡng, pH và nhiệt độ nước đang ở trạng thái lý tưởng cho giống ${cultivarName}. Tiếp tục duy trì để đạt khối lượng mục tiêu ${finalProjectedWeight} g/cây vào ngày thu hoạch.`);
   }
 
   // Dynamic R2 confidence score based on empirical XGBoost model benchmarks (FRS requires >= 0.92)
@@ -246,7 +246,7 @@ export async function predictLettuceYieldRemote(input: AIPredictorInput): Promis
           return json.data.prediction;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   // 2. Thử gọi trực tiếp FastAPI Microservice (http://localhost:8000)
@@ -301,7 +301,7 @@ export async function detectReservoirAnomalyRemote(params: {
           return json.data.anomaly;
         }
       }
-    } catch {}
+    } catch { }
   }
 
   // 2. Thử gọi trực tiếp FastAPI
@@ -314,7 +314,7 @@ export async function detectReservoirAnomalyRemote(params: {
     if (res.ok) {
       return await res.json();
     }
-  } catch {}
+  } catch { }
 
   // 3. Fallback logic nông học khi offline
   const isAnomaly = params.avgPh < 5.3 || params.avgPh > 6.6 || params.avgEc > 2.2 || params.avgEc < 1.2 || params.avgWaterTemp > 25.0;

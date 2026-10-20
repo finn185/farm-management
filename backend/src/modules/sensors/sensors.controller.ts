@@ -1,8 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import { SensorsService } from './sensors.service';
+import { sensorsService } from './sensors.service';
 import { sendSuccess, sendError } from '../../utils/response';
-
-const sensorsService = new SensorsService();
+import { config } from '../../config/env';
 
 export class SensorsController {
   async getAll(_req: Request, res: Response, next: NextFunction) {
@@ -38,6 +37,40 @@ export class SensorsController {
       return sendSuccess(res, updated, 'Tiếp nhận dữ liệu đo cảm biến IoT và phân tích vi phạm thành công', 200);
     } catch (error: any) {
       return sendError(res, error.message || 'Lỗi khi tiếp nhận dữ liệu cảm biến', 400);
+    }
+  }
+
+  /**
+   * POST /api/v1/sensors/telemetry/batch
+   * Endpoint chính dành cho thiết bị IoT (ESP32) - nhận nhiều số đo trong 1 gói tin.
+   */
+  async ingestBatch(req: Request, res: Response) {
+    try {
+      // Xác thực thiết bị bằng khoá bí mật (nếu đã cấu hình DEVICE_API_KEY)
+      if (config.DEVICE_API_KEY && req.header('x-device-key') !== config.DEVICE_API_KEY) {
+        return sendError(res, 'Thiết bị chưa được cấp quyền (sai hoặc thiếu x-device-key)', 401);
+      }
+
+      const { deviceId, readings, source, timestamp } = req.body || {};
+      if (!deviceId || !Array.isArray(readings) || readings.length === 0) {
+        return sendError(res, 'Gói tin cần có deviceId và mảng readings [{ sensorCode, value }]', 400);
+      }
+
+      const result = await sensorsService.ingestDeviceReadings({
+        deviceId: String(deviceId),
+        source: source === 'simulator' ? 'simulator' : 'sensor',
+        timestamp,
+        readings: readings.map((r: any) => ({
+          sensorCode: String(r.sensorCode),
+          value: Number(r.value),
+          metric: r.metric,
+          batteryLevel: r.batteryLevel !== undefined ? Number(r.batteryLevel) : undefined
+        }))
+      });
+
+      return sendSuccess(res, result, `Đã tiếp nhận ${result.accepted} số đo từ thiết bị ${deviceId}`);
+    } catch (error: any) {
+      return sendError(res, error.message || 'Lỗi khi tiếp nhận gói tin thiết bị', 400);
     }
   }
 }

@@ -47,8 +47,8 @@ interface DashboardViewProps {
   onSelectBatchForHarvest?: (batch: CropBatch) => void;
 }
 
-// Monthly Yield Data (kg)
-const MONTHLY_YIELD_DATA = [
+// Monthly Yield Baseline Data (kg)
+const BASE_MONTHLY_YIELD_DATA = [
   { month: 'Tháng 1', yieldKg: 48 },
   { month: 'Tháng 2', yieldKg: 53 },
   { month: 'Tháng 3', yieldKg: 78 },
@@ -145,11 +145,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const survivalRate = totalInitialPlants > 0 ? ((totalActivePlants / totalInitialPlants) * 100).toFixed(1) : '98.5';
 
   const totalHarvestKg = useMemo(() => harvestRecords.reduce((acc, h) => acc + h.totalWeightKg, 0).toFixed(1), [harvestRecords]);
+  const cleanHarvestRate = useMemo(() => {
+    const goodKg = harvestRecords.reduce((acc, h) => acc + h.totalWeightKg, 0);
+    const rejectedKg = harvestRecords.reduce((acc, h) => acc + (h.rejectedWeightKg || 0), 0);
+    if (goodKg + rejectedKg <= 0) return '98.0';
+    return ((goodKg / (goodKg + rejectedKg)) * 100).toFixed(1);
+  }, [harvestRecords]);
   const totalRevenue = useMemo(() => {
     return harvestRecords.reduce((sum, h) => {
       const price = h.unitPriceVnd || 45000;
       return sum + (h.totalRevenueVnd || (h.totalWeightKg * price));
     }, 0);
+  }, [harvestRecords]);
+
+  // Dynamic Monthly Yield Data reflecting live harvest records
+  const monthlyYieldData = useMemo(() => {
+    const data = BASE_MONTHLY_YIELD_DATA.map(d => ({ ...d }));
+    const recordedTotal = Math.round(harvestRecords.reduce((sum, h) => sum + h.totalWeightKg, 0));
+    if (recordedTotal > 0 && data.length > 0) {
+      data[data.length - 1] = {
+        ...data[data.length - 1],
+        yieldKg: recordedTotal
+      };
+    }
+    return data;
   }, [harvestRecords]);
 
   // Open Alerts sorted by severity
@@ -180,6 +199,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return zones.filter(z => z.status === zoneFilter);
   }, [zones, zoneFilter]);
 
+  const triggerHarvestForBatch = (targetBatch?: CropBatch) => {
+    const batchToUse = targetBatch || activeBatches[0] || batches[0];
+    if (batchToUse && onSelectBatchForHarvest) {
+      onSelectBatchForHarvest(batchToUse);
+    } else {
+      onNavigateTab('harvest');
+    }
+  };
+
   return (
     <div className="dash-container">
       {/* ========================================================
@@ -190,7 +218,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <h1 className="dash-hero-title">
               <Activity size={22} color="#00a651" />
-              Tổng Quan Vận Hành NFT
+              Bảng Điều Khiển
             </h1>
             <div className="dash-hero-subtitle">
               6/6 giàn máng tuần hoàn • 2 trạm cấp dinh dưỡng tự động
@@ -228,7 +256,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* System Status Pill */}
           <div className="dash-pill dash-pill-blue">
             <CheckCircle2 size={13} color="#0284c7" />
-            <span>NFT Sensor Link: 100% Online</span>
+            <span>Cảm biến trực tuyến 100%</span>
           </div>
         </div>
       </div>
@@ -310,9 +338,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="dash-kpi-value">{totalHarvestKg} <span style={{ fontSize: '1rem', fontWeight: 600 }}>kg</span></div>
           <div className="dash-kpi-meta">
-            <span>Rau ăn lá sạch</span>
-            <span className="dash-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>
-              Grade A 98%
+            <span>Qua {harvestRecords.length} đợt thu hoạch</span>
+            <span className="dash-kpi-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }} title="Tỷ lệ rau thương phẩm đạt chuẩn sau khi trừ phần lá giập/hỏng">
+              Đạt chuẩn {cleanHarvestRate}%
             </span>
           </div>
         </div>
@@ -329,9 +357,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {totalRevenue > 0 ? (totalRevenue / 1000000).toFixed(2) : '7.58'} <span style={{ fontSize: '1rem', fontWeight: 600 }}>tr ₫</span>
           </div>
           <div className="dash-kpi-meta">
-            <span>Giá TB: 45k/kg</span>
+            <span>Giá bán TB: 45k/kg</span>
             <span className="dash-kpi-badge" style={{ backgroundColor: '#fae8ff', color: '#86198f' }}>
-              +12% MoM
+              Hạng A (Loại 1)
             </span>
           </div>
         </div>
@@ -351,7 +379,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {openAlerts.length > 0 ? `${openAlerts.length} Lưu ý` : 'Chuẩn NFT'}
           </div>
           <div className="dash-kpi-meta">
-            <span>pH 5.8 • EC 1.7</span>
+            <span>pH {currentReservoir.currentPh.toFixed(1)} • EC {currentReservoir.currentEc.toFixed(1)}</span>
             <span className="dash-kpi-badge" style={{
               backgroundColor: openAlerts.length > 0 ? '#fef3c7' : '#dcfce7',
               color: openAlerts.length > 0 ? '#b45309' : '#15803d'
@@ -412,7 +440,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Zones Grid */}
           <div className="dash-zones-grid">
             {filteredZones.map((zone) => {
-              const batch = batches.find(b => b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId);
+              const activeBatchForZone = batches.find(b => b.status === 'active' && (b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId));
+              const batch = activeBatchForZone || batches.find(b => b.zoneId === zone.id || b.zoneCode === zone.code || b.id === zone.currentBatchId);
+              const cultivarDisplay = zone.cultivarName || batch?.cultivarName || (zone.status === 'completed' ? 'Đã thu hoạch xong' : 'Chưa gieo');
+              const progressVal = zone.biomassProgress !== undefined
+                ? zone.biomassProgress
+                : (batch ? (batch.status === 'harvested' ? 100 : batch.currentStage === 'pre_harvest' ? 85 : 62) : undefined);
+
               const statusBadge = {
                 growing: { label: 'Đang sinh trưởng', bg: '#ecfdf5', color: '#15803d' },
                 ready_soon: { label: 'Sẵn sàng thu hoạch', bg: '#fef3c7', color: '#b45309' },
@@ -434,31 +468,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div className="dash-zone-cultivar">
-                      {zone.cultivarName || 'Chưa gieo'}
+                      {cultivarDisplay}
                     </div>
 
                     <div className="dash-zone-metrics">
-                      <span><strong>{zone.plantQuantity || zone.slotCapacity}</strong> rọ</span>
+                      <span><strong>{zone.plantQuantity || batch?.plantQuantity || zone.slotCapacity}</strong> rọ</span>
                       <span>•</span>
                       <span>{zone.reservoirId === 'res-01' ? 'Bể 01' : 'Bể 02'}</span>
-                      {batch?.batchCode && (
+                      {(batch?.batchCode || zone.currentBatchCode) && (
                         <>
                           <span>•</span>
-                          <span style={{ color: '#00a651', fontWeight: 600 }}>{batch.batchCode}</span>
+                          <span style={{ color: '#00a651', fontWeight: 600 }}>{batch?.batchCode || zone.currentBatchCode}</span>
                         </>
                       )}
                     </div>
 
-                    {zone.biomassProgress !== undefined && (
+                    {progressVal !== undefined && (
                       <div className="dash-zone-progress-wrap">
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginBottom: '3px' }}>
                           <span>Sinh khối</span>
-                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{zone.biomassProgress}%</span>
+                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{progressVal}%</span>
                         </div>
                         <div className="dash-zone-progress-bar">
                           <div
                             className="dash-zone-progress-fill"
-                            style={{ width: `${zone.biomassProgress}%`, backgroundColor: zone.color || '#00a651' }}
+                            style={{ width: `${progressVal}%`, backgroundColor: zone.color || '#00a651' }}
                           />
                         </div>
                       </div>
@@ -466,7 +500,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
 
                   <div className="dash-zone-actions">
-                    {batch && (
+                    {batch && batch.status === 'active' && (
                       <button
                         onClick={() => onSelectBatchForAI(batch)}
                         className="dash-zone-btn dash-zone-btn-ai"
@@ -476,13 +510,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <span>Dự báo AI</span>
                       </button>
                     )}
-                    {zone.status === 'ready_soon' ? (
+                    {(zone.status === 'ready_soon' || (batch && batch.status === 'active')) ? (
                       <button
-                        onClick={() => onNavigateTab('harvest')}
+                        onClick={() => triggerHarvestForBatch(batch)}
                         className="dash-zone-btn"
-                        style={{ backgroundColor: '#f59e0b', color: '#ffffff', borderColor: '#f59e0b', fontWeight: 700 }}
+                        style={
+                          zone.status === 'ready_soon'
+                            ? { backgroundColor: '#f59e0b', color: '#ffffff', borderColor: '#f59e0b', fontWeight: 700 }
+                            : { backgroundColor: '#f0fdf4', color: '#15803d', borderColor: '#bbf7d0', fontWeight: 600 }
+                        }
+                        title="Ghi nhận thu hoạch cho lô trên giàn này"
                       >
-                        Thu hoạch
+                        <Scale size={11} />
+                        <span>Thu hoạch</span>
                       </button>
                     ) : (
                       <button
@@ -611,12 +651,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <TrendingUp size={17} color="#00a651" />
                 Sản Lượng Thu Hoạch (kg)
               </h2>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Năm 2024</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Năm 2026</span>
             </div>
 
             <div style={{ width: '100%', height: '180px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MONTHLY_YIELD_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <AreaChart data={monthlyYieldData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#00a651" stopOpacity={0.3} />
@@ -625,7 +665,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 200]} stroke="#94a3b8" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     formatter={(val: any) => [`${val} kg`, 'Sản lượng']}
                     contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
@@ -741,7 +781,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <span>Dự báo AI</span>
                         </button>
                         <button
-                          onClick={() => onSelectBatchForHarvest ? onSelectBatchForHarvest(b) : onNavigateTab('harvest')}
+                          onClick={() => triggerHarvestForBatch(b)}
                           className="dash-zone-btn"
                           style={{
                             padding: '4px 8px',
