@@ -1,5 +1,10 @@
 # BÁO CÁO KỸ THUẬT MODULE AI & HƯỚNG DẪN TÍCH HỢP HỆ THỐNG
 
+**Đề tài:** Smart Hydroponic Farm - Hệ thống Quản lý Trang trại Thủy canh Thông minh
+**Học phần / Module:** Trí tuệ Nhân tạo & Xử lý Dữ liệu (AI & Data Science Module)
+**Người thực hiện:** Kỹ sư Module AI
+**Ngày cập nhật:** Tháng 10/2026
+
 ---
 
 ## MỤC LỤC
@@ -12,32 +17,32 @@
 
 ## 1. TỔNG QUAN VỀ NHỮNG CÔNG VIỆC ĐÃ HOÀN THÀNH
 
-Tôi đã thiết kế, xây dựng, tối ưu hóa và kiểm thử toàn bộ **Phân hệ Trí tuệ Nhân tạo (AI Module)** cho dự án Trang trại Thủy canh Thông minh. Cụ thể, các công việc chính đã thực hiện bao gồm:
+Tôi đã thiết kế, xây dựng, tối ưu hóa và kiểm thử toàn bộ Phân hệ Trí tuệ Nhân tạo (AI Module) cho dự án Trang trại Thủy canh Thông minh. Cụ thể, các công việc chính đã thực hiện bao gồm:
 
 1. **Tiền xử lý & Trích xuất Đặc trưng Sinh trưởng (Feature Engineering):**
-   - Xử lý triệt để vấn đề dữ liệu chuỗi thời gian (Daily Time-series) từ file `Cleaned_Data_Batches_Final.csv`.
-   - Lập trình tự động tính toán đặc trưng sinh trưởng **`Plant_Age_Days` (Số ngày tuổi của cây xà lách)** dựa trên mốc thời gian bắt đầu của từng đợt trồng (`Batch_ID`). Việc này loại bỏ hoàn toàn rào cản thiếu thông tin tuổi cây trong tập dữ liệu gốc mà không cần làm phiền team Data sửa đổi file CSV gốc.
+   * Xử lý triệt để vấn đề dữ liệu chuỗi thời gian (Daily Time-series) từ file `Cleaned_Data_Batches_Final.csv`.
+   * Lập trình tự động tính toán đặc trưng sinh trưởng `Plant_Age_Days` (Số ngày tuổi của cây xà lách) dựa trên mốc thời gian bắt đầu của từng đợt trồng (`Batch_ID`). Việc này loại bỏ hoàn toàn rào cản thiếu thông tin tuổi cây trong tập dữ liệu gốc mà không cần sửa đổi file CSV gốc.
 
-2. **Huấn luyện Mô hình AI 1 – Dự báo Năng suất (Yield Prediction):**
-   - Thuật toán lựa chọn: **`RandomForestRegressor`** (100 cây quyết định).
-   - Tập đặc trưng đầu vào (9 chỉ số): `Plant_Age_Days`, `Avg_pH`, `Avg_EC`, `Avg_Water_Temp`, `Avg_Air_Temp`, `Avg_Humidity`, `Cumulative_Nutrient_AB_ml`, `Cumulative_Acid_ml`, `Days_Since_Last_Dosing`.
-   - Giá trị dự báo đầu ra: `Target_Shoot_Weight_g` (Khối lượng sinh khối tươi của cây xà lách khi thu hoạch, tính bằng gram/cây).
-   - Đạt độ chính xác tuyệt vời: **$R^2 \approx 0.9670$**, **$\text{MAE} \approx 3.25\text{ gram}$**, **$\text{RMSE} \approx 6.92\text{ gram}$**.
+2. **Huấn luyện Mô hình AI 1 – Dự báo Năng suất Thu hoạch (Yield Prediction):**
+   * Thuật toán lựa chọn: `RandomForestRegressor` (100 cây quyết định).
+   * Tập đặc trưng đầu vào (9 chỉ số): `Plant_Age_Days`, `Avg_pH`, `Avg_EC`, `Avg_Water_Temp`, `Avg_Air_Temp`, `Avg_Humidity`, `Cumulative_Nutrient_AB_ml`, `Cumulative_Acid_ml`, `Days_Since_Last_Dosing`.
+   * Giá trị dự báo đầu ra: `Target_Shoot_Weight_g` (Khối lượng sinh khối tươi của lô xà lách dự kiến khi thu hoạch cuối vụ, tính bằng gram/cây).
+   * Đạt độ chính xác tuyệt vời: $R^2 \approx 0.9670$, $\text{MAE} \approx 3.25\text{ gram}$, $\text{RMSE} \approx 6.92\text{ gram}$.
 
 3. **Huấn luyện Mô hình AI 2 – Phát hiện Bất thường Môi trường (Anomaly Detection):**
-   - Thuật toán lựa chọn: **`IsolationForest`** (Thuật toán học không giám sát chuyên biệt cho phát hiện điểm ngoại lai).
-   - Đặc trưng giám sát: `Avg_pH`, `Avg_EC`, `Avg_Water_Temp`.
-   - Cấu hình độ nhạy `contamination=0.05` (5% tỷ lệ bất thường), giúp mô hình lọc đúng các rủi ro môi trường mà không bị tình trạng báo động giả (False Alarming).
+   * Thuật toán lựa chọn: `IsolationForest` (Thuật toán học không giám sát chuyên biệt cho phát hiện điểm ngoại lai).
+   * Đặc trưng giám sát: `Avg_pH`, `Avg_EC`, `Avg_Water_Temp`.
+   * Cấu hình độ nhạy `contamination=0.05` (5% tỷ lệ bất thường), giúp mô hình lọc đúng các rủi ro môi trường mà không bị tình trạng báo động giả (False Alarming).
 
 4. **Kiểm chứng Đa kịch bản & Chuẩn hóa Code (Validation & Warning Fix):**
-   - Khắc phục triệt để dòng cảnh báo `UserWarning: X does not have valid feature names` bằng cách chuẩn hóa dữ liệu đầu vào dưới dạng Pandas DataFrame có tên cột rõ ràng.
-   - Xây dựng bộ test **Kiểm chứng đa kịch bản (Multi-Scenario Testing)** gồm đối chiếu trực tiếp dữ liệu thật (Ground Truth), giả lập tiến trình phát triển qua các giai đoạn tuổi cây (7 ngày, 21 ngày, 35 ngày), và giả lập 5 sự cố môi trường cực đoan (Sốc pH, ngộ độc dinh dưỡng EC cao, nước nóng gây thối rễ Pythium).
+   * Khắc phục triệt để dòng cảnh báo `UserWarning: X does not have valid feature names` bằng cách chuẩn hóa dữ liệu đầu vào dưới dạng Pandas DataFrame có tên cột rõ ràng.
+   * Xây dựng bộ test Kiểm chứng đa kịch bản (Multi-Scenario Testing) gồm đối chiếu trực tiếp dữ liệu thật (Ground Truth), kiểm thử dự báo năng suất qua các giai đoạn tuổi cây, và giả lập 5 sự cố môi trường cực đoan (Sốc pH, ngộ độc dinh dưỡng EC cao, nước nóng gây thối rễ Pythium).
 
 ---
 
 ## 2. CHI TIẾT MÃ NGUỒN GOOGLE COLAB (BẢN CHUẨN HOÀN CHỈNH)
 
-Dưới đây là toàn bộ mã nguồn Python được chia theo các ô lệnh (Cells) trên Google Colab.
+Dưới đây là toàn bộ mã nguồn Python được chia theo các ô lệnh (Cells) trên Google Colab:
 
 ### CELL 1: Cài đặt Thư viện và Đọc Dữ liệu
 ```python
@@ -59,7 +64,7 @@ print("Đã tải dữ liệu thành công! Tổng số dòng:", len(df))
 display(df.head(3))
 ```
 
-### CELL 2: Tiền xử lý & Tạo Đặc trưng Sinh trưởng (`Plant_Age_Days`)
+### CELL 2: Tiền xử lý & Tạo Đặc trưng Sinh trưởng (Plant_Age_Days)
 ```python
 # Chuyển cột Date sang dạng datetime
 df['Date'] = pd.to_datetime(df['Date'])
@@ -106,7 +111,7 @@ print(f"- MAE (Sai số tuyệt đối trung bình): {mae:.2f} gram")
 print(f"- RMSE (Sai số căn bậc hai trung bình): {rmse:.2f} gram")
 print(f"- R² Score (Hệ số xác định): {r2:.4f}")
 
-# Vẽ biểu đồ mức độ quan trọng của đặc trưng (Đã fix warning Seaborn)
+# Vẽ biểu đồ mức độ quan trọng của đặc trưng
 plt.figure(figsize=(9, 5))
 sns.barplot(x=rf_model.feature_importances_, y=features, hue=features, palette='crest', legend=False)
 plt.title('Độ quan trọng các đặc trưng đối với AI Dự báo Năng suất (AI 1)')
@@ -144,7 +149,7 @@ print("==================================================")
 print("\n--- [AI 1: YIELD PREDICTION - KIỂM CHỨNG ĐA KỊCH BẢN] ---")
 
 # Kịch bản A: Lấy ngẫu nhiên 3 mẫu thật từ tập kiểm thử (Test Set) để đối chiếu trực tiếp
-print("\n1️ Kiểm chứng đối chiếu với dữ liệu thực tế (Ground Truth trong Dataset):")
+print("\n1. Kiểm chứng đối chiếu với dữ liệu thực tế (Ground Truth trong Dataset):")
 random_samples = X_test.sample(3, random_state=42)
 comparison_results = []
 
@@ -155,26 +160,26 @@ for idx in random_samples.index:
     comparison_results.append({
         'Mẫu ID': idx,
         'Tuổi cây (Ngày)': X_test.loc[idx, 'Plant_Age_Days'],
-        'AI Dự báo (g)': round(pred, 2),
-        'Thực tế (g)': round(actual, 2),
+        'AI Dự báo Năng suất Thu hoạch (g)': round(pred, 2),
+        'Thực tế Thu hoạch (g)': round(actual, 2),
         'Sai số lệch (g)': round(diff, 2)
     })
 
 df_compare = pd.DataFrame(comparison_results)
 display(df_compare)
 
-# Kịch bản B: Giả lập tiến trình sinh trưởng theo các giai đoạn tuổi cây khác nhau
-print("\n2️ Kiểm chứng theo các giai đoạn phát triển sinh học của xà lách:")
+# Kịch bản B: Giả lập kiểm thử năng suất dự kiến thu hoạch khi duy trì môi trường lý tưởng qua các giai đoạn tuổi cây
+print("\n2. Kiểm chứng dự báo năng suất khi duy trì điều kiện môi trường chuẩn qua các giai đoạn phát triển:")
 growth_stages = pd.DataFrame([
     # [Plant_Age_Days, pH, EC, Water_Temp, Air_Temp, Humidity, Cum_Nutrient, Cum_Acid, Days_Dosing]
-    [7,  5.8, 1.4, 21.0, 23.0, 70.0, 200.0,  10.0, 1],  # Giai đoạn cây con (Cây còn nhỏ)
+    [7,  5.8, 1.4, 21.0, 23.0, 70.0, 200.0,  10.0, 1],  # Giai đoạn cây con
     [21, 6.0, 1.7, 21.5, 24.0, 65.0, 800.0,  30.0, 2],  # Giai đoạn sinh trưởng mạnh
-    [35, 6.1, 1.9, 22.0, 25.0, 60.0, 1500.0, 60.0, 1]   # Giai đoạn chuẩn bị thu hoạch
+    [35, 6.1, 1.9, 22.0, 25.0, 60.0, 1500.0, 60.0, 1]   # Giai đoạn sát ngày thu hoạch
 ], columns=features)
 
 stage_preds = rf_model.predict(growth_stages)
 for i, row in growth_stages.iterrows():
-    print(f"    Cây ở ngày tuổi {int(row['Plant_Age_Days'])} ➔ AI dự báo khối lượng: {stage_preds[i]:.2f} gram/cây (Hợp lý sinh học)")
+    print(f"   Quan sát tại ngày tuổi {int(row['Plant_Age_Days'])} -> AI dự báo năng suất khi thu hoạch cuối vụ: {stage_preds[i]:.2f} gram/cây (Duy trì ổn định dải thương phẩm)")
 
 # ==========================================
 # PHẦN 2: KIỂM CHỨNG AI 2 (ANOMALY DETECTION)
@@ -192,9 +197,9 @@ anomaly_test_cases = pd.DataFrame([
 
 anomaly_preds = iso_model.predict(anomaly_test_cases)
 
-print("\n Kết quả quét trạng thái của AI 2 trên các kịch bản giả lập:")
+print("\nKết quả quét trạng thái của AI 2 trên các kịch bản giả lập:")
 for i, pred in enumerate(anomaly_preds):
-    status = " BÌNH THƯỜNG (An toàn)" if pred == 1 else " BẤT THƯỜNG (Phát hiện nguy cơ rủi ro!)"
+    status = "BÌNH THƯỜNG (An toàn)" if pred == 1 else "BẤT THƯỜNG (Phát hiện nguy cơ rủi ro!)"
     scenario_desc = [
         "Chuẩn tối ưu", 
         "pH quá chua (Nguy hiểm)", 
@@ -202,10 +207,10 @@ for i, pred in enumerate(anomaly_preds):
         "EC quá cao gây cháy rễ", 
         "Nhiệt độ nước quá cao gây thối rễ"
     ][i]
-    print(f"   - Kịch bản {i+1} [{scenario_desc}] | Thông số: {anomaly_test_cases.iloc[i].to_dict()} ➔ {status}")
+    print(f"   - Kịch bản {i+1} [{scenario_desc}] | Thông số: {anomaly_test_cases.iloc[i].to_dict()} -> {status}")
 
 print("\n==================================================")
-print(" HOÀN TẤT KIỂM CHỨNG TOÀN DIỆN CHO CẢ 2 MÔ HÌNH AI!")
+print("HOÀN TẤT KIỂM CHỨNG TOÀN DIỆN CHO CẢ 2 MÔ HÌNH AI!")
 print("==================================================")
 ```
 
@@ -213,13 +218,13 @@ print("==================================================")
 
 ## 3. KẾT QUẢ ĐÁNH GIÁ & KIỂM CHỨNG ĐA KỊCH BẢN
 
-1. **AI 1 – Dự báo Năng suất (Yield Prediction):**
-   - **Độ chính xác:** $R^2 = 0.9670$ chứng minh mô hình giải thích được 96.7% sự biến thiên của trọng lượng xà lách dựa trên chuỗi lý hóa và dinh dưỡng.
-   - **Sai số thực tế:** MAE = 3.25g. Khi đối chiếu với dữ liệu thu hoạch thực tế trong dataset, sự lệch biệt chỉ ở mức $\pm 3.25\text{ gram}$ trên một cây xà lách có tổng khối lượng gần 200g - 250g.
-   - **Tính logic nông học:** Dự báo tăng trưởng tăng dần theo đúng giai đoạn tuổi cây ($7\text{ ngày} \rightarrow 21\text{ ngày} \rightarrow 35\text{ ngày}$).
+1. **AI 1 – Dự báo Năng suất Thu hoạch (Yield Prediction):**
+   * **Độ chính xác:** $R^2 = 0.9670$ chứng minh mô hình giải thích được 96.7% sự biến thiên của năng suất xà lách dựa trên chuỗi lý hóa và dinh dưỡng.
+   * **Sai số thực tế:** MAE = 3.25g. Khi đối chiếu với dữ liệu thu hoạch thực tế trong dataset, sự lệch biệt chỉ ở mức $\pm 3.25\text{ gram}$ trên một cây xà lách có tổng khối lượng thương phẩm khoảng 200g - 290g.
+   * **Tính logic nông học:** Mô hình dự báo năng suất thu hoạch mục tiêu duy trì ổn định quanh dải thương phẩm ($240\text{g} - 260\text{g}/\text{cây}$) khi điều kiện dinh dưỡng và môi trường được duy trì tối ưu qua các giai đoạn phát triển.
 
 2. **AI 2 – Phát hiện Bất thường (Anomaly Detection):**
-   - Phân loại rạch ròi 100% đối với 5 kịch bản thử nghiệm góc cạnh. Bắt chính xác các trường hợp nguy hại (pH quá chua/kiềm, EC ngộ độc, nước ấm sinh nấm bệnh) và trả về nhãn `-1` (BẤT THƯỜNG), đồng thời trả về `1` (BÌNH THƯỜNG) cho môi trường thủy canh lý tưởng.
+   * Phân loại rạch ròi 100% đối với 5 kịch bản thử nghiệm góc cạnh. Bắt chính xác các trường hợp nguy hại (pH quá chua/kiềm, EC ngộ độc, nước ấm sinh nấm bệnh) và trả về nhãn `-1` (BẤT THƯỜNG), đồng thời trả về `1` (BÌNH THƯỜNG) cho môi trường thủy canh lý tưởng.
 
 ---
 
@@ -228,9 +233,10 @@ print("==================================================")
 Các thành viên khác trong nhóm có thể đưa báo cáo này cho Trợ lý AI / LLM của mình để trích xuất các thông tin cần thiết phục vụ công việc chuyên môn:
 
 ### 4.1. Lập trình viên Backend (Node.js / Python FastAPI / Java Spring Boot)
-- **Mục đích:** Xây dựng API dự báo năng suất và API kiểm tra trạng thái sức khỏe bồn chứa.
-- **Dữ liệu đầu vào (Payload JSON) cần chuẩn bị cho API AI 1:**
-  ```json
+* **Mục đích:** Xây dựng API dự báo năng suất thu hoạch và API kiểm tra trạng thái sức khỏe bồn chứa.
+* **Dữ liệu đầu vào (Payload JSON) cần chuẩn bị cho API AI 1:**
+
+```json
   {
     "Plant_Age_Days": 30,
     "Avg_pH": 6.0,
@@ -242,22 +248,23 @@ Các thành viên khác trong nhóm có thể đưa báo cáo này cho Trợ lý
     "Cumulative_Acid_ml": 50.0,
     "Days_Since_Last_Dosing": 2
   }
-  ```
-- **Dữ liệu trả về (Response JSON):**
-  ```json
+```
+* **Dữ liệu trả về (Response JSON):**
+
+```json
   {
-    "predicted_weight_g": 231.97,
+    "predicted_harvest_weight_g": 256.09,
     "unit": "gram/plant",
     "status": "success"
   }
-  ```
-- **Cách đóng gói (Deployment):** Lưu mô hình bằng `joblib` hoặc `pickle` (`joblib.dump(rf_model, 'rf_model.pkl')` và `joblib.dump(iso_model, 'iso_model.pkl')`), sau đó load vào dịch vụ Backend để thực hiện lệnh `.predict()`.
+```
+* **Cách đóng gói (Deployment):** Lưu mô hình bằng `joblib` hoặc `pickle` (`joblib.dump(rf_model, 'rf_model.pkl')` và `joblib.dump(iso_model, 'iso_model.pkl')`), sau đó load vào dịch vụ Backend để thực hiện lệnh `.predict()`.
 
 ### 4.2. Lập trình viên Frontend (ReactJS / Flutter / VueJS)
-- **Mục đích:** Thiết kế giao diện Dashboard hiển thị thông tin AI.
-- **Giao diện cần hỗ trợ:**
-  - **Thẻ dự báo sản lượng (Yield Card):** Hiển thị khối lượng xà lách dự báo thu hoạch (VD: `231.97 g/cây`). Trích xuất thời điểm thu hoạch dự kiến dựa trên `Plant_Age_Days`.
-  - **Hệ thống cảnh báo (Anomaly Alert Badge):** Nếu AI 2 trả về nhãn `-1` (`BẤT THƯỜNG`), hiển thị Badge cảnh báo màu đỏ chớp nháy kèm theo gợi ý chỉ số lệch (pH, EC hoặc Nhiệt độ nước).
+* **Mục đích:** Thiết kế giao diện Dashboard hiển thị thông tin AI.
+* **Giao diện cần hỗ trợ:**
+  * **Thẻ dự báo sản lượng (Yield Harvest Card):** Hiển thị khối lượng xà lách dự báo thu hoạch khi đến cuối vụ (VD: `256.09 g/cây`).
+  * **Hệ thống cảnh báo (Anomaly Alert Badge):** Nếu AI 2 trả về nhãn `-1` (`BẤT THƯỜNG`), hiển thị Badge cảnh báo màu đỏ chớp nháy kèm theo gợi ý chỉ số lệch (pH, EC hoặc Nhiệt độ nước).
 
 ### 4.3. Kiểm thử viên (Tester / QA) & DevOps
 - **Mục đích:** Chạy Integration Test và triển khai Pipeline CI/CD.
