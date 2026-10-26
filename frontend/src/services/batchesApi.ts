@@ -1,7 +1,8 @@
 import type { CropBatch, GrowthStage, BatchStatus, Cultivar, Reservoir, FarmZone, ZoneLegendCounts } from '../types/farm';
 import { farmStore } from '../mock/store';
+import { API_V1_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1/batches';
+const API_BASE_URL = `${API_V1_URL}/batches`;
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('hydrosmart_token') || localStorage.getItem('hydrosmart_auth_token') || localStorage.getItem('token');
@@ -182,9 +183,9 @@ export const batchesApi = {
    */
   async getCultivars(): Promise<Cultivar[]> {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/batches/cultivars', {
+      const res = await fetch(`${API_BASE_URL}/cultivars`, {
         headers: getAuthHeaders(),
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) {
         const json = await res.json();
@@ -201,9 +202,9 @@ export const batchesApi = {
    */
   async getReservoirs(): Promise<Reservoir[]> {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/batches/reservoirs', {
+      const res = await fetch(`${API_BASE_URL}/reservoirs`, {
         headers: getAuthHeaders(),
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) {
         const json = await res.json();
@@ -220,9 +221,9 @@ export const batchesApi = {
    */
   async getZones(): Promise<{ zones: FarmZone[]; legendCounts: ZoneLegendCounts }> {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/batches/zones', {
+      const res = await fetch(`${API_BASE_URL}/zones`, {
         headers: getAuthHeaders(),
-        signal: AbortSignal.timeout(2500)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) {
         const json = await res.json();

@@ -365,9 +365,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="dash-kpi-meta">
             <span>Giá bán TB: 45k/kg</span>
-            <span className="dash-kpi-badge" style={{ backgroundColor: '#fae8ff', color: '#86198f' }}>
-              Hạng A (Loại 1)
-            </span>
           </div>
         </div>
 

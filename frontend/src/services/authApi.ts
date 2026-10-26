@@ -1,6 +1,7 @@
 import type { AuthResponse, AuthUser, LoginCredentials, RegisterCredentials } from '../types/auth';
+import { API_V1_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1/auth';
+const API_BASE_URL = `${API_V1_URL}/auth`;
 
 // Initial pre-configured seed accounts for offline fallback
 const DEFAULT_MOCK_USERS: (AuthUser & { password: string })[] = [

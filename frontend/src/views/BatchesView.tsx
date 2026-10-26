@@ -118,6 +118,19 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
   const zC1 = getZone('C1');
   const zE1 = getZone('E1');
 
+  // Nhãn bể: các phân khu cùng nhãn dùng chung một bể dung dịch (EC, pH, nhiệt độ nước)
+  const tankTag = (z: FarmZone, cx: number, cy: number) => {
+    if (!z.reservoirId) return null;
+    const isTank1 = z.reservoirId === 'res-01';
+    const label = isTank1 ? 'Bể 01' : z.reservoirId === 'res-02' ? 'Bể 02' : z.reservoirId;
+    return (
+      <g pointerEvents="none">
+        <rect x={cx - 26} y={cy - 12} width="52" height="18" rx="9" fill={isTank1 ? '#0f172a' : '#ffffff'} fillOpacity={isTank1 ? 0.6 : 0.95} />
+        <text x={cx} y={cy + 1} textAnchor="middle" fill={isTank1 ? '#ffffff' : '#0f172a'} fontSize="11" fontWeight="700" fontFamily="var(--font-sans)">{label}</text>
+      </g>
+    );
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '14px', overflow: 'hidden', background: '#1c4731' }}>
       <svg width="100%" height="100%" viewBox="0 0 520 220" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
@@ -165,7 +178,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'A1' ? undefined : '5 3'} 
           />
           <text x="135" y="55" textAnchor="middle" fill="#ffffff" fontSize="17" fontWeight="800" fontFamily="var(--font-sans)">A1</text>
-          <text x="135" y="74" textAnchor="middle" fill="#dcfce7" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">500 m²</text>
+          {tankTag(zA1, 135, 82)}
         </g>
 
         {/* Khối A2 (600 m², Xanh chuối) */}
@@ -183,7 +196,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'A2' ? undefined : '5 3'} 
           />
           <text x="135" y="160" textAnchor="middle" fill="#ffffff" fontSize="17" fontWeight="800" fontFamily="var(--font-sans)">A2</text>
-          <text x="135" y="179" textAnchor="middle" fill="#f7fee7" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">600 m²</text>
+          {tankTag(zA2, 135, 187)}
         </g>
 
         {/* Khối B2 (300 m², Cam) */}
@@ -201,7 +214,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'B2' ? undefined : '5 3'} 
           />
           <text x="297" y="55" textAnchor="middle" fill="#ffffff" fontSize="16" fontWeight="800" fontFamily="var(--font-sans)">B2</text>
-          <text x="297" y="74" textAnchor="middle" fill="#fef3c7" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">300 m²</text>
+          {tankTag(zB2, 297, 82)}
         </g>
 
         {/* Khối D1 (400 m², Xanh dương) */}
@@ -219,7 +232,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'D1' ? undefined : '5 3'} 
           />
           <text x="394" y="55" textAnchor="middle" fill="#ffffff" fontSize="16" fontWeight="800" fontFamily="var(--font-sans)">D1</text>
-          <text x="394" y="74" textAnchor="middle" fill="#e0f2fe" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">400 m²</text>
+          {tankTag(zD1, 394, 82)}
         </g>
 
         {/* Khối C1 (800 m², Tím) */}
@@ -237,7 +250,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'C1' ? undefined : '5 3'} 
           />
           <text x="307" y="160" textAnchor="middle" fill="#ffffff" fontSize="16" fontWeight="800" fontFamily="var(--font-sans)">C1</text>
-          <text x="307" y="179" textAnchor="middle" fill="#ede9fe" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">800 m²</text>
+          {tankTag(zC1, 307, 187)}
         </g>
 
         {/* Khối E1 (100 m², Đỏ) */}
@@ -255,7 +268,7 @@ const FieldLayoutMap: React.FC<FieldLayoutMapProps> = ({ zones, selectedZoneCode
             strokeDasharray={selectedZoneCode === 'E1' ? undefined : '5 3'} 
           />
           <text x="404" y="160" textAnchor="middle" fill="#ffffff" fontSize="16" fontWeight="800" fontFamily="var(--font-sans)">E1</text>
-          <text x="404" y="179" textAnchor="middle" fill="#fee2e2" fontSize="12" fontWeight="600" fontFamily="var(--font-sans)">100 m²</text>
+          {tankTag(zE1, 404, 187)}
         </g>
 
         <g transform="translate(485, 182)">
@@ -1321,7 +1334,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
               )}
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', marginTop: '4px', margin: '4px 0 16px 0' }}>
-              Sơ đồ trực quan các lô trồng và trạng thái phân bổ nhà màng.
+              Mỗi ô là một khu trồng. Nhãn Bể 01 / Bể 02 cho biết khu đó lấy nước từ bể nào. Cùng bể thì dùng chung nước.
             </p>
           </div>
 
@@ -1856,6 +1869,7 @@ export const BatchesView: React.FC<BatchesViewProps> = ({
                       required 
                       min={1} 
                       max={50}
+                      step="0.5"
                       value={obsLeaves} 
                       onChange={e => setObsLeaves(Number(e.target.value))} 
                       className="form-input" 

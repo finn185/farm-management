@@ -1094,7 +1094,7 @@ export const AIPredictorView: React.FC<AIPredictorViewProps> = ({
                 <ul style={{ paddingLeft: '18px', margin: 0, color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.78rem' }}>
                   <li>Nồng độ dinh dưỡng EC đạt {(isSimulating ? simEc : liveData.ec).toFixed(2)} mS/cm, nằm trong ngưỡng tối ưu hấp thụ của rau.</li>
                   <li>Độ pH duy trì {liveData.ph.toFixed(2)}, rễ không bị hiện tượng phong tỏa dưỡng chất.</li>
-                  <li>Tỷ lệ cây thương phẩm đạt chuẩn Loại 1 (Hạng A) ước tính 95%, sẵn sàng cho các đơn hàng siêu thị.</li>
+                  <li>Tỷ lệ cây thương phẩm đạt chuẩn ước tính 95%, sẵn sàng cho các đơn hàng siêu thị.</li>
                 </ul>
               </div>
             </div>

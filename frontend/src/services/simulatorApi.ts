@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api/v1/simulator';
+import { API_V1_URL } from '../config/api';
+
+const API_BASE_URL = `${API_V1_URL}/simulator`;
 
 export type ScenarioKey =
   | 'normal'

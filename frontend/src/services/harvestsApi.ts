@@ -1,7 +1,8 @@
 import type { HarvestRecord } from '../types/farm';
 import { farmStore } from '../mock/store';
+import { API_V1_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1/harvests';
+const API_BASE_URL = `${API_V1_URL}/harvests`;
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('hydrosmart_token') || localStorage.getItem('hydrosmart_auth_token') || localStorage.getItem('token');

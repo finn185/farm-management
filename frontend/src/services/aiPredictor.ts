@@ -1,4 +1,5 @@
 import type { AIPredictionResult, FeatureContribution } from '../types/farm';
+import { API_V1_URL, AI_ROOT_URL } from '../config/api';
 
 export interface AIPredictorInput {
   batchId?: string;
@@ -230,7 +231,7 @@ export async function predictLettuceYieldRemote(input: AIPredictorInput): Promis
   // 1. Thử gọi qua Backend Node.js Gateway nếu có batchId
   if (input.batchId) {
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/ai/batches/${input.batchId}/predict`, {
+      const res = await fetch(`${API_V1_URL}/ai/batches/${input.batchId}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,9 +250,9 @@ export async function predictLettuceYieldRemote(input: AIPredictorInput): Promis
     } catch { }
   }
 
-  // 2. Thử gọi trực tiếp FastAPI Microservice (http://localhost:8000)
+  // 2. Thử gọi trực tiếp FastAPI Microservice nếu có cấu hình hoặc chạy local
   try {
-    const res = await fetch('http://localhost:8000/api/v1/predict', {
+    const res = await fetch(`${AI_ROOT_URL}/api/v1/predict`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input)
@@ -290,7 +291,7 @@ export async function detectReservoirAnomalyRemote(params: {
   // 1. Thử gọi qua Backend Gateway
   if (params.reservoirId) {
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/ai/reservoirs/${params.reservoirId}/detect-anomaly`, {
+      const res = await fetch(`${API_V1_URL}/ai/reservoirs/${params.reservoirId}/detect-anomaly`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ autoCreateAlert: true })
@@ -306,7 +307,7 @@ export async function detectReservoirAnomalyRemote(params: {
 
   // 2. Thử gọi trực tiếp FastAPI
   try {
-    const res = await fetch('http://localhost:8000/api/v1/detect-anomaly', {
+    const res = await fetch(`${AI_ROOT_URL}/api/v1/detect-anomaly`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params)
@@ -333,5 +334,3 @@ export async function detectReservoirAnomalyRemote(params: {
     suggestedAction: isAnomaly ? 'Kiểm tra bồn dung dịch và cân chỉnh thông số.' : 'Bể dinh dưỡng bình thường.'
   };
 }
-
-

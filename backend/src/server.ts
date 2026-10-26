@@ -19,8 +19,27 @@ import { errorHandler } from './middlewares/error.middleware';
 const app = express();
 
 // Middlewares
+const allowedOrigins = config.CORS_ORIGIN
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 app.use(cors({
-  origin: config.CORS_ORIGIN === '*' ? true : [config.CORS_ORIGIN, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: (origin, callback) => {
+    if (!origin || config.CORS_ORIGIN === '*' || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin === 'http://localhost:3000' ||
+      cleanOrigin === 'http://127.0.0.1:3000' ||
+      cleanOrigin.endsWith('.up.railway.app')
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -93,7 +112,7 @@ app.use(errorHandler);
 
 // Start Server
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.PORT, () => {
+  app.listen(config.PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
     console.log(`🌱 HydroSmart Backend is running on port: ${config.PORT}`);
     console.log(`🚀 Health Check: http://localhost:${config.PORT}/health`);

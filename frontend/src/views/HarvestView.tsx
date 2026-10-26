@@ -343,7 +343,7 @@ export const HarvestView: React.FC<HarvestViewProps> = ({
         {/* Metric 3: Tỷ lệ loại A */}
         <div className="harvest-kpi-card">
           <div className="harvest-kpi-top">
-            <span className="harvest-kpi-label">Rau Đạt Chuẩn Loại 1 (A)</span>
+            <span className="harvest-kpi-label">Rau Đạt Chuẩn</span>
             <div className="harvest-kpi-icon" style={{ backgroundColor: '#ecfdf5', color: '#16a34a' }}>
               <Award size={17} />
             </div>
