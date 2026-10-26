@@ -110,22 +110,28 @@ app.use((_req: Request, res: Response) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Start Server
+// Start Server (lắng nghe đồng thời trên PORT môi trường, 5000 và 8080 để tương thích mọi cấu hình Railway Networking)
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.PORT, '0.0.0.0', () => {
-    console.log(`=======================================================`);
-    console.log(`🌱 HydroSmart Backend is running on port: ${config.PORT}`);
-    console.log(`🚀 Health Check: http://localhost:${config.PORT}/health`);
-    console.log(`🔐 Auth Endpoints:`);
-    console.log(`   - POST http://localhost:${config.PORT}/api/v1/auth/register`);
-    console.log(`   - POST http://localhost:${config.PORT}/api/v1/auth/login`);
-    console.log(`   - GET  http://localhost:${config.PORT}/api/v1/auth/me`);
-    console.log(`📡 Nguồn dữ liệu cảm biến: ${config.DATA_SOURCE === 'device' ? 'THIẾT BỊ THẬT (ESP32)' : 'TRẠM GIẢ LẬP (có thể bật/tắt trên giao diện)'}`);
-    console.log(`   - POST http://localhost:${config.PORT}/api/v1/sensors/telemetry/batch`);
-    console.log(`=======================================================`);
-    bootstrapSimulator();
-    startDeviceWatchdog();
-  });
+  const ports = Array.from(new Set([config.PORT, 5000, 8080]));
+  let initialized = false;
+
+  for (const port of ports) {
+    const srv = app.listen(port, '0.0.0.0', () => {
+      console.log(`🌱 HydroSmart Backend listening on 0.0.0.0:${port}`);
+      if (!initialized) {
+        initialized = true;
+        console.log(`=======================================================`);
+        console.log(`🚀 Health Check: http://localhost:${port}/health`);
+        console.log(`📡 Nguồn dữ liệu cảm biến: ${config.DATA_SOURCE === 'device' ? 'THIẾT BỊ THẬT (ESP32)' : 'TRẠM GIẢ LẬP (có thể bật/tắt trên giao diện)'}`);
+        console.log(`=======================================================`);
+        bootstrapSimulator();
+        startDeviceWatchdog();
+      }
+    });
+    srv.on('error', (err: any) => {
+      console.warn(`Port ${port} skipped:`, err?.message || err);
+    });
+  }
 }
 
 export default app;
