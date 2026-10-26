@@ -10,8 +10,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
-    "start": "prisma db push --skip-generate && tsx prisma/seed.ts --if-empty && node dist/server.js",
-    "start:raw": "node dist/server.js",
+    "start": "node dist/server.js",
+    "db:init": "prisma db push --skip-generate --accept-data-loss && tsx prisma/seed.ts --if-empty",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "prisma:generate": "prisma generate",

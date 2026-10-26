@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import { exec } from 'child_process';
 import { config } from './config/env';
 import authRoutes from './modules/auth/auth.routes';
 import batchRoutes from './modules/batches/batches.routes';
@@ -15,6 +16,7 @@ import simulatorRoutes from './modules/simulator/simulator.routes';
 import { bootstrapSimulator } from './modules/simulator/simulator.service';
 import { startDeviceWatchdog } from './modules/sensors/device-watchdog';
 import { errorHandler } from './middlewares/error.middleware';
+import { prisma } from './utils/prisma';
 
 const app = express();
 
@@ -110,9 +112,33 @@ app.use((_req: Request, res: Response) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Start Server (lắng nghe đồng thời trên PORT môi trường, 5000 và 8080 để tương thích mọi cấu hình Railway Networking)
+async function ensureDatabaseReady() {
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount > 0) {
+      console.log(`✅ Database đã sẵn sàng (${userCount} tài khoản).`);
+      bootstrapSimulator();
+      startDeviceWatchdog();
+      return;
+    }
+  } catch {
+    console.log('⏳ Đang tự động khởi tạo bảng (db push) và dữ liệu mẫu...');
+  }
+
+  exec('npm run db:init', (err, stdout, stderr) => {
+    if (stdout) console.log(stdout);
+    if (stderr) console.warn(stderr);
+    if (err) {
+      console.warn('⚠️ Lưu ý khi chạy db:init:', err.message);
+    }
+    bootstrapSimulator();
+    startDeviceWatchdog();
+  });
+}
+
+// Start Server (lắng nghe đồng thời trên PORT môi trường, 3000, 5000, 8000, 8080 để tương thích mọi cấu hình Railway Networking)
 if (process.env.NODE_ENV !== 'test') {
-  const ports = Array.from(new Set([config.PORT, 5000, 8080]));
+  const ports = Array.from(new Set([config.PORT, 5000, 8080, 3000, 8000]));
   let initialized = false;
 
   for (const port of ports) {
@@ -124,8 +150,7 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`🚀 Health Check: http://localhost:${port}/health`);
         console.log(`📡 Nguồn dữ liệu cảm biến: ${config.DATA_SOURCE === 'device' ? 'THIẾT BỊ THẬT (ESP32)' : 'TRẠM GIẢ LẬP (có thể bật/tắt trên giao diện)'}`);
         console.log(`=======================================================`);
-        bootstrapSimulator();
-        startDeviceWatchdog();
+        ensureDatabaseReady();
       }
     });
     srv.on('error', (err: any) => {

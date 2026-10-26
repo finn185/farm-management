@@ -11,8 +11,9 @@ RUN npm install
 
 COPY . .
 
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hydrosmart?schema=public"
 RUN npm run build
 
-EXPOSE 5000 8080
+EXPOSE 3000 5000 8000 8080
 
 CMD ["npm", "run", "start"]
