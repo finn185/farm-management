@@ -371,32 +371,61 @@ export class SensorsService {
 
   /**
    * Tự động dọn dẹp các bản ghi log cảm biến cũ để tránh tràn ổ cứng Postgres (đặc biệt trên Railway Hobby 500MB)
-   * Giữ lại tối đa 48 giờ dữ liệu log cảm biến.
+   * Giữ lại tối đa 24 giờ và Hard Cap tối đa 300 bản ghi mới nhất.
+   * Đảm bảo tổng dung lượng lưu trữ toàn bộ database luôn dưới 5MB.
    */
-  async pruneOldTelemetryLogs(retentionHours = 48) {
+  async pruneOldTelemetryLogs(retentionHours = 24) {
     try {
       const cutoff = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
       
-      const deletedWaterLogs = await prisma.waterQualityLog.deleteMany({
+      // 1. Xóa các log quá hạn thời gian
+      await prisma.waterQualityLog.deleteMany({
         where: { createdAt: { lt: cutoff } }
       });
 
-      const deletedEnvLogs = await prisma.environmentLog.deleteMany({
+      await prisma.environmentLog.deleteMany({
         where: { createdAt: { lt: cutoff } }
       });
 
-      // Dọn dẹp cảnh báo đã giải quyết cũ hơn 7 ngày
-      const resolvedAlertsCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const deletedAlerts = await prisma.alert.deleteMany({
+      // 2. Hard Cap: giới hạn tối đa 300 bản ghi mới nhất cho mỗi bảng
+      const totalWater = await prisma.waterQualityLog.count();
+      if (totalWater > 300) {
+        const excess = totalWater - 300;
+        const oldestWater = await prisma.waterQualityLog.findMany({
+          select: { id: true },
+          orderBy: { createdAt: 'asc' },
+          take: excess
+        });
+        if (oldestWater.length > 0) {
+          await prisma.waterQualityLog.deleteMany({
+            where: { id: { in: oldestWater.map(r => r.id) } }
+          });
+        }
+      }
+
+      const totalEnv = await prisma.environmentLog.count();
+      if (totalEnv > 300) {
+        const excess = totalEnv - 300;
+        const oldestEnv = await prisma.environmentLog.findMany({
+          select: { id: true },
+          orderBy: { createdAt: 'asc' },
+          take: excess
+        });
+        if (oldestEnv.length > 0) {
+          await prisma.environmentLog.deleteMany({
+            where: { id: { in: oldestEnv.map(r => r.id) } }
+          });
+        }
+      }
+
+      // 3. Dọn dẹp cảnh báo đã giải quyết cũ hơn 3 ngày
+      const resolvedAlertsCutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      await prisma.alert.deleteMany({
         where: {
           status: 'resolved',
           resolvedAt: { lt: resolvedAlertsCutoff }
         }
       });
-
-      if (deletedWaterLogs.count > 0 || deletedEnvLogs.count > 0) {
-        console.log(`🧹 Đã dọn dẹp dữ liệu cũ (> ${retentionHours}h): ${deletedWaterLogs.count} water logs, ${deletedEnvLogs.count} env logs, ${deletedAlerts.count} alerts.`);
-      }
     } catch (err) {
       console.warn('⚠️ Lỗi khi dọn dẹp dữ liệu log cũ:', err);
     }
