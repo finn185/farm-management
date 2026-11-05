@@ -15,6 +15,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import simulatorRoutes from './modules/simulator/simulator.routes';
 import { bootstrapSimulator } from './modules/simulator/simulator.service';
 import { startDeviceWatchdog } from './modules/sensors/device-watchdog';
+import { sensorsService } from './modules/sensors/sensors.service';
 import { errorHandler } from './middlewares/error.middleware';
 import { prisma } from './utils/prisma';
 
@@ -119,6 +120,7 @@ async function ensureDatabaseReady() {
       console.log(`✅ Database đã sẵn sàng (${userCount} tài khoản).`);
       bootstrapSimulator();
       startDeviceWatchdog();
+      sensorsService.pruneOldTelemetryLogs(48).catch(() => {});
       return;
     }
   } catch {
@@ -133,6 +135,7 @@ async function ensureDatabaseReady() {
     }
     bootstrapSimulator();
     startDeviceWatchdog();
+    sensorsService.pruneOldTelemetryLogs(48).catch(() => {});
   });
 }
 
@@ -151,6 +154,11 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`📡 Nguồn dữ liệu cảm biến: ${config.DATA_SOURCE === 'device' ? 'THIẾT BỊ THẬT (ESP32)' : 'TRẠM GIẢ LẬP (có thể bật/tắt trên giao diện)'}`);
         console.log(`=======================================================`);
         ensureDatabaseReady();
+
+        // Lập lịch dọn dẹp log cảm biến cũ mỗi 1 giờ
+        setInterval(() => {
+          sensorsService.pruneOldTelemetryLogs(48).catch(() => {});
+        }, 60 * 60 * 1000);
       }
     });
     srv.on('error', (err: any) => {

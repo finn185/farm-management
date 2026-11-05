@@ -629,6 +629,11 @@ class SimulatorService {
       this.simTime = new Date(this.simTime.getTime() + this.minutesPerTick * 60_000);
       this.tickCount++;
 
+      // Tu dong don dep log dinh ky tranh tran dia 500MB
+      if (this.tickCount % 100 === 0) {
+        sensorsService.pruneOldTelemetryLogs(24).catch(() => {});
+      }
+
       await this.syncTopology(false);
 
       const anyHeat = this.farmHeatwave;

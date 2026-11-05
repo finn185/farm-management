@@ -77,6 +77,9 @@ export const authApi = {
         if (result.data) {
           return result.data;
         }
+      } else if (response.status >= 500) {
+        // Backend đang lỗi 5xx (ví dụ DB đang khởi động lại hoặc phục hồi) -> Chuyển sang fallback tài khoản mẫu cục bộ
+        console.warn(`[authApi] Backend API trả về mã lỗi ${response.status}. Chuyển sang cơ chế đăng nhập dự phòng...`);
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.message) {
@@ -84,12 +87,12 @@ export const authApi = {
         }
       }
     } catch (err: any) {
-      // If error is from backend rejection (e.g. wrong password), rethrow
+      // If error is from backend rejection (e.g. wrong password 4xx), rethrow
       if (err.message && err.message !== 'Failed to fetch' && !err.message.includes('fetch')) {
         throw err;
       }
       // Otherwise backend is offline, proceed with local fallback
-      console.warn('Backend API offline at http://localhost:5000. Using local mock authenticator.');
+      console.warn('Backend API offline hoặc không phản hồi. Sử dụng bộ xác thực dự phòng cục bộ.');
     }
 
     // Local fallback logic

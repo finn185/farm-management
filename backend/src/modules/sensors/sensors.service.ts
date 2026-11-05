@@ -368,6 +368,39 @@ export class SensorsService {
     if (sensorType === 'multi') return metric || 'air_temp';
     return null;
   }
+
+  /**
+   * Tự động dọn dẹp các bản ghi log cảm biến cũ để tránh tràn ổ cứng Postgres (đặc biệt trên Railway Hobby 500MB)
+   * Giữ lại tối đa 48 giờ dữ liệu log cảm biến.
+   */
+  async pruneOldTelemetryLogs(retentionHours = 48) {
+    try {
+      const cutoff = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
+      
+      const deletedWaterLogs = await prisma.waterQualityLog.deleteMany({
+        where: { createdAt: { lt: cutoff } }
+      });
+
+      const deletedEnvLogs = await prisma.environmentLog.deleteMany({
+        where: { createdAt: { lt: cutoff } }
+      });
+
+      // Dọn dẹp cảnh báo đã giải quyết cũ hơn 7 ngày
+      const resolvedAlertsCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const deletedAlerts = await prisma.alert.deleteMany({
+        where: {
+          status: 'resolved',
+          resolvedAt: { lt: resolvedAlertsCutoff }
+        }
+      });
+
+      if (deletedWaterLogs.count > 0 || deletedEnvLogs.count > 0) {
+        console.log(`🧹 Đã dọn dẹp dữ liệu cũ (> ${retentionHours}h): ${deletedWaterLogs.count} water logs, ${deletedEnvLogs.count} env logs, ${deletedAlerts.count} alerts.`);
+      }
+    } catch (err) {
+      console.warn('⚠️ Lỗi khi dọn dẹp dữ liệu log cũ:', err);
+    }
+  }
 }
 
 export const sensorsService = new SensorsService();
